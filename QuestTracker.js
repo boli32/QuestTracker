@@ -23,6 +23,7 @@ var QuestTracker = QuestTracker || (function () {
 	let QUEST_TRACKER_pageName = "Quest Tree Page";
 	let QUEST_TRACKER_TreeObjRef = {};
 	let QUEST_TRACKER_questGrid = [];
+	let QUEST_TRACKER_jumpGate = true;
 	const loadQuestTrackerData = () => {
 		initializeQuestTrackerState();
 		QUEST_TRACKER_globalQuestData = state.QUEST_TRACKER.globalQuestData;
@@ -34,6 +35,7 @@ var QuestTracker = QuestTracker || (function () {
 		QUEST_TRACKER_readableJSON = state.QUEST_TRACKER.readableJSON || true;
 		QUEST_TRACKER_TreeObjRef = state.QUEST_TRACKER.TreeObjRef || {};
 		QUEST_TRACKER_questGrid = state.QUEST_TRACKER.questGrid || [];
+		QUEST_TRACKER_jumpGate = state.QUEST_TRACKER.jumpGate || true;
 	};
 	const saveQuestTrackerData = () => {
 		state.QUEST_TRACKER.globalQuestData = QUEST_TRACKER_globalQuestData;
@@ -44,6 +46,7 @@ var QuestTracker = QuestTracker || (function () {
 		state.QUEST_TRACKER.rumoursByLocation = QUEST_TRACKER_rumoursByLocation;
 		state.QUEST_TRACKER.readableJSON = QUEST_TRACKER_readableJSON;
 		state.QUEST_TRACKER.questGrid = QUEST_TRACKER_questGrid;
+		state.QUEST_TRACKER.jumpGate = QUEST_TRACKER_jumpGate;
 	};
 	const initializeQuestTrackerState = () => {
 		if (!state.QUEST_TRACKER || Object.keys(state.QUEST_TRACKER).length === 0) {
@@ -56,10 +59,14 @@ var QuestTracker = QuestTracker || (function () {
 				rumoursByLocation: {},
 				generations: {},
 				readableJSON: true,
-				QUEST_TRACKER_TreeObjRef: {}
+				QUEST_TRACKER_TreeObjRef: {},
+				jumpGate: true
 			};
 			if (!findObjs({ type: 'rollabletable', name: 'quests' })[0]) {
 				createObj('rollabletable', { name: 'quests' });
+			}
+			if (!findObjs({ type: 'rollabletable', name: 'quest-groups' })[0]) {
+				createObj('rollabletable', { name: 'quest-groups' });
 			}
 			let locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
 			if (!locationTable) {
@@ -80,6 +87,26 @@ var QuestTracker = QuestTracker || (function () {
 		}
 	};
 	const Utils = (() => {
+		const H = {
+			checkType: (input) => {
+				if (typeof input === 'string') {
+					if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
+						return 'DATE';
+					}
+					return 'STRING';
+				} else if (typeof input === 'boolean') {
+					return 'BOOLEAN';
+				} else if (typeof input === 'number') {
+					return Number.isInteger(input) ? 'INT' : 'STRING';
+				} else if (Array.isArray(input)) {
+					return 'ARRAY';
+				} else if (typeof input === 'object' && input !== null) {
+					return 'OBJECT';
+				} else {
+					return 'STRING';
+				}
+			}
+		};
 		const sendGMMessage = (message) => {
 			sendChat('Quest Tracker', `/w gm ${message}`);
 		};
@@ -111,24 +138,6 @@ var QuestTracker = QuestTracker || (function () {
 			const jsonContent = content.substring(start, end + 1).trim();
 			return jsonContent;
 		};
-		const checkType = (input) => {
-			if (typeof input === 'string') {
-				if (/^\d{4}-\d{2}-\d{2}$/.test(input)) {
-					return 'DATE';
-				}
-				return 'STRING';
-			} else if (typeof input === 'boolean') {
-				return 'BOOLEAN';
-			} else if (typeof input === 'number') {
-				return Number.isInteger(input) ? 'INT' : 'STRING';
-			} else if (Array.isArray(input)) {
-				return 'ARRAY';
-			} else if (typeof input === 'object' && input !== null) {
-				return 'OBJECT';
-			} else {
-				return 'STRING';
-			}
-		};
 		const sanitizeInput = (input, type) => {
 			if (input === undefined || input === null) {
 				Utils.sendGMMessage(`Error: Input is undefined or null.`);
@@ -146,7 +155,7 @@ var QuestTracker = QuestTracker || (function () {
 						Utils.sendGMMessage(`Error: Expected an array, but received "${typeof input}".`);
 						return [sanitizeInput(input, 'STRING')];
 					}
-					return input.map(item => sanitizeInput(item, checkType(item))).filter(item => item !== null);
+					return input.map(item => sanitizeInput(item, H.checkType(item))).filter(item => item !== null);
 				case 'DATE':
 					return /^\d{4}-\d{2}-\d{2}$/.test(input) ? input : null;
 				case 'BOOLEAN':
@@ -162,7 +171,7 @@ var QuestTracker = QuestTracker || (function () {
 					for (const key in input) {
 						if (input.hasOwnProperty(key)) {
 							const sanitizedKey = sanitizeInput(key, 'STRING');
-							const fieldType = checkType(input[key]);
+							const fieldType = H.checkType(input[key]);
 							const sanitizedValue = sanitizeInput(input[key], fieldType);
 							if (sanitizedKey !== null && sanitizedValue !== null) {
 								sanitizedObject[sanitizedKey] = sanitizedValue;
@@ -174,12 +183,6 @@ var QuestTracker = QuestTracker || (function () {
 					Utils.sendGMMessage(`Error: Unsupported type "${type}".`);
 					return null;
 			}
-		};
-		const extractFieldFromCommand = (command) => {
-			if (command.includes('-') && command.split('-').length >= 3) {
-				return command.split('-')[2].toLowerCase();
-			}
-			return null;
 		};
 		const updateHandoutField = (dataType = 'quest') => {
 			const handoutName = dataType.toLowerCase() === 'rumour' ? QUEST_TRACKER_RumourHandoutName : QUEST_TRACKER_QuestHandoutName;
@@ -222,30 +225,15 @@ var QuestTracker = QuestTracker || (function () {
 				Rumours.calculateRumoursByLocation();
 			}
 		};
-		const capitalize = (str) => {
-			str.charAt(0).toUpperCase() + str.slice(1);
-		};  
-		const convertToArray = (input) => {
-			if (Array.isArray(input)) {
-				return input;
-			} else if (typeof input === 'object') {
-				return Object.values(input);
-			} else if (!input) {
-				return [];
-			} else {
-				return [input];
-			}
-		};
-		const getStatusByName = (statusName) => {
-			const statusKey = Object.keys(statusMapping).find(key => statusMapping[key].toLowerCase() === statusName.toLowerCase());
-			return statusKey ? parseInt(statusKey, 10) : 1; 
-		};
 		const togglereadableJSON = (value) => {
 			QUEST_TRACKER_readableJSON = (value === 'true');
 			saveQuestTrackerData();
 			updateHandoutField('quest');
 			updateHandoutField('rumour');
-			Utils.sendGMMessage(`Readable JSON has been set to ${QUEST_TRACKER_readableJSON ? 'on' : 'off'}. %NEWLINE% JSON files have been ${QUEST_TRACKER_readableJSON ? 'Prettifed' : 'compressed'}.`);
+		};
+		const toggleJumpGate = (value) => {
+			QUEST_TRACKER_jumpGate = (value === 'true');
+			saveQuestTrackerData();
 		};
 		const sanitizeString = (input) => {
 			if (typeof input !== 'string') {
@@ -255,46 +243,19 @@ var QuestTracker = QuestTracker || (function () {
 			const sanitizedString = input.replace(/[^a-zA-Z0-9_ ]/g, '_');
 			return sanitizedString;
 		};
-		const initializeNestedPath = (obj, path) => {
-			const parts = path.split('|');
-			let current = obj;
-			for (const part of parts) {
-				if (typeof current[part] !== 'object' || current[part] === null) {
-					current[part] = {};
-				}
-				current = current[part];
-			}
-		};
-		const runInBatches = (tasks, batchSize = 20, delay = 100, totalTasks = null, callback = () => {}) => {
-			totalTasks = totalTasks || tasks.length;
-			const taskBatch = tasks.splice(0, batchSize);
-			taskBatch.forEach(task => task());
-			const completedTasks = totalTasks - tasks.length;
-			const progressPercent = Math.floor((completedTasks / totalTasks) * 100);
-			log(`Batch Processing: ${completedTasks}/${totalTasks} (${progressPercent}%)`);
-			if (tasks.length > 0) {
-				setTimeout(() => Utils.runInBatches(tasks, batchSize, delay, totalTasks, callback), delay);
-			} else {
-				callback();
-			}
-		};
 		return {
 			sendGMMessage,
 			normalizeKeys,
 			stripJSONContent,
 			sanitizeInput,
-			checkType,
 			updateHandoutField,
-			convertToArray,
-			getStatusByName,
 			togglereadableJSON,
-			sanitizeString,
-			runInBatches,
-			initializeNestedPath
+			toggleJumpGate,
+			sanitizeString
 		};
 	})();
 	const Import = (() => {
-		const Helpers = {
+		const H = {
 			importData: (handoutName, globalVarName, dataType) => {
 				Utils.sendGMMessage(`Importing ${dataType} data. This might take some time. Please be patient...`);
 				let handout = findObjs({ type: 'handout', name: handoutName })[0];
@@ -410,23 +371,22 @@ var QuestTracker = QuestTracker || (function () {
 			cleanUpDataFields: () => {
 				Object.keys(QUEST_TRACKER_globalQuestData).forEach(questId => {
 					const quest = QUEST_TRACKER_globalQuestData[questId];
-					Helpers.validateRelationships(quest.relationships || {}, questId);
+					H.validateRelationships(quest.relationships || {}, questId);
 				});
 				saveQuestTrackerData();
 				Utils.updateHandoutField('quest');
 			}
-		}
+		};
 		const fullImportProcess = () => {
 			Utils.sendGMMessage("Starting full import process. This may take some time...");
-			Helpers.importData(QUEST_TRACKER_QuestHandoutName, 'QUEST_TRACKER_globalQuestData', 'Quest');
-			Helpers.importData(QUEST_TRACKER_RumourHandoutName, 'QUEST_TRACKER_globalRumours', 'Rumour');
-			Helpers.syncQuestRollableTable();
+			H.importData(QUEST_TRACKER_QuestHandoutName, 'QUEST_TRACKER_globalQuestData', 'Quest');
+			H.importData(QUEST_TRACKER_RumourHandoutName, 'QUEST_TRACKER_globalRumours', 'Rumour');
+			H.syncQuestRollableTable();
 			Quest.cleanUpLooseEnds();
-			Helpers.cleanUpDataFields();
+			H.cleanUpDataFields();
 			Quest.populateQuestsToAutoAdvance();
 			Utils.sendGMMessage("Import completed and cleanup executed.");
 		};
-
 		return {
 			fullImportProcess
 		};
@@ -489,6 +449,14 @@ var QuestTracker = QuestTracker || (function () {
 						exclusions.add(condition);
 					}
 				});
+				if (questData.group) {
+					Object.keys(QUEST_TRACKER_globalQuestData).forEach(key => {
+						const otherQuest = QUEST_TRACKER_globalQuestData[key];
+						if (otherQuest.group && otherQuest.group !== questData.group) {
+							exclusions.add(key);
+						}
+					});
+				}
 				return Array.from(exclusions);
 			},
 			modifyRelationshipObject: (currentRelationships, action, relationshipType, newItem, groupnum) => {
@@ -619,6 +587,30 @@ var QuestTracker = QuestTracker || (function () {
 						}
 					}
 				});
+			},
+			getAllQuestGroups: () => {
+				let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+				if (!groupTable) return [];
+				let groupItems = findObjs({ type: 'tableitem', rollabletableid: groupTable.id });
+				return groupItems.map(item => item.get('name'));
+			},
+			removeQuestsFromGroup: (groupTable, groupId) => {
+				const groupObject = findObjs({ type: 'tableitem', rollabletableid: groupTable.id }).find(item => item.get('weight') == groupId);
+				if (!groupObject) return;
+	
+				Object.keys(QUEST_TRACKER_globalQuestData).forEach(questId => {
+					const quest = QUEST_TRACKER_globalQuestData[questId] || {};
+					if (quest.group === groupId) {
+						delete quest.group;
+					}
+				});
+				Utils.updateHandoutField('quest');
+			},
+			getNewGroupId: (groupTable) => {
+				let groupItems = findObjs({ type: 'tableitem', rollabletableid: groupTable.id });
+				if (!groupItems || groupItems.length === 0) return 1;
+				let maxWeight = groupItems.reduce((max, item) => Math.max(max, item.get('weight')), 0);
+				return maxWeight + 1;
 			}
 		};
 		const manageRelationship = (questId, action, relationshipType, newItem = null, groupnum = null) => {
@@ -764,12 +756,53 @@ var QuestTracker = QuestTracker || (function () {
 						quest.description = '';
 					}
 					break;
+				case 'group':
+					if (action === 'add') {
+						quest.group = newItem;
+					} else if (action === 'remove') {
+						delete quest.group;
+					}
+					break;
 				default:
 					Utils.sendGMMessage(`Error: Unsupported field "${field}".`);
 					break;
 			}
-			log(quest);
-			// Utils.updateHandoutField('quest');
+			Utils.updateHandoutField('quest');
+		};
+		const manageGroups = (action, newItem = null, groupId = null) => {
+			let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+			if (!groupTable) {
+				Utils.sendGMMessage('Error: Quest groups table not found.');
+				return;
+			}
+			switch (action) {
+				case 'add':
+					if (!newItem) return;
+					const allGroups = findObjs({ type: 'tableitem', rollabletableid: groupTable.id }).map(item => item.get('name').toLowerCase());
+					if (allGroups.includes(Utils.sanitizeString(newItem.toLowerCase()))) return;
+					const newWeight = H.getNewGroupId(groupTable);
+					if (newWeight === undefined || newWeight === null) return;
+					let newGroup = createObj('tableitem', {
+						rollabletableid: groupTable.id,
+						name: newItem,
+						weight: newWeight
+					});
+					break;
+				case 'remove':
+					if (!groupId || groupId === 1) return;
+					let groupToRemove = findObjs({ type: 'tableitem', rollabletableid: groupTable.id }).find(item => item.get('weight') == groupId);
+					H.removeQuestsFromGroup(groupTable, groupId);
+					groupToRemove.remove();
+					break;
+				case 'update':
+					const groupList = findObjs({ type: 'tableitem', rollabletableid: groupTable.id }).map(item => item.get('name').toLowerCase());
+					if (groupList.includes(Utils.sanitizeString(newItem.toLowerCase()))) return;
+					let groupToUpdate = findObjs({ type: 'tableitem', rollabletableid: groupTable.id }).find(item => item.get('weight') == groupId);
+					if (groupToUpdate) {
+						groupToUpdate.set('name', newItem);
+					}
+					break;
+			}
 		};
 		return {
 			getStatusNameByQuestId,
@@ -779,10 +812,17 @@ var QuestTracker = QuestTracker || (function () {
 			addQuest,
 			removeQuest,
 			cleanUpLooseEnds,
-			manageQuestObject
+			manageQuestObject,
+			manageGroups
 		};
 	})();
 	const Calendar = (() => {
+		const H = {
+			getStatusByName: (statusName) => {
+				const statusKey = Object.keys(statusMapping).find(key => statusMapping[key].toLowerCase() === statusName.toLowerCase());
+				return statusKey ? parseInt(statusKey, 10) : 1; 
+			}
+		};
 		const setCurrentDate = (newDate, isPublic = false, fromValue = 'Quest Tracker', messageValue = null) => {
 			QUEST_TRACKER_currentDate = newDate;
 			saveQuestTrackerData();
@@ -824,7 +864,7 @@ var QuestTracker = QuestTracker || (function () {
 				Object.keys(quest.autoadvance).forEach(status => {
 					const dateToAdvance = quest.autoadvance[status];
 					if (QUEST_TRACKER_currentDate >= dateToAdvance) {
-						const statusWeight = Utils.getStatusByName(status);
+						const statusWeight = H.getStatusByName(status);
 						Quest.updateQuestStatus(questId, statusWeight);
 						Utils.sendGMMessage(`Quest "${quest.name}" has been automatically advanced to status: "${status}".`);
 					}
@@ -845,261 +885,538 @@ var QuestTracker = QuestTracker || (function () {
 		};
 	})();
 	const QuestPageBuilder = (() => {
-		const DEFAULT_PAGE_UNIT = 70;
-		const AVATAR_SIZE = 70;
-		const TEXT_FONT_SIZE = 14;
-		const PAGE_HEADER_WIDTH = 700;
-		const PAGE_HEADER_HEIGHT = 150;
-		const ROUNDED_RECT_WIDTH = 200;
-		const ROUNDED_RECT_HEIGHT = 50;
-		const VERTICAL_SPACING = 70;
-		const HORIZONTAL_SPACING = 140;
-		const DEFAULT_FILL_COLOR = '#CCCCCC';
-		const DEFAULT_STATUS_COLOR = '#000000';
-		const QUESTICON_WIDTH = 305;
-		const QUESTICON_HEIGHT = 92;
-		const clearPageObjects = (pageId, callback) => {
-			const pageElements = [
-				...findObjs({ _type: 'graphic', _pageid: pageId }),
-				...findObjs({ _type: 'path', _pageid: pageId }),
-				...findObjs({ _type: 'text', _pageid: pageId })
-			];
-			const removeTasks = pageElements.map(obj => () => obj.remove());
-			Utils.runInBatches(removeTasks, 50, 100, removeTasks.length, callback);
+		const vars = {
+			DEFAULT_PAGE_UNIT: 70,
+			AVATAR_SIZE: 70,
+			TEXT_FONT_SIZE: 14,
+			PAGE_HEADER_WIDTH: 700,
+			PAGE_HEADER_HEIGHT: 150,
+			ROUNDED_RECT_WIDTH: 200,
+			ROUNDED_RECT_HEIGHT: 50,
+			VERTICAL_SPACING: 100,
+			HORIZONTAL_SPACING: 160,
+			DEFAULT_FILL_COLOR: '#CCCCCC',
+			DEFAULT_STATUS_COLOR: '#000000',
+			QUESTICON_WIDTH: 305,
+			GROUP_SPACING: 800,
+			QUESTICON_HEIGHT: 92
 		};
-		const adjustPageSettings = (page) => {
-			page.set({
-				showgrid: false,
-				snapping_increment: 0,
-				diagonaltype: 'facing',
-				scale_number: 1,
-			});
-		};
-		const adjustPageSizeToFitGrid = (page, questGrid) => {
-			const numRows = questGrid.filter(row => row !== undefined).length;
-			let maxCols = 0;
-			questGrid.forEach(row => {
-				if (row) {
-					maxCols = Math.max(maxCols, row.length);
+		const H = {
+			adjustPageSettings: (page) => {
+				page.set({
+					showgrid: false,
+					snapping_increment: 0,
+					diagonaltype: 'facing',
+					scale_number: 1,
+				});
+			},
+			adjustPageSizeToFitPositions: (page, questPositions) => {
+				const positions = Object.values(questPositions);
+				const minX = Math.min(...positions.map(pos => pos.x));
+				const maxX = Math.max(...positions.map(pos => pos.x));
+				const minY = Math.min(...positions.map(pos => pos.y));
+				const maxY = Math.max(...positions.map(pos => pos.y));
+				const requiredWidthInPixels = (maxX - minX) + vars.ROUNDED_RECT_WIDTH + vars.HORIZONTAL_SPACING * 2;
+				const requiredHeightInPixels = (maxY - minY) + vars.ROUNDED_RECT_HEIGHT + vars.VERTICAL_SPACING * 2 + vars.PAGE_HEADER_HEIGHT;
+				const requiredWidthInUnits = Math.ceil(requiredWidthInPixels / vars.DEFAULT_PAGE_UNIT);
+				const requiredHeightInUnits = Math.ceil(requiredHeightInPixels / vars.DEFAULT_PAGE_UNIT);
+				page.set({ width: requiredWidthInUnits, height: requiredHeightInUnits });
+			},
+			clearPageObjects: (pageId, callback) => {
+				const pageElements = [
+					...findObjs({ _type: 'graphic', _pageid: pageId }),
+					...findObjs({ _type: 'path', _pageid: pageId }),
+					...findObjs({ _type: 'text', _pageid: pageId })
+				];
+				pageElements.forEach(obj => obj.remove());
+				if (typeof callback === 'function') callback();
+			},
+			buildPageHeader: (page) => {
+				const titleText = 'Quest Tracker Quest Tree';
+				const descriptionText = 'A visual representation of all quests.';
+				const pageWidth = page.get('width') * vars.DEFAULT_PAGE_UNIT;
+				const titleX = pageWidth / 2;
+				const titleY = 70;
+				D.drawText(page.id, titleX, titleY, titleText, '#000000', 'map', 32, 'Contrail One', null, 'center', 'middle');
+				const descriptionY = titleY + 40;
+				D.drawText(page.id, titleX, descriptionY, descriptionText, '#666666', 'map', 18, 'Contrail One', null, 'center', 'middle');
+			},
+			storeQuestRef: (questId, type, objRef, target = null) => {
+				if (!QUEST_TRACKER_TreeObjRef[questId]) {
+					QUEST_TRACKER_TreeObjRef[questId] = { paths: {} };
 				}
-			});
-			const requiredWidthInPixels = Math.max(maxCols * (QUESTICON_WIDTH + HORIZONTAL_SPACING), PAGE_HEADER_WIDTH);
-			const requiredHeightInPixels = Math.max(numRows * (QUESTICON_HEIGHT + VERTICAL_SPACING) + PAGE_HEADER_HEIGHT + VERTICAL_SPACING, PAGE_HEADER_HEIGHT);
-			const requiredWidthInUnits = Math.ceil(requiredWidthInPixels / DEFAULT_PAGE_UNIT);
-			const requiredHeightInUnits = Math.ceil(requiredHeightInPixels / DEFAULT_PAGE_UNIT);
-			page.set({ width: requiredWidthInUnits, height: requiredHeightInUnits });
-		};
-		const buildPageHeader = (page) => {
-			const titleText = 'Quest Tracker Quest Tree';
-			const descriptionText = 'A visual representation of all quests.';
-			const pageWidth = page.get('width') * DEFAULT_PAGE_UNIT;
-			const titleX = (pageWidth / 2) - ( PAGE_HEADER_WIDTH / 2 );
-			const titleY = 70;
-			drawText(page.id, titleX, titleY, titleText, '#000000', 'map', 32, 'Contrail One');
-			const descriptionY = titleY + 40;
-			drawText(page.id, titleX, descriptionY, descriptionText, '#666666', 'map', 18, 'Contrail One');
-		};
-		const buildQuestTreeOnPage = () => {
-			let questTreePage = findObjs({ _type: 'page', name: QUEST_TRACKER_pageName })[0];
-			if (!questTreePage) {
-				Utils.sendGMMessage(`Error: Page "${QUEST_TRACKER_pageName}" not found. Please create the page manually.`);
-				return;
-			}
-			adjustPageSettings(questTreePage);
-			clearPageObjects(questTreePage.id, () => {
-				QUEST_TRACKER_questGrid = buildDAG(QUEST_TRACKER_globalQuestData);
-				adjustPageSizeToFitGrid(questTreePage, QUEST_TRACKER_questGrid);
-				buildPageHeader(questTreePage);
-				QUEST_TRACKER_TreeObjRef = {};
-				drawQuestConnections(questTreePage.id, QUEST_TRACKER_questGrid);
-				setTimeout(() => {
-					drawQuestTreeFromGrid(questTreePage, QUEST_TRACKER_questGrid, () => {
-						setTimeout(() => {
-							drawQuestTextAfterGraphics(questTreePage, QUEST_TRACKER_questGrid);
-							setTimeout(() => {
-								saveQuestTrackerData();
-								Utils.sendGMMessage("Quest Tree rendering complete.");
-							}, 8000);
-						}, 1000);
-					});
-				}, 1000);
-			});
-		};
-		const buildDAG = (questData) => {
-			const layers = [];
-			const questLevels = {};
-			const calculateLevel = (questId) => {
-				if (questLevels[questId] !== undefined) return questLevels[questId];
-				const prereqs = questData[questId]?.prerequisites || [];
-				const level = prereqs.reduce((maxLevel, prereqId) => {
-					return Math.max(maxLevel, calculateLevel(prereqId) + 1);
-				}, 0);
-				questLevels[questId] = level;
-				return level;
-			};
-			Object.keys(questData).forEach(questId => calculateLevel(questId));
-			Object.entries(questLevels).forEach(([questId, level]) => {
-				if (!layers[level]) layers[level] = [];
-				layers[level].push(questId);
-			});
-			layers.forEach(row => {
-				row.forEach((questId, index) => {
-					const exclusives = questData[questId]?.mutuallyexclusive || [];
-					exclusives.forEach(exclusiveId => {
-						if (!row.includes(exclusiveId)) {
-							row.splice(index + 1, 0, exclusiveId);
+				if (type === 'paths' && target) {
+					if (!QUEST_TRACKER_TreeObjRef[questId][type][target]) {
+						QUEST_TRACKER_TreeObjRef[questId][type][target] = [];
+					}
+					QUEST_TRACKER_TreeObjRef[questId][type][target].push(objRef);
+				} else {
+					QUEST_TRACKER_TreeObjRef[questId][type] = objRef;
+				}
+			},
+			replaceImageSize: (imgsrc) => {
+				return imgsrc.replace(/\/(med|original|max|min)\.(gif|jpg|jpeg|bmp|webp|png)(\?.*)?$/i, '/thumb.$2$3');
+			},
+			trimText: (text, maxLength = 150) => {
+				if (text.length > maxLength) {
+					return text.slice(0, maxLength - 3) + '...';
+				}
+				return text;
+			},
+			getStatusColor: (status) => {
+				switch (status) {
+					case 'Unknown':
+						return '#A9A9A9';
+					case 'Discovered':
+						return '#ADD8E6';
+					case 'Started':
+						return '#87CEFA';
+					case 'Ongoing':
+						return '#FFD700';
+					case 'Completed':
+						return '#32CD32';
+					case 'Completed By Someone Else':
+						return '#4682B4';
+					case 'Failed':
+						return '#FF6347';
+					case 'Time ran out':
+						return '#FF8C00';
+					case 'Ignored':
+						return '#D3D3D3';
+					default:
+						return '#CCCCCC';
+				}
+			},
+			buildDAG: (questData) => {
+				const questPositions = {};
+				const groupMap = {};
+				const mutualExclusivityClusters = [];
+				const visitedForClusters = new Set();
+				function findMutualExclusivityCluster(startQuestId) {
+					const cluster = new Set();
+					const stack = [startQuestId];
+					while (stack.length > 0) {
+						const questId = stack.pop();
+						if (!cluster.has(questId)) {
+							cluster.add(questId);
+							visitedForClusters.add(questId);
+							const mutuallyExclusiveQuests = questData[questId]?.relationships?.mutually_exclusive || [];
+							mutuallyExclusiveQuests.forEach(meQuestId => {
+								if (!cluster.has(meQuestId)) {
+									stack.push(meQuestId);
+								}
+							});
 						}
+					}
+					return cluster;
+				}
+				Object.keys(questData).forEach(questId => {
+					if (!visitedForClusters.has(questId)) {
+						const cluster = findMutualExclusivityCluster(questId);
+						mutualExclusivityClusters.push(cluster);
+					}
+				});
+				const questIdToClusterIndex = {};
+				mutualExclusivityClusters.forEach((cluster, index) => {
+					cluster.forEach(questId => {
+						questIdToClusterIndex[questId] = index;
 					});
 				});
-			});
-			return layers;
+				const calculateInitialLevels = (questId, visited = new Set()) => {
+					if (visited.has(questId)) return questData[questId].level || 0;
+					visited.add(questId);
+					const prereqs = questData[questId]?.relationships?.conditions || [];
+					if (prereqs.length === 0) {
+						questData[questId].level = 0;
+						return 0;
+					}
+					const prereqLevels = prereqs.map(prereq => {
+						let prereqId;
+						if (typeof prereq === 'string') {
+							prereqId = prereq;
+						} else if (typeof prereq === 'object' && prereq.conditions) {
+							prereqId = prereq.conditions[0]; // Simplification
+						}
+						return calculateInitialLevels(prereqId, new Set(visited)) + 1;
+					});
+					const level = Math.max(...prereqLevels);
+					questData[questId].level = level;
+					return level;
+				};
+				Object.keys(questData).forEach(questId => {
+					calculateInitialLevels(questId);
+				});
+				mutualExclusivityClusters.forEach(cluster => {
+					const clusterQuestLevels = Array.from(cluster).map(questId => questData[questId].level || 0);
+					const maxQuestLevel = Math.max(...clusterQuestLevels);
+					const prerequisiteLevels = Array.from(cluster).map(questId => {
+						const prereqs = questData[questId]?.relationships?.conditions || [];
+						const prereqLevels = prereqs.map(prereq => {
+							let prereqId;
+							if (typeof prereq === 'string') {
+								prereqId = prereq;
+							} else if (typeof prereq === 'object' && prereq.conditions) {
+								prereqId = prereq.conditions[0]; // Simplification
+							}
+							return questData[prereqId]?.level || 0;
+						});
+						if (prereqLevels.length === 0) return -1;
+						return Math.max(...prereqLevels);
+					});
+					const maxPrereqLevel = Math.max(...prerequisiteLevels);
+					const clusterLevel = Math.max(maxPrereqLevel + 1, maxQuestLevel);
+					cluster.forEach(questId => {
+						questData[questId].level = clusterLevel;
+					});
+				});
+				Object.keys(questData).forEach(questId => {
+					const group = questData[questId]?.group || 'Default Group';
+					if (!groupMap[group]) groupMap[group] = [];
+					groupMap[group].push(questId);
+				});
+				const groupWidths = {};
+				const groupOrder = Object.keys(groupMap);
+				Object.entries(groupMap).forEach(([groupName, groupQuests]) => {
+					const levels = {};
+					groupQuests.forEach(questId => {
+						const level = questData[questId].level;
+						if (!levels[level]) levels[level] = [];
+						levels[level].push(questId);
+					});
+					const sortedLevels = Object.keys(levels).map(Number).sort((a, b) => a - b);
+					let maxLevelWidth = 0;
+					sortedLevels.forEach(level => {
+						let questsAtLevel = levels[level];
+						const totalQuests = questsAtLevel.length;
+						const clustersAtLevel = {};
+						questsAtLevel.forEach(questId => {
+							const clusterIndex = questIdToClusterIndex[questId] || null;
+							if (clusterIndex !== null) {
+								if (!clustersAtLevel[clusterIndex]) clustersAtLevel[clusterIndex] = new Set();
+								clustersAtLevel[clusterIndex].add(questId);
+							} else {
+								if (!clustersAtLevel['no_cluster']) clustersAtLevel['no_cluster'] = new Set();
+								clustersAtLevel['no_cluster'].add(questId);
+							}
+						});
+						const arrangedQuests = [];
+						Object.values(clustersAtLevel).forEach(cluster => {
+							arrangedQuests.push(...Array.from(cluster));
+						});
+						levels[level] = arrangedQuests;
+						const levelWidth = (arrangedQuests.length * vars.ROUNDED_RECT_WIDTH) + ((arrangedQuests.length - 1) * vars.HORIZONTAL_SPACING);
+						maxLevelWidth = Math.max(maxLevelWidth, levelWidth);
+					});
+					const groupWidth = maxLevelWidth;
+					groupWidths[groupName] = groupWidth;
+				});
+				const totalTreeWidth = groupOrder.reduce((sum, groupName, index) => {
+					return sum + groupWidths[groupName] + (index > 0 ? vars.GROUP_SPACING : 0);
+				}, 0);
+				let cumulativeGroupWidth = - totalTreeWidth / 2;
+				groupOrder.forEach((groupName) => {
+					const groupQuests = groupMap[groupName];
+					const levels = {};
+					groupQuests.forEach(questId => {
+						const level = questData[questId].level;
+						if (!levels[level]) levels[level] = [];
+						levels[level].push(questId);
+					});
+					const sortedLevels = Object.keys(levels).map(Number).sort((a, b) => a - b);
+					sortedLevels.forEach(level => {
+						let questsAtLevel = levels[level];
+						const totalQuests = questsAtLevel.length;
+						const arrangedQuests = levels[level];
+						const levelWidth = (arrangedQuests.length * vars.ROUNDED_RECT_WIDTH) + ((arrangedQuests.length - 1) * vars.HORIZONTAL_SPACING);
+						const levelStartX = cumulativeGroupWidth + (groupWidths[groupName] - levelWidth) / 2;
+						arrangedQuests.forEach((questId, index) => {
+							const x = levelStartX + index * (vars.ROUNDED_RECT_WIDTH + vars.HORIZONTAL_SPACING);
+							const y = level * (vars.ROUNDED_RECT_HEIGHT + vars.VERTICAL_SPACING);
+							questPositions[questId] = {
+								x: x,
+								y: y,
+								group: groupName,
+							};
+						});
+					});
+					cumulativeGroupWidth += groupWidths[groupName] + vars.GROUP_SPACING;
+				});
+				return questPositions;
+			}
 		};
-		const drawQuestTreeFromGrid = (page, questGrid, callback) => {
-			const totalWidth = page.get('width') * DEFAULT_PAGE_UNIT;
-			const drawTasks = [];
-			questGrid.forEach((row, rowIndex) => {
-				const rowWidth = row.length * (QUESTICON_WIDTH + HORIZONTAL_SPACING);
-				const offsetX = (totalWidth - rowWidth) / 2;
-				row.forEach((questId, colIndex) => {
+		const D = {
+			drawQuestTreeFromPositions: (page, questPositions, callback) => {
+				const totalWidth = page.get('width') * vars.DEFAULT_PAGE_UNIT;
+				Object.entries(questPositions).forEach(([questId, position]) => {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
 					if (!questData) {
 						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
 						return;
 					}
-					const x = offsetX + colIndex * (QUESTICON_WIDTH + HORIZONTAL_SPACING);
-					const y = rowIndex * (QUESTICON_HEIGHT + VERTICAL_SPACING) + PAGE_HEADER_HEIGHT + VERTICAL_SPACING;
+					const x = position.x + totalWidth / 2;
+					const y = position.y + vars.PAGE_HEADER_HEIGHT + vars.VERTICAL_SPACING;
 					const isHidden = questData.hidden || false;
-					drawTasks.push(() => drawQuestGraphics(questId, questData, page.id, x, y, isHidden));
+					D.drawQuestGraphics(questId, questData, page.id, x, y, isHidden);
 				});
-			});
-			Utils.runInBatches(drawTasks, 50, 100, drawTasks.length, callback);
-		};
-		const drawQuestGraphics = (questId, questData, pageId, x, y, isHidden) => {
-			const questTable = findObjs({ type: 'rollabletable', name: 'quests' })[0];
-			if (!questTable) {
-				Utils.sendGMMessage('Error: Quests rollable table not found.');
-				return;
-			}
-			const questTableItems = findObjs({ type: 'tableitem', rollabletableid: questTable.id });
-			const questTableItem = questTableItems.find(item => item.get('name').toLowerCase() === questId.toLowerCase());
-			if (!questTableItem) {
-				Utils.sendGMMessage(`Error: Rollable table item for quest "${questId}" not found.`);
-				return;
-			}
-			const statusWeight = questTableItem.get('weight');
-			const statusName = statusMapping[statusWeight] || 'Unknown';
-			const statusColor = getStatusColor(statusName);
-			let imgsrc = questTableItem.get('avatar');
-			if (!imgsrc || !imgsrc.includes('https://')) {
-				imgsrc = 'https://s3.amazonaws.com/files.d20.io/images/64616840/d93g5KPAtmXCQVwf58sG1Q/thumb.jpg?15392669545';
-			} else {
-				imgsrc = replaceImageSize(imgsrc);
-			}
-			drawRoundedRectangle(pageId, x, y, ROUNDED_RECT_WIDTH, ROUNDED_RECT_HEIGHT, 10, statusColor, isHidden ? 'gmlayer' : 'map', questId);
-			const avatarX = x + AVATAR_SIZE + (AVATAR_SIZE / 2);
-			const avatarY = y - (AVATAR_SIZE * 0.6);
-			placeAvatar(pageId, avatarX, avatarY, AVATAR_SIZE, imgsrc, isHidden ? 'gmlayer' : 'objects', questId);
-		};
-		const drawQuestTextAfterGraphics = (page, questGrid) => {
-			const totalWidth = page.get('width') * DEFAULT_PAGE_UNIT;
-			const textTasks = [];
-			questGrid.forEach((row, rowIndex) => {
-				const rowWidth = row.length * (QUESTICON_WIDTH + HORIZONTAL_SPACING);
-				const offsetX = (totalWidth - rowWidth) / 2;
-				row.forEach((questId, colIndex) => {
+				if (typeof callback === 'function') callback();
+			},
+			drawQuestGraphics: (questId, questData, pageId, x, y, isHidden) => {
+				const questTable = findObjs({ type: 'rollabletable', name: 'quests' })[0];
+				if (!questTable) {
+					Utils.sendGMMessage('Error: Quests rollable table not found.');
+					return;
+				}
+				const questTableItems = findObjs({ type: 'tableitem', rollabletableid: questTable.id });
+				const questTableItem = questTableItems.find(item => item.get('name').toLowerCase() === questId.toLowerCase());
+				if (!questTableItem) {
+					Utils.sendGMMessage(`Error: Rollable table item for quest "${questId}" not found.`);
+					return;
+				}
+				const statusWeight = questTableItem.get('weight');
+				const statusName = statusMapping[statusWeight] || 'Unknown';
+				const statusColor = H.getStatusColor(statusName);
+				let imgsrc = questTableItem.get('avatar');
+				if (!imgsrc || !imgsrc.includes('https://')) {
+					imgsrc = 'https://s3.amazonaws.com/files.d20.io/images/64616840/d93g5KPAtmXCQVwf58sG1Q/thumb.jpg?15392669545';
+				} else {
+					imgsrc = H.replaceImageSize(imgsrc);
+				}
+				D.drawRoundedRectangle(pageId, x, y, vars.ROUNDED_RECT_WIDTH, vars.ROUNDED_RECT_HEIGHT, 10, statusColor, isHidden ? 'gmlayer' : 'map', questId);
+				const avatarSpacing = 10;
+				const avatarX = x;
+				const avatarY = y - (vars.ROUNDED_RECT_HEIGHT / 2) - (vars.AVATAR_SIZE / 2) - avatarSpacing;
+				D.placeAvatar(pageId, avatarX, avatarY, vars.AVATAR_SIZE, imgsrc, isHidden ? 'gmlayer' : 'objects', questId);
+			},
+			drawQuestTextAfterGraphics: (page, questPositions) => {
+				const totalWidth = page.get('width') * vars.DEFAULT_PAGE_UNIT;
+				Object.entries(questPositions).forEach(([questId, position]) => {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
-					const x = offsetX + colIndex * (QUESTICON_WIDTH + HORIZONTAL_SPACING);
-					const y = rowIndex * (QUESTICON_HEIGHT + VERTICAL_SPACING) + PAGE_HEADER_HEIGHT + VERTICAL_SPACING;
+					if (!questData) {
+						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
+						return;
+					}
+					const x = position.x + totalWidth / 2;
+					const y = position.y + vars.PAGE_HEADER_HEIGHT + vars.VERTICAL_SPACING;
 					const isHidden = questData.hidden || false;
 					const textLayer = isHidden ? 'gmlayer' : 'objects';
-					textTasks.push(() => drawText(page.id, x + (ROUNDED_RECT_WIDTH / 2), y + (ROUNDED_RECT_HEIGHT / 2), questData.name, '#000000', textLayer, TEXT_FONT_SIZE, 'Contrail One', questId));
+					D.drawText(
+						page.id,
+						x,
+						y,
+						questData.name,
+						'#000000',
+						textLayer,
+						vars.TEXT_FONT_SIZE,
+						'Contrail One',
+						questId,
+						'center',
+						'middle'
+					);
 				});
-			});
-			Utils.runInBatches(textTasks, 50, 100, textTasks.length);
-		};
-		const drawQuestConnections = (pageId, questGrid) => {
-			const totalWidth = findObjs({ _type: 'page', _id: pageId })[0].get('width') * DEFAULT_PAGE_UNIT;
-			questGrid.forEach((row, rowIndex) => {
-				const rowWidth = row.length * (QUESTICON_WIDTH + HORIZONTAL_SPACING);
-				const offsetX = (totalWidth - rowWidth) / 2;
-				row.forEach((questId, colIndex) => {
+			},
+			drawQuestConnections: (pageId, questPositions) => {
+				const page = getObj('page', pageId);
+				const pageWidth = page.get('width') * vars.DEFAULT_PAGE_UNIT;
+				const offsetX = pageWidth / 2;
+				const incomingPaths = {};
+				Object.entries(questPositions).forEach(([questId, position]) => {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
 					if (!questData) {
 						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
 						return;
 					}
+					(questData.relationships?.conditions || []).forEach(prereq => {
+						let prereqId = prereq;
+						if (typeof prereq === 'object' && prereq.conditions) {
+							prereqId = prereq.conditions[0];
+						}
+						if (!incomingPaths[prereqId]) {
+							incomingPaths[prereqId] = [];
+						}
+						incomingPaths[prereqId].push(questId);
+					});
+				});
+				Object.entries(questPositions).forEach(([questId, position]) => {
+					const questData = QUEST_TRACKER_globalQuestData[questId];
+					if (!questData) {
+						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
+						return;
+					}
+					const startX = position.x + offsetX;
+					const startY = position.y + vars.PAGE_HEADER_HEIGHT + vars.VERTICAL_SPACING;
 					const startPos = {
-						x: offsetX + colIndex * (QUESTICON_WIDTH + HORIZONTAL_SPACING) + (ROUNDED_RECT_WIDTH / 2),
-						y: rowIndex * (QUESTICON_HEIGHT + VERTICAL_SPACING) + PAGE_HEADER_HEIGHT + (ROUNDED_RECT_HEIGHT * 0.5),
+						x: startX,
+						y: startY
 					};
-					(questData.prerequisites || []).forEach(prereqId => {
-						const prereqData = QUEST_TRACKER_globalQuestData[prereqId];
-						if (!prereqData) {
-							Utils.sendGMMessage(`Warning: Prerequisite quest data for "${prereqId}" is missing.`);
+					(questData.relationships?.conditions || []).forEach(prereq => {
+						let prereqId = prereq;
+						if (typeof prereq === 'object' && prereq.conditions) {
+							prereqId = prereq.conditions[0];
+						}
+						const prereqPosition = questPositions[prereqId];
+						if (!prereqPosition) {
+							Utils.sendGMMessage(`Warning: Position data for prerequisite "${prereqId}" is missing.`);
 							return;
 						}
-						const prereqPos = findQuestInGrid(questGrid, prereqId);
-						if (prereqPos) {
-							const prereqRowWidth = questGrid[prereqPos.row].length * (QUESTICON_WIDTH + HORIZONTAL_SPACING);
-							const prereqOffsetX = (totalWidth - prereqRowWidth) / 2;
-							const endPos = {
-								x: prereqOffsetX + prereqPos.col * (QUESTICON_WIDTH + HORIZONTAL_SPACING) + (ROUNDED_RECT_WIDTH / 2),
-								y: prereqPos.row * (QUESTICON_HEIGHT + VERTICAL_SPACING) + PAGE_HEADER_HEIGHT + (ROUNDED_RECT_HEIGHT * 0.5),
-							};
-							const isHidden = questData.hidden || prereqData.hidden;
-							const connectionColor = isHidden ? '#CCCCCC' : '#000000';
-							const connectionLayer = isHidden ? 'gmlayer' : 'map';
-							const mid1 = { x: startPos.x, y: startPos.y + (endPos.y - startPos.y) / 2 };
-							const mid2 = { x: endPos.x, y: mid1.y };
-							drawPath(pageId, startPos, mid1, connectionColor, connectionLayer, questId, prereqId, "1");
-							drawPath(pageId, mid1, mid2, connectionColor, connectionLayer, questId, prereqId, "2");
-							drawPath(pageId, mid2, endPos, connectionColor, connectionLayer, questId, prereqId, "3");
+						const endX = prereqPosition.x + offsetX;
+						const endY = prereqPosition.y + vars.PAGE_HEADER_HEIGHT + vars.VERTICAL_SPACING;
+						const endPos = {
+							x: endX,
+							y: endY
+						};
+						let midY;
+						if (incomingPaths[prereqId].length > 1) {
+							midY = endPos.y + vars.VERTICAL_SPACING / 2;
+						} else {
+							midY = (startPos.y + endPos.y) / 2;
+						}
+						const isHidden = questData.hidden || QUEST_TRACKER_globalQuestData[prereqId]?.hidden;
+						const connectionColor = isHidden ? '#CCCCCC' : '#000000';
+						const connectionLayer = isHidden ? 'gmlayer' : 'map';
+						D.drawPath(pageId, startPos, endPos, connectionColor, connectionLayer, questId, prereqId, midY);
+					});
+				});
+			},
+			drawPath: (pageId, startPos, endPos, color = '#FF0000', layer = 'objects', questId, pathToQuestId, midY) => {
+				let pathData;
+				let left, top, width, height;
+				const minX = Math.min(startPos.x, endPos.x);
+				const maxX = Math.max(startPos.x, endPos.x);
+				const minY = Math.min(startPos.y, endPos.y, midY);
+				const maxY = Math.max(startPos.y, endPos.y, midY);
+				left = (minX + maxX) / 2;
+				top = (minY + maxY) / 2;
+				width = maxX - minX;
+				height = maxY - minY;
+				pathData = [
+					['M', startPos.x - left, startPos.y - top],
+					['L', startPos.x - left, midY - top],
+					['L', endPos.x - left, midY - top],
+					['L', endPos.x - left, endPos.y - top]
+				];
+				const pathObj = createObj('path', {
+					_pageid: pageId,
+					layer: layer,
+					stroke: color,
+					fill: 'transparent',
+					path: JSON.stringify(pathData),
+					stroke_width: 2,
+					controlledby: '',
+					left: left,
+					top: top,
+					width: width,
+					height: height
+				});
+				H.storeQuestRef(questId, 'paths', pathObj.id, pathToQuestId);
+				H.storeQuestRef(pathToQuestId, 'paths', pathObj.id, questId);
+			},
+			drawMutuallyExclusiveConnections: (pageId, questPositions) => {
+				const page = getObj('page', pageId);
+				const pageWidth = page.get('width') * vars.DEFAULT_PAGE_UNIT;
+				const offsetX = pageWidth / 2;
+				const mutualExclusions = [];
+				Object.entries(QUEST_TRACKER_globalQuestData).forEach(([questId, questData]) => {
+					const mutuallyExclusiveWith = questData.relationships?.mutually_exclusive || [];
+					mutuallyExclusiveWith.forEach(otherQuestId => {
+						if (questId < otherQuestId) {
+							mutualExclusions.push([questId, otherQuestId]);
 						}
 					});
 				});
-			});
-		};
-		const drawPath = (pageId, startPos, endPos, color = '#FF0000', layer = 'objects', questId, pathToQuestId, part) => {
-			const pathData = JSON.stringify([
-				['M', 0, 0],
-				['L', endPos.x - startPos.x, endPos.y - startPos.y]
-			]);
-			const pathObj = createObj('path', {
-				_pageid: pageId,
-				layer: layer,
-				stroke: color,
-				fill: 'transparent',
-				left: startPos.x + (endPos.x - startPos.x) / 2,
-				top: startPos.y + (endPos.y - startPos.y) / 2,
-				width: Math.abs(endPos.x - startPos.x),
-				height: Math.abs(endPos.y - startPos.y),
-				path: pathData,
-				stroke_width: 2,
-				controlledby: ''
-			});
-			storeQuestRef(questId, 'paths', pathObj.id, pathToQuestId, part);
-			storeQuestRef(pathToQuestId, 'paths', pathObj.id, questId, part);
-		};
-		const findQuestInGrid = (questGrid, questId) => {
-			for (let rowIndex = 0; rowIndex < questGrid.length; rowIndex++) {
-				const colIndex = questGrid[rowIndex].indexOf(questId);
-				if (colIndex !== -1) {
-					return { row: rowIndex, col: colIndex };
+				mutualExclusions.forEach(([questId1, questId2]) => {
+					const position1 = questPositions[questId1];
+					const position2 = questPositions[questId2];
+					if (!position1 || !position2) {
+						Utils.sendGMMessage(`Error: Position data for quests "${questId1}" or "${questId2}" is missing.`);
+						return;
+					}
+					const x1 = position1.x + offsetX;
+					const y1 = position1.y + vars.PAGE_HEADER_HEIGHT + vars.VERTICAL_SPACING;
+					const x2 = position2.x + offsetX;
+					const y2 = position2.y + vars.PAGE_HEADER_HEIGHT + vars.VERTICAL_SPACING;
+					const startPos = { x: x1, y: y1 };
+					const endPos = { x: x2, y: y2 };
+					const minX = Math.min(x1, x2);
+					const maxX = Math.max(x1, x2);
+					const minY = Math.min(y1, y2);
+					const maxY = Math.max(y1, y2);
+					const left = (minX + maxX) / 2;
+					const top = (minY + maxY) / 2;
+					const width = maxX - minX;
+					const height = maxY - minY;
+					const pathData = [
+						['M', startPos.x - left, startPos.y - top],
+						['L', endPos.x - left, endPos.y - top]
+					];
+					const pathObj = createObj('path', {
+						_pageid: pageId,
+						layer: 'objects',
+						stroke: '#FF0000',
+						fill: 'transparent',
+						path: JSON.stringify(pathData),
+						stroke_width: 2,
+						controlledby: '',
+						left: left,
+						top: top,
+						width: width,
+						height: height
+					});
+					H.storeQuestRef(questId1, 'mutualExclusion', pathObj.id, questId2);
+					H.storeQuestRef(questId2, 'mutualExclusion', pathObj.id, questId1);
+				});
+			},
+			drawText: (pageId, x, y, textContent, color = '#000000', layer = 'objects', font_size = vars.TEXT_FONT_SIZE, font_family = 'Arial', questId, text_align = 'center', vertical_align = 'middle') => {
+				const textObj = createObj('text', {
+					_pageid: pageId,
+					left: x,
+					top: y,
+					text: textContent,
+					font_size: font_size,
+					color: color,
+					layer: layer,
+					font_family: font_family,
+					text_align: text_align
+				});
+				if (textObj) {
+					if (vertical_align !== 'middle') {
+						const textHeight = font_size;
+						let adjustedTop = y;
+						if (vertical_align === 'top') {
+							adjustedTop = y - (textHeight / 2);
+						} else if (vertical_align === 'bottom') {
+							adjustedTop = y + (textHeight / 2);
+						}
+						textObj.set('top', adjustedTop);
+					}
+					if (questId) {
+						H.storeQuestRef(questId, 'text', textObj.id);
+					}
 				}
-			}
-			return null;
-		};
-		const drawRoundedRectangle = (pageId, x, y, width, height, radius, statusColor, layer = 'objects', questId) => {
-			const rectObj = createObj('path', {
-				_pageid: pageId,
-				layer: layer,
-				stroke: statusColor,
-				fill: "#FAFAD2",
-				left: x + width / 2,
-				top: y + height / 2,
-				width: width,
-				height: height,
-				path: JSON.stringify([
+			},
+			placeAvatar: (pageId, x, y, avatarSize, imgsrc, layer = 'objects', questId) => {
+				const questData = QUEST_TRACKER_globalQuestData[questId];
+				let tooltipText = `${questData.description || 'No description available.'}`;
+				let trimmedText = H.trimText(tooltipText, 150);
+				const avatarObj = createObj('graphic', {
+					_pageid: pageId,
+					left: x,
+					top: y,
+					width: avatarSize,
+					height: avatarSize,
+					layer: layer,
+					imgsrc: imgsrc,
+					tooltip: trimmedText,
+					controlledby: ''
+				});
+				if (avatarObj) {
+					H.storeQuestRef(questId, 'avatar', avatarObj.id);
+				}
+			},
+			drawRoundedRectangle: (pageId, x, y, width, height, radius, statusColor, layer = 'objects', questId) => {
+				let pathData;
+				let left = x;
+				let top = y;
+				pathData = [
 					['M', -width / 2 + radius, -height / 2],
 					['L', width / 2 - radius, -height / 2],
 					['Q', width / 2, -height / 2, width / 2, -height / 2 + radius],
@@ -1110,188 +1427,111 @@ var QuestTracker = QuestTracker || (function () {
 					['L', -width / 2, -height / 2 + radius],
 					['Q', -width / 2, -height / 2, -width / 2 + radius, -height / 2],
 					['Z']
-				]),
-				stroke_width: 4,
-				controlledby: ''
-			});
-			if (rectObj) {
-				storeQuestRef(questId, 'rectangle', rectObj.id);
-			}
-		};
-		const drawText = (pageId, x, y, textContent, color = '#000000', layer = 'objects', font_size = TEXT_FONT_SIZE, font_family = 'Arial', questId) => {
-			const textObj = createObj('text', {
-				_pageid: pageId,
-				left: x,
-				top: y,
-				text: textContent,
-				font_size: font_size,
-				color: color,
-				layer: layer,
-				font_family: font_family
-			});
-			if (textObj) {
-				storeQuestRef(questId, 'text', textObj.id);
-			}
-		};
-		const placeAvatar = (pageId, x, y, avatarSize, imgsrc, layer = 'objects', questId) => {
-			const questData = QUEST_TRACKER_globalQuestData[questId];
-			let tooltipText = `${questData.description || 'No description available.'}`;
-			let trimmedText = trimText(tooltipText, 150);
-			const avatarObj = createObj('graphic', {
-				_pageid: pageId,
-				left: x,
-				top: y,
-				width: avatarSize,
-				height: avatarSize,
-				layer: layer,
-				imgsrc: imgsrc,
-				tooltip: trimmedText,
-				controlledby: ''
-			});
-			if (avatarObj) {
-			   storeQuestRef(questId, 'avatar', avatarObj.id);
-			}
-		};
-		const storeQuestRef = (questId, type, objRef, target = null, part = null) => {
-			if (!QUEST_TRACKER_TreeObjRef[questId]) {
-				QUEST_TRACKER_TreeObjRef[questId] = { paths: {} };
-			}
-			
-			if (type === 'paths' && target) {
-				if (!QUEST_TRACKER_TreeObjRef[questId][type][target]) {
-					QUEST_TRACKER_TreeObjRef[questId][type][target] = {};
+				];
+				const rectObj = createObj('path', {
+					_pageid: pageId,
+					layer: layer,
+					stroke: statusColor,
+					fill: "#FAFAD2",
+					path: JSON.stringify(pathData),
+					stroke_width: 4,
+					controlledby: '',
+					left: left,
+					top: top,
+					width: width,
+					height: height
+				});
+				if (rectObj) {
+					H.storeQuestRef(questId, 'rectangle', rectObj.id);
 				}
-				if (part) {
-					QUEST_TRACKER_TreeObjRef[questId][type][target][part] = objRef;
+			},
+			redrawQuestText: (questId) => {
+				let pageObj = findObjs({ _type: 'page', name: QUEST_TRACKER_pageName })[0];
+				if (!pageObj) return;
+				const pageId = pageObj.id;
+				if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].text) return;
+				const textObjId = QUEST_TRACKER_TreeObjRef[questId].text;
+				const textObj = getObj('text', textObjId);
+				if (textObj) {
+					const questData = QUEST_TRACKER_globalQuestData[questId];
+					const isHidden = questData.hidden || false;
+					const textLayer = isHidden ? 'gmlayer' : 'objects';
+					const x = textObj.get('left');
+					const y = textObj.get('top');
+					textObj.remove();
+					D.drawText(pageId, x, y, questData.name, '#000000', textLayer, vars.TEXT_FONT_SIZE, 'Contrail One', questId);
 				}
-			} else {
-				QUEST_TRACKER_TreeObjRef[questId][type] = objRef;
 			}
 		};
-		const replaceImageSize = (imgsrc) => {
-			return imgsrc.replace(/\/(med|original|max|min)\.(gif|jpg|jpeg|bmp|webp|png)(\?.*)?$/i, '/thumb.$2$3');
-		};
-		const getStatusColor = (status) => {
-			switch (status) {
-				case 'Unknown':
-					return '#A9A9A9';
-				case 'Discovered':
-					return '#ADD8E6';
-				case 'Started':
-					return '#87CEFA';
-				case 'Ongoing':
-					return '#FFD700';
-				case 'Completed':
-					return '#32CD32';
-				case 'Completed By Someone Else':
-					return '#4682B4';
-				case 'Failed':
-					return '#FF6347';
-				case 'Time ran out':
-					return '#FF8C00';
-				case 'Ignored':
-					return '#D3D3D3';
-				default:
-					return '#CCCCCC';
-			}
-		};
-		const trimText = (text, maxLength = 150) => {
-			if (text.length > maxLength) {
-				return text.slice(0, maxLength - 3) + '...';
-			}
-			return text;
-		};
-		const redrawQuestText = (questId) => {
-			let pageObj = findObjs({ _type: 'page', name: QUEST_TRACKER_pageName })[0];
-			if (!pageObj) {
-				Utils.sendGMMessage(`Error: Page "${QUEST_TRACKER_pageName}" not found.`);
+		const buildQuestTreeOnPage = () => {
+			let questTreePage = findObjs({ _type: 'page', name: QUEST_TRACKER_pageName })[0];
+			if (!questTreePage) {
+				Utils.sendGMMessage(`Error: Page "${QUEST_TRACKER_pageName}" not found. Please create the page manually.`);
 				return;
 			}
-			const pageId = pageObj.id;
-			if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].text) {
-				Utils.sendGMMessage(`Error: Text object for quest "${questId}" not found.`);
-				return;
-			}
-			const textObjId = QUEST_TRACKER_TreeObjRef[questId].text;
-			const textObj = getObj('text', textObjId);
-			if (textObj) {
-				const questData = QUEST_TRACKER_globalQuestData[questId];
-				const isHidden = questData.hidden || false;
-				const textLayer = isHidden ? 'gmlayer' : 'objects';
-				const x = textObj.get('left');
-				const y = textObj.get('top');
-				textObj.remove();
-				drawText(pageId, x, y, questData.name, '#000000', textLayer, TEXT_FONT_SIZE, 'Contrail One', questId);
-			}
+			H.adjustPageSettings(questTreePage);
+			H.clearPageObjects(questTreePage.id, () => {
+				const questPositions = H.buildDAG(QUEST_TRACKER_globalQuestData);
+				H.adjustPageSizeToFitPositions(questTreePage, questPositions);
+				H.buildPageHeader(questTreePage);
+				QUEST_TRACKER_TreeObjRef = {};
+				D.drawQuestConnections(questTreePage.id, questPositions);
+				D.drawMutuallyExclusiveConnections(questTreePage.id, questPositions);
+				D.drawQuestTreeFromPositions(questTreePage, questPositions, () => {
+					D.drawQuestTextAfterGraphics(questTreePage, questPositions);
+					saveQuestTrackerData();
+					Utils.sendGMMessage("Quest Tree rendering complete.");
+				});
+			});
 		};
 		const updateQuestText = (questId, newText) => {
-			if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].text) {
-				return;
-			}
+			if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].text) return;
 			const textObjId = QUEST_TRACKER_TreeObjRef[questId].text;
 			const textObj = getObj('text', textObjId);
-			if (!textObj) {
-				return;
-			}
+			if (!textObj) return;
 			textObj.set('text', newText);
 			saveQuestTrackerData();
 		};
 		const updateQuestTooltip = (questId, newTooltip) => {
-			if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].avatar) {
-				return;
-			}
+			if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].avatar) return;
 			const avatarObjId = QUEST_TRACKER_TreeObjRef[questId].avatar;
 			const avatarObj = getObj('graphic', avatarObjId);
-			if (!avatarObj) {
-				return;
-			}
-			const trimmedTooltip = trimText(newTooltip, 150);
+			if (!avatarObj) return;
+			const trimmedTooltip = H.trimText(newTooltip, 150);
 			avatarObj.set('tooltip', trimmedTooltip);
 			saveQuestTrackerData();
 		};
 		const updateQuestStatusColor = (questId, statusNumber) => {
-			if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].rectangle) {
-				return;
-			}
+			if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].rectangle) return;
 			const rectangleObjId = QUEST_TRACKER_TreeObjRef[questId].rectangle;
 			const rectangleObj = getObj('path', rectangleObjId);
-			if (!rectangleObj) {
-				return;
-			}
+			if (!rectangleObj) return;
 			const statusName = statusMapping[statusNumber] || 'Unknown';
-			const statusColor = getStatusColor(statusName);
+			const statusColor = H.getStatusColor(statusName);
 			rectangleObj.set('stroke', statusColor);
-			setTimeout(() => {
-				redrawQuestText(questId);
-			}, 500);
+			D.redrawQuestText(questId);
 			saveQuestTrackerData();
 		};
 		const updateQuestVisibility = (questId, makeHidden) => {
-			if (!QUEST_TRACKER_TreeObjRef[questId]) {
-				return;
-			}
+			if (!QUEST_TRACKER_TreeObjRef[questId]) return;
 			const questData = QUEST_TRACKER_globalQuestData[questId];
-			if (!questData) {
-				return;
-			}
+			if (!questData) return;
 			const pageId = findObjs({ type: 'page', name: QUEST_TRACKER_pageName })[0].id;
-			if (typeof makeHidden === 'string') {
-				makeHidden = makeHidden.toLowerCase() === 'true';
-			}
+			if (typeof makeHidden === 'string') makeHidden = makeHidden.toLowerCase() === 'true';
 			const targetLayer = makeHidden ? 'gmlayer' : 'map';
 			const avatarLayer = makeHidden ? 'gmlayer' : 'objects';
 			for (const sourceQuestId in QUEST_TRACKER_TreeObjRef) {
 				const pathsToQuest = QUEST_TRACKER_TreeObjRef[sourceQuestId]?.paths?.[questId];
 				if (pathsToQuest) {
-					for (const segmentId in pathsToQuest) {
-						const pathObj = getObj('path', pathsToQuest[segmentId]);
+					pathsToQuest.forEach(segmentId => {
+						const pathObj = getObj('path', segmentId);
 						if (pathObj) {
 							pathObj.set({
 								layer: targetLayer,
 								stroke: makeHidden ? '#CCCCCC' : '#000000'
 							});
 						}
-					}
+					});
 				}
 			}
 			const elements = ['rectangle', 'avatar'];
@@ -1303,13 +1543,9 @@ var QuestTracker = QuestTracker || (function () {
 					obj.set('layer', layer);
 				}
 			});
-			setTimeout(() => {
-				redrawQuestText(questId);
-			}, 200);
+			D.redrawQuestText(questId);
 			if (!makeHidden) {
-				setTimeout(() => {
-					saveQuestTrackerData();
-				}, 700);
+				saveQuestTrackerData();
 			}
 		};
 		return {
@@ -1365,7 +1601,7 @@ var QuestTracker = QuestTracker || (function () {
 				});
 				Utils.updateHandoutField('rumour');
 			}
-		}
+		};
 		const calculateRumoursByLocation = () => {
 			let rumoursByLocation = {};
 			Object.keys(QUEST_TRACKER_globalRumours).forEach(questId => {
@@ -1588,6 +1824,7 @@ var QuestTracker = QuestTracker || (function () {
 			overflow: 'overflow: hidden; margin:1px',
 			rumour: 'text-overflow: ellipsis;overflow: hidden;width: 165px;display: block;word-break: break-all;white-space: nowrap;',
 			link: 'color: #007bff; text-decoration: underline; cursor: pointer;',
+			questlink: 'color: #000000; text-decoration: none; cursor: pointer; background-color: #FFFFFF;',
 			treeStyle: 'display: inline-block; position: relative; text-align: center; margin-top: 0px;',
 			questBox50: 'display: inline-block; width: 15px; height: 6px; padding: 5px; border: 1px solid #000; border-radius: 5px; background-color: #f5f5f5; text-align: center; position: relative; margin-right: 20px;',
 			verticalLineStyle: 'position: absolute; width: 2px; background-color: black;',
@@ -1598,7 +1835,7 @@ var QuestTracker = QuestTracker || (function () {
 			liStyle: 'display: inline-block; text-align: center; position: relative;',
 			spanText: 'bottom: -1px; position: absolute; left: -1px; right: 0px;'
 		};
-		const Helpers = {
+		const H = {
 			showActiveQuests: () => {
 				const activeStatuses = [2, 3, 4];
 				let AQMenu = "";
@@ -1667,9 +1904,9 @@ var QuestTracker = QuestTracker || (function () {
 				return menu;
 			},
 			generateQuestList: (groupName, quests) => {
-				let menu = `<h3 style="margin-top: 20px;">${groupName} Quests</h3>`;
+				let menu = `<h4 style="margin-top: 20px;">${groupName} Quests</h4>`;
 				Object.keys(quests).sort((a, b) => a - b).forEach(weight => {
-					menu += `<h4>${statusMapping[weight]}</h4><ul style="${styles.list}">`;
+					menu += `<h5>${statusMapping[weight]}</h5><ul style="${styles.list}">`;
 					quests[weight].forEach(quest => {
 						let questData = QUEST_TRACKER_globalQuestData[quest.id];
 						if (questData) {
@@ -1763,9 +2000,9 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			formatConditions: (questId, conditions, parentLogic = 'AND', indent = false, groupnum = 0, isInLogicGroup = false) => {
 				if (!Array.isArray(conditions)) return '';
-				groupnum += Helpers.calculateStartingGroupNum(conditions, isInLogicGroup);
+				groupnum += H.calculateStartingGroupNum(conditions, isInLogicGroup);
 				return conditions.map((condition, index) => {
-					const currentGroupNum = Helpers.calculateGroupNum(condition, conditions, groupnum);
+					const currentGroupNum = H.calculateGroupNum(condition, conditions, groupnum);
 					const displayIndex = index + 1;
 					const isLastCondition = displayIndex === conditions.length;
 					const isLastnonGroupCondition = (index + 1 < conditions.length && typeof conditions[index + 1] === 'object') || index === conditions.length - 1;
@@ -1774,10 +2011,10 @@ var QuestTracker = QuestTracker || (function () {
 						return `
 							<tr>
 								${indent ? `<td>&nbsp;</td><td>` : `<td colspan="2">`}
-									${Helpers.getQuestName(condition)}
+									<a style="${styles.questlink}" href="!qt-menu action=quest|id=${condition}">${H.getQuestName(condition)}</a>
 								</td>
 								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|oldquest=${condition}|action=update|type=${indent ? `group|groupnum=${currentGroupNum}` : `single`}|quest=?{Choose Quest|${Helpers.buildDropdownString(questId, condition)}}">c</a>
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|oldquest=${condition}|action=update|type=${indent ? `group|groupnum=${currentGroupNum}` : `single`}|quest=?{Choose Quest|${H.buildDropdownString(questId, condition)}}">c</a>
 								</td>
 								<td style="${styles.smallButtonContainer}">
 									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=remove|type=${indent ? `group|groupnum=${currentGroupNum}|confirmation=DELETE` : `single`}|quest=${condition}">-</a>
@@ -1790,7 +2027,7 @@ var QuestTracker = QuestTracker || (function () {
 									<small>Add Relationship</small>
 								</td>
 								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=add|type=group|groupnum=${currentGroupNum}|quest=?{Choose Quest|${Helpers.buildDropdownString(questId)}}">+</a>
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=add|type=group|groupnum=${currentGroupNum}|quest=?{Choose Quest|${H.buildDropdownString(questId)}}">+</a>
 								</td>
 							</tr>
 							` : ''}
@@ -1800,15 +2037,28 @@ var QuestTracker = QuestTracker || (function () {
 									<small>Add Relationship</small>
 								</td>
 								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${Helpers.buildDropdownString(questId)}}">+</a>
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}">+</a>
 								</td>
 							</tr>
 							` : ''}
 						`;
 					} else if (typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
-						const subLogic = Helpers.formatConditions(questId, condition.conditions, condition.logic, true, currentGroupNum, true);
+						const subLogic = H.formatConditions(questId, condition.conditions, condition.logic, true, currentGroupNum, true);
 						const reverseLogic = condition.logic === 'AND' ? 'OR' : 'AND';
+						let addRelasionshipRow = ''
+						if (currentGroupNum === 0) {
+							addRelasionshipRow += `
+								<tr style="${styles.topBorder}">
+									<td colspan="3" style="${styles.topBorder}">
+										<small>Add Relationship</small>
+									</td>
+									<td style="${styles.smallButtonContainer}">
+										<a href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+									</td>
+								</tr>`;
+						}
 						return `
+							${addRelasionshipRow}
 							<tr>
 								<td>&nbsp;</td><td>
 									${condition.logic}
@@ -1827,8 +2077,9 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			buildDropdownString: (questId) => {
 				const validQuests = Quest.getValidQuestsForDropdown(questId);
+				validQuests.sort((a, b) => H.getQuestName(a).localeCompare(H.getQuestName(b)));
 				const dropdownString = validQuests.map(questId => {
-					return `${Helpers.getQuestName(questId)},${questId}`;
+					return `${H.getQuestName(questId)},${questId}`;
 				}).join('|');
 				return dropdownString;
 			},
@@ -1845,18 +2096,18 @@ var QuestTracker = QuestTracker || (function () {
 												<small>Add Relationship</small>
 											</td>
 											<td style="${styles.smallButtonContainer}">
-												<a href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${Helpers.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+												<a href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
 											</td>
 										</tr>
 										<tr style="${styles.bottomBorder}">
 											<td colspan="3"><small>Add Relationship Group</small></td>
 											<td style="${styles.smallButtonContainer}">
-												<a href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${Helpers.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+												<a href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
 											</td>
 										</tr>
 									</table>`;
 				} else {
-					const conditionsHtml = Helpers.formatConditions(questId, quest.relationships.conditions, quest.relationships.logic || 'AND');
+					const conditionsHtml = H.formatConditions(questId, quest.relationships.conditions, quest.relationships.logic || 'AND');
 					htmlOutput += `
 						<table style="width:100%;">
 							${quest.relationships.conditions.length > 1 ? `<tr>
@@ -1873,7 +2124,7 @@ var QuestTracker = QuestTracker || (function () {
 									<small>Add Relationship Group</small>
 								</td>
 								<td style="${styles.smallButtonContainer}">
-									<a href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${Helpers.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+									<a href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
 								</td>
 							</tr>
 						</table>`;
@@ -1883,10 +2134,10 @@ var QuestTracker = QuestTracker || (function () {
 					mutuallyExclusiveHtml += quest.relationships.mutually_exclusive.map(exclusive => `
 						<tr>
 							<td colspan="2">
-								${Helpers.getQuestName(exclusive)}
+								<a style="${styles.questlink}" href="!qt-menu action=quest|id=${exclusive}">${H.getQuestName(exclusive)}</a>
 							</td>
 							<td style="${styles.smallButtonContainer}">
-								<a href="!qt-questrelationship currentquest=${questId}|action=update|type=mutuallyexclusive|oldquest=${exclusive}|quest=?{Choose Quest|${Helpers.buildDropdownString(questId, exclusive)}}" style="${styles.button} ${styles.smallButton}">c</a>
+								<a href="!qt-questrelationship currentquest=${questId}|action=update|type=mutuallyexclusive|oldquest=${exclusive}|quest=?{Choose Quest|${H.buildDropdownString(questId, exclusive)}}" style="${styles.button} ${styles.smallButton}">c</a>
 							</td>
 							<td style="${styles.smallButtonContainer}">
 								<a href="!qt-questrelationship currentquest=${questId}|action=remove|type=mutuallyexclusive|quest=${exclusive}" style="${styles.button} ${styles.smallButton}">-</a>
@@ -1904,11 +2155,37 @@ var QuestTracker = QuestTracker || (function () {
 						<tr>
 							<td colspan="3"></td>
 							<td style="${styles.smallButtonContainer}">
-								<a href="!qt-questrelationship currentquest=${questId}|action=add|type=mutuallyexclusive|quest=?{Choose Quest|${Helpers.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+								<a href="!qt-questrelationship currentquest=${questId}|action=add|type=mutuallyexclusive|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
 							</td>
 						</tr>
 					</table>`;
 				return htmlOutput;
+			},
+			getValidQuestGroups: (questId) => {
+				let result = '';
+				const quest = QUEST_TRACKER_globalQuestData[questId];
+				if (quest && quest.group) {
+					result += 'Remove from Group,remove|';
+				}
+				const questGroupsTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+				if (!questGroupsTable) return result;
+				const questGroups = findObjs({ type: 'tableitem', rollabletableid: questGroupsTable.id });
+				result += questGroups
+					.filter(group => parseInt(quest.group) !== parseInt(group.get('weight')))
+					.map(group => `${group.get('name')},${group.get('weight')}`)
+					.join('|');
+				return result;
+			},
+			getQuestGroupNameByWeight: (weight) => {
+				if (!weight) return 'No Assigned Group';
+				let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+				if (!groupTable) {
+					Utils.sendGMMessage('Error: Quest Groups table not found. Please check if the table exists in the game.');
+					return null;
+				}
+				let groupItems = findObjs({ type: 'tableitem', rollabletableid: groupTable.id });
+				let group = groupItems.find(item => item.get('weight') == weight);
+				return group.get('name');
 			}
 		};
 		const displayQuestRelationships = (questId) => {
@@ -2142,10 +2419,10 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const generateGMMenu = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Active Quests</h3>`;
-			menu += Helpers.showActiveQuests();
+			menu += H.showActiveQuests();
 			menu += `<br><a style="${styles.button}" href="!qt-menu action=allquests">Show All Quests</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Active Rumours</h3>`;
-			menu += Helpers.showActiveRumours();
+			menu += H.showActiveRumours();
 			menu += `<br><a style="${styles.button}" href="!qt-menu action=allrumours">Show All Rumours</a>`;
 			menu += `<br><hr><a style="${styles.button} ${styles.floatRight}" href="!qt-menu action=config">Configuration</a>`;
 			menu += `</div>`;
@@ -2159,10 +2436,7 @@ var QuestTracker = QuestTracker || (function () {
 					<p>There doesn't seem to be any Quests, you need to create a quest or Import from the Handouts.</p>
 				`;
 			} else {
-				let groupedQuestsByVisibility = {
-					visible: {},
-					hidden: {}
-				};
+				let groupedQuestsByGroup = {};
 				QUEST_TRACKER_globalQuestArray.forEach(quest => {
 					let questData = QUEST_TRACKER_globalQuestData[quest.id];
 					if (questData) {
@@ -2170,19 +2444,31 @@ var QuestTracker = QuestTracker || (function () {
 							acc[key.toLowerCase()] = questData[key];
 							return acc;
 						}, {});
+						const group = H.getQuestGroupNameByWeight(questData.group) || 'Ungrouped';
 						const visibilityGroup = questData.hidden ? 'hidden' : 'visible';
-						if (!groupedQuestsByVisibility[visibilityGroup][quest.weight]) {
-							groupedQuestsByVisibility[visibilityGroup][quest.weight] = [];
+						if (!groupedQuestsByGroup[group]) {
+							groupedQuestsByGroup[group] = {
+								visible: {},
+								hidden: {}
+							};
 						}
-						groupedQuestsByVisibility[visibilityGroup][quest.weight].push(quest);
+						if (!groupedQuestsByGroup[group][visibilityGroup][quest.weight]) {
+							groupedQuestsByGroup[group][visibilityGroup][quest.weight] = [];
+						}
+						groupedQuestsByGroup[group][visibilityGroup][quest.weight].push(quest);
 					}
 				});
-				menu += Helpers.generateQuestList('Visible', groupedQuestsByVisibility.visible);
-				menu += Helpers.generateQuestList('Hidden', groupedQuestsByVisibility.hidden);
+				Object.keys(groupedQuestsByGroup).forEach(group => {
+					menu += `<h3 style="margin-top: 20px;">${group}</h3>`;
+					menu += H.generateQuestList('Visible', groupedQuestsByGroup[group].visible);
+					menu += H.generateQuestList('Hidden', groupedQuestsByGroup[group].hidden);
+				});
 			}
 			menu += `
 				<br><hr>
 				<span style="${styles.floatRight}">
+					<a style="${styles.button}" href="!qt-menu action=manageQuestGroups">Quest Groups</a>
+					&nbsp;
 					<a style="${styles.button}" href="!qt-quest action=addquest">Add New Quest</a>
 				</span>
 				<br><hr>
@@ -2368,9 +2654,11 @@ var QuestTracker = QuestTracker || (function () {
 			let statusName = Quest.getStatusNameByQuestId(questId, QUEST_TRACKER_globalQuestArray);
 			quest = Utils.normalizeKeys(quest);
 			let hiddenStatus = quest.hidden ? 'Yes' : 'No';
+			let questGroup = H.getQuestGroupNameByWeight(quest.group);
 			let hiddenStatusTorF = quest.hidden ? 'true' : 'false';
 			let relationshipsHtml = displayQuestRelationships(questId);
-			let relationshipMenuHtml = Helpers.relationshipMenu(questId);
+			let relationshipMenuHtml = H.relationshipMenu(questId);
+			let validQuestGrouping = H.getValidQuestGroups(questId);
 			let menu = `
 				<div style="${styles.menu}">
 					<h3 style="margin-bottom: 10px;">${quest.name || 'Unnamed Quest'}</h3>
@@ -2394,7 +2682,12 @@ var QuestTracker = QuestTracker || (function () {
 					<span style="${styles.floatRight}">
 						<a style="${styles.button}" href="!qt-quest action=update|field=hidden|current=${questId}|old=${hiddenStatusTorF}|new=?{Is Quest Hidden?|Yes,true|No,false}">Change</a>
 					</span>
-					${Helpers.formatAutocompleteListWithDates('autoadvance', questId, statusMapping)}
+					<h4 style="${styles.bottomBorder} ${styles.topMargin}">Quest Group</h4><br>
+					<span>${questGroup}</span>
+					<span style="${styles.floatRight}">
+						<a style="${styles.button}" href="!qt-quest action=update|field=group|current=${questId}|new=?{Change Quest Grouping|${validQuestGrouping}}">Adjust</a>
+					</span>
+					${H.formatAutocompleteListWithDates('autoadvance', questId, statusMapping)}
 					<br><hr>
 					<a style="${styles.button}" href="!qt-menu action=allquests">Show All Quests</a> <a style="${styles.button}" href="!qt-menu action=main">Back to Main Menu</a>
 				</div>`;
@@ -2433,6 +2726,43 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=allrumours">Back to Rumours</a></div>`;
 			Utils.sendGMMessage(menu.replace(/[\r\n]/g, ''));
 		};
+		const manageQuestGroups = () => {
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Quest Groups</h3>`;
+			let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+			if (!groupTable) {
+				menu += `<p>Error: Quest Groups table not found. Please check if the table exists in the game.</p></div>`;
+			}
+			else {
+				let groupItems = findObjs({ type: 'tableitem', rollabletableid: groupTable.id });
+				let uniqueGroups = new Set();
+				groupItems.sort((a, b) => a.get('weight') - b.get('weight')).forEach(group => {
+					let groupName = group.get('name');
+					let groupKey = groupName.toLowerCase();
+					let groupId = group.get('weight');
+					if (!uniqueGroups.has(groupKey)) {
+						uniqueGroups.add(groupKey);
+						let questCount = 0;
+						Object.keys(QUEST_TRACKER_globalQuestData).forEach(questId => {
+							let questData = QUEST_TRACKER_globalQuestData[questId];
+							if (questData.group && parseInt(questData.group) === parseInt(groupId)) {
+								questCount++;
+							}
+						});
+						let plural = (questCount === 1) ? '' : 's';
+						menu += `<li style="${styles.column}">
+								<span style="${styles.floatLeft}">${groupName}<br><small>${questCount} Quest${plural}</small></span>
+								<span style="${styles.floatRight}">`;
+						menu += `<a style="${styles.button} ${styles.smallButton}" href="!qt-questgroup action=update|groupid=${groupId}|old=${groupName}|new=?{Update Group Name|${groupName}}">c</a>
+								 <a style="${styles.button} ${styles.smallButton}" href="!qt-questgroup action=remove|groupid=${groupId}|confirmation=?{Type DELETE to confirm removal of this group|}">-</a>`;
+						menu += `</span></li>`;
+					}
+				});
+			}
+			menu += `<br><a style="${styles.button}" href="!qt-questgroup action=add|new=?{New Group Name}">Add New Group</a>`;
+			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=allquests">Back to Quests</a></div>`;
+			menu = menu.replace(/[\r\n]/g, ''); 
+			Utils.sendGMMessage(menu);
+		};
 		const adminMenu = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Quest Tracker Configuration</h3>`;
 			let RefreshImport = "Import";
@@ -2440,6 +2770,7 @@ var QuestTracker = QuestTracker || (function () {
 				RefreshImport = "Refresh";
 			}
 			menu += `<br><hr><a style="${styles.button}" href="!qt-config action=togglereadableJSON|value=${QUEST_TRACKER_readableJSON === true ? 'false' : 'true'}">Toggle Readable JSON (${QUEST_TRACKER_readableJSON === true ? 'on' : 'off'})</a>`;
+			menu += `<a style="${styles.button}" href="!qt-config action=togglejumpgate|value=${QUEST_TRACKER_jumpGate === true ? 'false' : 'true'}">Toggle JumpGate (${QUEST_TRACKER_jumpGate === true ? 'on' : 'off'})</a>`;
 			menu += `<br><a style="${styles.button}" href="!qt-import">${RefreshImport} Quest and Rumour Data</a>`;
 			menu += `<br><a style="${styles.button}" href="!qt-questtree action=build">Build Quest Tree Page</a>`;
 			menu += `<br><hr><a style="${styles.button} ${styles.floatRight}" href="!qt-menu action=main">Back to Main Menu</a>`;
@@ -2456,8 +2787,8 @@ var QuestTracker = QuestTracker || (function () {
 			showQuestDetails,
 			showQuestRumourByStatus,
 			manageRumourLocations,
+			manageQuestGroups,
 			adminMenu
-
 		};
 	})();
 	const handleInput = (msg) => {
@@ -2530,6 +2861,14 @@ var QuestTracker = QuestTracker || (function () {
 							if (action === 'update') {
 								Quest.manageQuestObject({ action, field, current });
 								QuestPageBuilder.updateQuestVisibility(current, newItem);
+							}
+							break;
+						case 'group':
+							if (action === 'update') {
+									Quest.manageQuestObject({ action: 'remove', field, current, old });
+								if (newItem !== 'remove') {
+									Quest.manageQuestObject({ action: 'add', field, current, old, newItem });
+								}								
 							}
 							break;
 						case 'autoadvance':
@@ -2705,7 +3044,7 @@ var QuestTracker = QuestTracker || (function () {
 						Menu.manageRumourLocations();
 					}, 500);
 					break;
-				case 'editLocationName':
+				case 'editGroupName':
 					Rumours.manageRumourLocation('update', newItem, locationId);
 					setTimeout(() => {
 						Menu.manageRumourLocations();
@@ -2723,6 +3062,36 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				default:
 					Utils.sendGMMessage('Error: Invalid parameters for rumour action.');
+					break;
+			}
+		} else if (command === '!qt-questgroup') {
+			const { action, groupid, new: newItem, confirmation } = params;
+			if (!action) return;
+			switch (action) {
+				case 'add':	
+					Quest.manageGroups('add', newItem, null);
+					setTimeout(() => {
+						Menu.manageQuestGroups();
+					}, 500);
+					break;
+				case 'update':
+					Quest.manageGroups('update', newItem, groupid);
+					setTimeout(() => {
+						Menu.manageQuestGroups();
+					}, 500);
+					break;
+				case 'remove':
+					if (!groupid || confirmation !== 'DELETE') {
+						Utils.sendGMMessage('Error: Confirmation required to delete location. Please type DELETE to confirm.');
+						return;
+					}
+					Quest.manageGroups('remove', null, groupid);
+					setTimeout(() => {
+						Menu.manageQuestGroups();
+					}, 500);
+					break;
+				default:
+					Utils.sendGMMessage('Error: Invalid parameters for Quest Group action.');
 					break;
 			}
 		} else if (command === '!qt-menu') {
@@ -2755,6 +3124,8 @@ var QuestTracker = QuestTracker || (function () {
 				}
 			} else if (action === 'manageRumourLocations') {
 				Menu.manageRumourLocations();
+			} else if (action === 'manageQuestGroups') {
+				Menu.manageQuestGroups();
 			} else {
 				log(`Error: Unknown menu action: ${action}`);
 			}
@@ -2790,6 +3161,12 @@ var QuestTracker = QuestTracker || (function () {
 			const { action, value } = params;
 			if (action === 'togglereadableJSON'){
 				Utils.togglereadableJSON(value);
+				setTimeout(() => {
+					Menu.adminMenu();
+				}, 500);
+			}
+			else if (action === 'togglejumpgate'){
+				Utils.toggleJumpGate(value);
 				setTimeout(() => {
 					Menu.adminMenu();
 				}, 500);

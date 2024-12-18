@@ -1,5 +1,21 @@
+// Github:	 https://github.com/boli32/QuestTracker/blob/main/QuestTracker.js
+// By:		 Boli (Steven Wrighton): Professional Software Developer, Enthusiatic D&D Player since 1993.
+// Contact:	 https://app.roll20.net/users/3714078/boli
+// Readme	 https://github.com/boli32/QuestTracker/blob/main/README.md 
+
+
 var QuestTracker = QuestTracker || (function () {
 	'use strict';
+	const getCalendarAndWeatherData = () => {
+		let CALENDARS = {};
+		let WEATHER = {};
+		if (state.CalenderData) {
+			if (state.CalenderData.CALENDARS) CALENDARS = state.CalenderData.CALENDARS;
+			if (state.CalenderData.WEATHER) WEATHER = state.CalenderData.WEATHER;
+		}
+		return { CALENDARS, WEATHER };
+	};
+	const { CALENDARS, WEATHER } = getCalendarAndWeatherData();
 	const statusMapping = {
 		1: 'Unknown',
 		2: 'Discovered',
@@ -11,66 +27,194 @@ var QuestTracker = QuestTracker || (function () {
 		8: 'Time ran out',
 		9: 'Ignored'
 	};
-	let QUEST_TRACKER_currentDate = '1970-01-01';
+	const frequencyMapping = {
+		1: "Daily",
+		2: "Weekly",
+		3: "Monthly",
+		4: "Yearly"
+	}
+	let QUEST_TRACKER_verboseErrorLogging = true;
 	let QUEST_TRACKER_questsToAutoAdvance = []; 
 	let QUEST_TRACKER_globalQuestData = {};
 	let QUEST_TRACKER_globalQuestArray = [];
 	let QUEST_TRACKER_globalRumours = {};
+	let QUEST_TRACKER_Events = {};
 	let QUEST_TRACKER_QuestHandoutName = "QuestTracker Quests";
 	let QUEST_TRACKER_RumourHandoutName = "QuestTracker Rumours";
+	let QUEST_TRACKER_EventHandoutName = "QuestTracker Events";
+	let QUEST_TRACKER_WeatherHandoutName = "QuestTracker Weather";
+	let QUEST_TRACKER_WeatherDescriptionHandoutName = "QuestTracker Weather Description";
 	let QUEST_TRACKER_rumoursByLocation = {};
 	let QUEST_TRACKER_readableJSON = true;
 	let QUEST_TRACKER_pageName = "Quest Tree Page";
 	let QUEST_TRACKER_TreeObjRef = {};
 	let QUEST_TRACKER_questGrid = [];
 	let QUEST_TRACKER_jumpGate = true;
+	let QUEST_TRACKER_BASE_QUEST_ICON_URL = ''; // add your own image here.
+	let QUEST_TRACKER_ROLLABLETABLE_QUESTS = "qt-quests";
+	let QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS = "qt-quest-groups";
+	let QUEST_TRACKER_ROLLABLETABLE_LOCATIONS = "qt-locations";
+	let QUEST_TRACKER_calenderType = 'gregorian';
+	let QUEST_TRACKER_currentDate = CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate;
+	let QUEST_TRACKER_defaultDate = CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate;
+	let QUEST_TRACKER_currentWeekdayName = "Thursday";
+	let QUEST_TRACKER_Location = 'northern temperate';
+	let QUEST_TRACKER_WeatherLocation = 'plains';
+	let QUEST_TRACKER_CURRENT_WEATHER = "";
+	let QUEST_TRACKER_imperialMeasurements = {
+		temperature: false,
+		precipitation: false,
+		wind: true,
+		visibility: true
+	};
+	let QUEST_TRACKER_WEATHER_TRENDS = {
+		dry: 0,
+		wet: 0,
+		heat: 0,
+		cold: 0,
+		wind: 0,
+		humid: 0,
+		visibility: 0,
+		cloudy: 0
+	};
+	let QUEST_TRACKER_FORCED_WEATHER_TRENDS = {
+		dry: false,
+		wet: false,
+		heat: false,
+		cold: false,
+		wind: false,
+		humid: false,
+		visibility: false,
+		cloudy: false
+	};
+	let QUEST_TRACKER_HISTORICAL_WEATHER = {};
+	let QUEST_TRACKER_WEATHER_DESCRIPTION = {};
+	let QUEST_TRACKER_WEATHER = true;
 	const loadQuestTrackerData = () => {
 		initializeQuestTrackerState();
+		QUEST_TRACKER_verboseErrorLogging = state.QUEST_TRACKER.verboseErrorLogging || true;
 		QUEST_TRACKER_globalQuestData = state.QUEST_TRACKER.globalQuestData;
 		QUEST_TRACKER_globalQuestArray = state.QUEST_TRACKER.globalQuestArray;
 		QUEST_TRACKER_globalRumours = state.QUEST_TRACKER.globalRumours;
-		QUEST_TRACKER_currentDate = state.QUEST_TRACKER.currentDate || '1970-01-01';
 		QUEST_TRACKER_questsToAutoAdvance = state.QUEST_TRACKER.questsToAutoAdvance;
 		QUEST_TRACKER_rumoursByLocation = state.QUEST_TRACKER.rumoursByLocation;
 		QUEST_TRACKER_readableJSON = state.QUEST_TRACKER.readableJSON || true;
 		QUEST_TRACKER_TreeObjRef = state.QUEST_TRACKER.TreeObjRef || {};
 		QUEST_TRACKER_questGrid = state.QUEST_TRACKER.questGrid || [];
 		QUEST_TRACKER_jumpGate = state.QUEST_TRACKER.jumpGate || true;
+		QUEST_TRACKER_Events = state.QUEST_TRACKER.events || {};
+		QUEST_TRACKER_calenderType = state.QUEST_TRACKER.calenderType || 'gregorian';
+		QUEST_TRACKER_currentDate = state.QUEST_TRACKER.currentDate || CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate
+		QUEST_TRACKER_defaultDate = state.QUEST_TRACKER.defaultDate || CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate
+		QUEST_TRACKER_Location = state.QUEST_TRACKER.location || 'northern temperate';
+		QUEST_TRACKER_WeatherLocation = state.QUEST_TRACKER.weatherLocation || 'plains';
+		QUEST_TRACKER_currentWeekdayName = state.QUEST_TRACKER.currentWeekdayName || 'Thursday';
+		QUEST_TRACKER_WEATHER_TRENDS = state.QUEST_TRACKER.weatherTrends || {
+			dry: 0,
+			wet: 0,
+			heat: 0,
+			cold: 0,
+			wind: 0,
+			humid: 0,
+			visibility: 0,
+			cloudy: 0
+		};
+		QUEST_TRACKER_FORCED_WEATHER_TRENDS = state.QUEST_TRACKER.forcedWeatherTrends || {
+			dry: false,
+			wet: false,
+			heat: false,
+			cold: false,
+			wind: false,
+			humid: false,
+			visibility: false,
+			cloudy: false
+		};
+		QUEST_TRACKER_CURRENT_WEATHER = state.QUEST_TRACKER.currentWeather;
+		QUEST_TRACKER_HISTORICAL_WEATHER = state.QUEST_TRACKER.historicalWeather || {};
+		QUEST_TRACKER_WEATHER_DESCRIPTION = state.QUEST_TRACKER.weatherDescription || {};
+		QUEST_TRACKER_WEATHER = state.QUEST_TRACKER.weather || true;
+		QUEST_TRACKER_imperialMeasurements = state.QUEST_TRACKER.imperialMeasurements || {
+			temperature: false,
+			precipitation: false,
+			wind: true,
+			visibility: true
+		}
 	};
 	const saveQuestTrackerData = () => {
+		state.QUEST_TRACKER.verboseErrorLogging = QUEST_TRACKER_verboseErrorLogging;
 		state.QUEST_TRACKER.globalQuestData = QUEST_TRACKER_globalQuestData;
 		state.QUEST_TRACKER.globalQuestArray = QUEST_TRACKER_globalQuestArray;
-		state.QUEST_TRACKER.globalRumours = QUEST_TRACKER_globalRumours;
-		state.QUEST_TRACKER.currentDate = QUEST_TRACKER_currentDate;
+		state.QUEST_TRACKER.globalRumours = QUEST_TRACKER_globalRumours;	
 		state.QUEST_TRACKER.questsToAutoAdvance = QUEST_TRACKER_questsToAutoAdvance;
 		state.QUEST_TRACKER.rumoursByLocation = QUEST_TRACKER_rumoursByLocation;
 		state.QUEST_TRACKER.readableJSON = QUEST_TRACKER_readableJSON;
 		state.QUEST_TRACKER.questGrid = QUEST_TRACKER_questGrid;
 		state.QUEST_TRACKER.jumpGate = QUEST_TRACKER_jumpGate;
+		state.QUEST_TRACKER.events = QUEST_TRACKER_Events;
+		state.QUEST_TRACKER.currentDate = QUEST_TRACKER_currentDate;
+		state.QUEST_TRACKER.defaultDate = QUEST_TRACKER_defaultDate;
+		state.QUEST_TRACKER.calenderType = QUEST_TRACKER_calenderType;
+		state.QUEST_TRACKER.location = QUEST_TRACKER_Location;
+		state.QUEST_TRACKER.weatherLocation = QUEST_TRACKER_WeatherLocation;
+		state.QUEST_TRACKER.currentWeekdayName = QUEST_TRACKER_currentWeekdayName;
+		state.QUEST_TRACKER.currentWeather = QUEST_TRACKER_CURRENT_WEATHER;
+		state.QUEST_TRACKER.weatherTrends = QUEST_TRACKER_WEATHER_TRENDS;
+		state.QUEST_TRACKER.forcedWeatherTrends = QUEST_TRACKER_FORCED_WEATHER_TRENDS;
+		state.QUEST_TRACKER.historicalWeather = QUEST_TRACKER_HISTORICAL_WEATHER;
+		state.QUEST_TRACKER.weatherDescription = QUEST_TRACKER_WEATHER_DESCRIPTION;
+		state.QUEST_TRACKER.weather = QUEST_TRACKER_WEATHER;
+		state.QUEST_TRACKER.imperialMeasurements = QUEST_TRACKER_imperialMeasurements
 	};
-	const initializeQuestTrackerState = () => {
-		if (!state.QUEST_TRACKER || Object.keys(state.QUEST_TRACKER).length === 0) {
+	const initializeQuestTrackerState = (forced = false) => {
+		if (!state.QUEST_TRACKER || Object.keys(state.QUEST_TRACKER).length === 0 || forced) {
 			state.QUEST_TRACKER = {
+				verboseErrorLogging: true,
 				globalQuestData: {},
 				globalQuestArray: [],
 				globalRumours: {},
-				currentDate: '1970-01-01',
 				questsToAutoAdvance: [],
 				rumoursByLocation: {},
 				generations: {},
 				readableJSON: true,
 				QUEST_TRACKER_TreeObjRef: {},
-				jumpGate: true
+				jumpGate: true,
+				events: {},
+				calenderType: 'gregorian',
+				currentDate: CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate,
+				defaultDate: CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate,
+				location: 'northern temperate',
+				weatherLocation: 'plains',
+				currentWeather: null,
+				weatherTrends: {
+					dry: 0,
+					wet: 0,
+					heat: 0,
+					cold: 0
+				},
+				forcedWeatherTrends: {
+					dry: false,
+					wet: false,
+					heat: false,
+					cold: false
+				},
+				historicalWeather: {},
+				weather: true,
+				imperialMeasurements: {
+					temperature: false,
+					precipitation: false,
+					wind: true,
+					visibility: true
+				}
 			};
-			if (!findObjs({ type: 'rollabletable', name: 'quests' })[0]) {
-				createObj('rollabletable', { name: 'quests' });
+			if (!findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0]) {
+				createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_QUESTS });
 			}
-			if (!findObjs({ type: 'rollabletable', name: 'quest-groups' })[0]) {
-				createObj('rollabletable', { name: 'quest-groups' });
+			if (!findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0]) {
+				createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS });
 			}
-			let locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
+			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
 			if (!locationTable) {
-				locationTable = createObj('rollabletable', { name: 'locations' });
+				locationTable = createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS });
 				createObj('tableitem', {
 					_rollabletableid: locationTable.id,
 					name: 'Everywhere',
@@ -82,6 +226,15 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_RumourHandoutName })[0]) {
 				createObj('handout', { name: QUEST_TRACKER_RumourHandoutName });
+			}
+			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_EventHandoutName })[0]) {
+				createObj('handout', { name: QUEST_TRACKER_EventHandoutName });
+			}
+			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_WeatherHandoutName })[0]) {
+				createObj('handout', { name: QUEST_TRACKER_WeatherHandoutName });
+			}
+			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_WeatherDescriptionHandoutName })[0]) {
+				createObj('handout', { name: QUEST_TRACKER_WeatherDescriptionHandoutName });
 			}
 			Utils.sendGMMessage("QuestTracker has been initialized.");
 		}
@@ -109,6 +262,12 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const sendGMMessage = (message) => {
 			sendChat('Quest Tracker', `/w gm ${message}`);
+		};
+		const sendMessage = (message) => {
+			sendChat('Quest Tracker', `${message}`);
+		};
+		const sendDescMessage = (message) => {
+			sendChat('', `/desc ${message}`);
 		};
 		const normalizeKeys = (obj) => {
 			if (typeof obj !== 'object' || obj === null) return obj;
@@ -146,13 +305,13 @@ var QuestTracker = QuestTracker || (function () {
 			switch (type) {
 				case 'STRING':
 					if (typeof input !== 'string') {
-						Utils.sendGMMessage(`Error: Expected a string, but received "${typeof input}".`);
+						errorCheck(1, 'msg', null,`Expected a string, but received "${typeof input}`);
 						return null;
 					}
 					return input.replace(/<[^>]*>/g, '').replace(/["<>]/g, '').replace(/(\r\n|\n|\r)/g, '%NEWLINE%');
 				case 'ARRAY':
 					if (!Array.isArray(input)) {
-						Utils.sendGMMessage(`Error: Expected an array, but received "${typeof input}".`);
+						errorCheck(2, 'msg', null,`Expected an array, but received "${typeof input}`);
 						return [sanitizeInput(input, 'STRING')];
 					}
 					return input.map(item => sanitizeInput(item, H.checkType(item))).filter(item => item !== null);
@@ -164,7 +323,7 @@ var QuestTracker = QuestTracker || (function () {
 					return Number.isInteger(Number(input)) ? Number(input) : null;
 				case 'OBJECT':
 					if (typeof input !== 'object' || Array.isArray(input)) {
-						Utils.sendGMMessage(`Error: Expected an object, but received "${typeof input}".`);
+						errorCheck(3, 'msg', null,`Expected an object, but received "${typeof input}`);
 						return null;
 					}
 					const sanitizedObject = {};
@@ -180,12 +339,31 @@ var QuestTracker = QuestTracker || (function () {
 					}
 					return sanitizedObject;
 				default:
-					Utils.sendGMMessage(`Error: Unsupported type "${type}".`);
+					errorCheck(4, 'msg', null,`Unsupported type "${type}`);
 					return null;
 			}
 		};
 		const updateHandoutField = (dataType = 'quest') => {
-			const handoutName = dataType.toLowerCase() === 'rumour' ? QUEST_TRACKER_RumourHandoutName : QUEST_TRACKER_QuestHandoutName;
+			let handoutName;
+			switch (dataType.toLowerCase()) {
+				case 'rumour':
+					handoutName = QUEST_TRACKER_RumourHandoutName;
+					break;
+				case 'event':
+					handoutName = QUEST_TRACKER_EventHandoutName;
+					break;
+				case 'weather':
+					handoutName = QUEST_TRACKER_WeatherHandoutName;
+					break;
+				case 'weatherdescription':
+					handoutName = QUEST_TRACKER_WeatherDescriptionHandoutName;
+					break;
+				case 'quest':
+					handoutName = QUEST_TRACKER_QuestHandoutName;
+					break;
+				default:
+					return;
+			}
 			const handout = findObjs({ type: 'handout', name: handoutName })[0];
 			if (!handout) {
 				log(`Error: Handout "${handoutName}" not found.`);
@@ -198,10 +376,27 @@ var QuestTracker = QuestTracker || (function () {
 					data = JSON.parse(cleanedContent);
 					data = normalizeKeys(data);
 				} catch (error) {
-					log(`Error: Failed to parse JSON data from GM notes: ${error.message}`);
+					errorCheck(5, 'msg', null,`Failed to parse JSON data from GM notes: ${error.message}`);
 					return;
 				}
-				const updatedData = dataType.toLowerCase() === 'rumour' ? QUEST_TRACKER_globalRumours : QUEST_TRACKER_globalQuestData;
+				let updatedData;
+				switch (dataType.toLowerCase()) {
+					case 'rumour':
+						updatedData = QUEST_TRACKER_globalRumours;
+						break;
+					case 'event':
+						updatedData = QUEST_TRACKER_Events;
+						break;
+					case 'weather':
+						updatedData = QUEST_TRACKER_HISTORICAL_WEATHER;
+						break;
+					case 'weatherevents':
+						updatedData = QUEST_TRACKER_Events;
+						break;
+					default:
+						updatedData = QUEST_TRACKER_globalQuestData;
+						break;
+				}
 				const updatedContent = QUEST_TRACKER_readableJSON 
 					? JSON.stringify(updatedData, null, 2)
 						.replace(/\n/g, '<br>')
@@ -209,14 +404,18 @@ var QuestTracker = QuestTracker || (function () {
 					: JSON.stringify(updatedData);
 				handout.set('gmnotes', updatedContent, (err) => {
 					if (err) {
-						log(`Error: Failed to update GM notes for "${handoutName}": ${err.message}`);
-						if (dataType.toLowerCase() === 'rumour') {
-							QUEST_TRACKER_globalRumours = JSON.parse(cleanedContent);
-						} else {
-							QUEST_TRACKER_globalQuestData = JSON.parse(cleanedContent);
+						errorCheck(6, 'msg', null,`Failed to update GM notes for "${handoutName}": ${err.message}`);
+						switch (dataType.toLowerCase()) {
+							case 'rumour':
+								QUEST_TRACKER_globalRumours = JSON.parse(cleanedContent);
+								break;
+							case 'event':
+								QUEST_TRACKER_Events = JSON.parse(cleanedContent);
+								break;
+							default:
+								QUEST_TRACKER_globalQuestData = JSON.parse(cleanedContent);
+								break;
 						}
-					} else {
-						Utils.sendGMMessage(`Success: Updated data for ${dataType}.`);
 					}
 				});
 			});
@@ -230,9 +429,20 @@ var QuestTracker = QuestTracker || (function () {
 			saveQuestTrackerData();
 			updateHandoutField('quest');
 			updateHandoutField('rumour');
+			updateHandoutField('event');
+			updateHandoutField('weather');
+			updateHandoutField('weatherdescription');
+		};
+		const toggleWeather = (value) => {
+			QUEST_TRACKER_WEATHER = (value === 'true');
+			saveQuestTrackerData();
 		};
 		const toggleJumpGate = (value) => {
 			QUEST_TRACKER_jumpGate = (value === 'true');
+			saveQuestTrackerData();
+		};
+		const toggleVerboseError = (value) => {
+			QUEST_TRACKER_verboseErrorLogging = (value === 'true');
 			saveQuestTrackerData();
 		};
 		const sanitizeString = (input) => {
@@ -243,24 +453,36 @@ var QuestTracker = QuestTracker || (function () {
 			const sanitizedString = input.replace(/[^a-zA-Z0-9_ ]/g, '_');
 			return sanitizedString;
 		};
+		const inputAlias = (command) => {
+			const aliases = {
+				'!qt': '!qt-menu action=main',
+				'!qt-date advance': '!qt-date action=modify|unit=day|new=1',
+				'!qt-date retreat': '!qt-date action=modify|unit=day|new=-1'
+			};
+			return aliases[command] || command;
+		};
 		return {
 			sendGMMessage,
+			sendDescMessage,
+			sendMessage,
 			normalizeKeys,
 			stripJSONContent,
 			sanitizeInput,
 			updateHandoutField,
 			togglereadableJSON,
+			toggleWeather,
 			toggleJumpGate,
-			sanitizeString
+			toggleVerboseError,
+			sanitizeString,
+			inputAlias
 		};
-	})();
+	})(); 
 	const Import = (() => {
 		const H = {
-			importData: (handoutName, globalVarName, dataType) => {
-				Utils.sendGMMessage(`Importing ${dataType} data. This might take some time. Please be patient...`);
+			importData: (handoutName, dataType) => {
 				let handout = findObjs({ type: 'handout', name: handoutName })[0];
 				if (!handout) {
-					log(`Error: ${dataType} handout "${handoutName}" not found.`);
+					errorCheck(7, 'msg', null,`${dataType} handout "${handoutName}" not found. Please create it.`);
 					return;
 				}
 				handout.get('gmnotes', (notes) => {
@@ -281,7 +503,7 @@ var QuestTracker = QuestTracker || (function () {
 							}, {});
 						};
 						parsedData = convertKeysToLowerCase(parsedData);
-						if (globalVarName === 'QUEST_TRACKER_globalQuestData') {
+						if (dataType === 'Quest') {
 							parsedData = Utils.normalizeKeys(parsedData);
 							QUEST_TRACKER_globalQuestArray = [];
 							Object.keys(parsedData).forEach((questId) => {
@@ -290,7 +512,7 @@ var QuestTracker = QuestTracker || (function () {
 								QUEST_TRACKER_globalQuestArray.push({ id: questId, weight: quest.weight || 1 });
 							});
 							QUEST_TRACKER_globalQuestData = parsedData;
-						} else if (globalVarName === 'QUEST_TRACKER_globalRumours') {
+						} else if (dataType === 'Rumour') {
 							parsedData = Utils.normalizeKeys(parsedData);
 							Object.keys(parsedData).forEach((questId) => {
 								Object.keys(parsedData[questId]).forEach((status) => {
@@ -299,7 +521,6 @@ var QuestTracker = QuestTracker || (function () {
 										if (typeof rumours === 'object' && !Array.isArray(rumours)) {
 											parsedData[questId][status][location] = rumours;
 										} else {
-											log(`Error: Rumours for location "${location}" under status "${status}" for quest "${questId}" is not in the correct key/value format.`);
 											parsedData[questId][status][location] = {};
 										}
 									});
@@ -307,17 +528,25 @@ var QuestTracker = QuestTracker || (function () {
 							});
 							QUEST_TRACKER_globalRumours = parsedData;
 							Rumours.calculateRumoursByLocation();
-							Rumours.cleanupRumoursJSON();
+						} else if (dataType === 'Events') {
+							parsedData = Utils.normalizeKeys(parsedData);
+							QUEST_TRACKER_Events = parsedData;
+						} else if (dataType === 'Weather') {
+							parsedData = Utils.normalizeKeys(parsedData);
+							QUEST_TRACKER_HISTORICAL_WEATHER = parsedData;
+						} else if (dataType === 'Weather Description') {
+							parsedData = Utils.normalizeKeys(parsedData);
+							QUEST_TRACKER_WEATHER_DESCRIPTION = parsedData;
 						}
 						saveQuestTrackerData();
-						Utils.sendGMMessage(`${dataType} data imported successfully.`);
+						Utils.sendGMMessage(`${dataType} handout "${handoutName}" Imported.`);
 					} catch (error) {
-						log(`Error: Error parsing ${dataType} data: ${error.message}`);
+						errorCheck(8, 'msg', null,`Error parsing ${dataType} data: ${error.message}`);
 					}
 				});
 			},
 			syncQuestRollableTable: () => {
-				let questTable = findObjs({ type: 'rollabletable', name: 'quests' })[0];
+				let questTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0];
 				const questTableItems = findObjs({ type: 'tableitem', rollabletableid: questTable.id });
 				const tableItemMap = {};
 				questTableItems.forEach(item => {
@@ -347,10 +576,7 @@ var QuestTracker = QuestTracker || (function () {
 					return conditions.every(condition => {
 						if (typeof condition === 'string') {
 							const lowerCondition = condition.toLowerCase();
-							if (!QUEST_TRACKER_globalQuestData.hasOwnProperty(lowerCondition)) {
-								Utils.sendGMMessage(`Error: Condition "${lowerCondition}" in quest "${questName}" does not exist in quest data.`);
-								return false;
-							}
+							if (errorCheck(9, 'exists', QUEST_TRACKER_globalQuestData.hasOwnProperty(lowerCondition),`QUEST_TRACKER_globalQuestData.hasOwnProperty(${lowerCondition})`)) return false;
 							return true;
 						} else if (typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
 							return validateNestedConditions(condition.conditions);
@@ -363,9 +589,8 @@ var QuestTracker = QuestTracker || (function () {
 					? relationships.mutually_exclusive.map(exclusive => exclusive.toLowerCase())
 					: [];
 				mutuallyExclusive.forEach(exclusive => {
-					if (!QUEST_TRACKER_globalQuestData.hasOwnProperty(exclusive)) {
-						Utils.sendGMMessage(`Error: Mutually exclusive quest "${exclusive}" in quest "${questName}" does not exist in quest data.`);
-					}
+					if (errorCheck(10, 'exists', QUEST_TRACKER_globalQuestData.hasOwnProperty(exclusive),`QUEST_TRACKER_globalQuestData.hasOwnProperty(${exclusive})`)) return true;
+					else return false;
 				});
 			},
 			cleanUpDataFields: () => {
@@ -378,19 +603,20 @@ var QuestTracker = QuestTracker || (function () {
 			}
 		};
 		const fullImportProcess = () => {
-			Utils.sendGMMessage("Starting full import process. This may take some time...");
-			H.importData(QUEST_TRACKER_QuestHandoutName, 'QUEST_TRACKER_globalQuestData', 'Quest');
-			H.importData(QUEST_TRACKER_RumourHandoutName, 'QUEST_TRACKER_globalRumours', 'Rumour');
+			H.importData(QUEST_TRACKER_QuestHandoutName, 'Quest');
+			H.importData(QUEST_TRACKER_RumourHandoutName, 'Rumour');
+			H.importData(QUEST_TRACKER_EventHandoutName, 'Events');
+			H.importData(QUEST_TRACKER_WeatherHandoutName, 'Weather');
+			H.importData(QUEST_TRACKER_WeatherDescriptionHandoutName, 'Weather Description');
 			H.syncQuestRollableTable();
 			Quest.cleanUpLooseEnds();
 			H.cleanUpDataFields();
 			Quest.populateQuestsToAutoAdvance();
-			Utils.sendGMMessage("Import completed and cleanup executed.");
 		};
 		return {
 			fullImportProcess
 		};
-	})();
+	})(); 
 	const Quest = (() => {
 		const H = {
 			traverseConditions: (conditions, callback) => {
@@ -408,7 +634,7 @@ var QuestTracker = QuestTracker || (function () {
 				});
 			},
 			updateQuestStatus: (questId, status) => {
-				const questTable = findObjs({ type: 'rollabletable', name: 'quests' })[0];
+				const questTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0];
 				if (!questTable) {
 					return;
 				}
@@ -426,7 +652,7 @@ var QuestTracker = QuestTracker || (function () {
 				}
 			},
 			removeQuestFromRollableTable: (questId) => {
-				const questTable = findObjs({ type: 'rollabletable', name: 'quests' })[0];
+				const questTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0];
 				if (questTable) {
 					const item = findObjs({ type: 'tableitem', rollabletableid: questTable.id })
 						.find(i => i.get('name') === questId);
@@ -589,7 +815,7 @@ var QuestTracker = QuestTracker || (function () {
 				});
 			},
 			getAllQuestGroups: () => {
-				let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+				let groupTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0];
 				if (!groupTable) return [];
 				let groupItems = findObjs({ type: 'tableitem', rollabletableid: groupTable.id });
 				return groupItems.map(item => item.get('name'));
@@ -615,9 +841,6 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const manageRelationship = (questId, action, relationshipType, newItem = null, groupnum = null) => {
 			let questData = QUEST_TRACKER_globalQuestData[questId];
-			if (!questData) {
-				return;
-			}
 			let currentRelationships = questData.relationships || { logic: 'AND', conditions: [], mutually_exclusive: [] };
 			currentRelationships.conditions = currentRelationships.conditions || [];
 			currentRelationships.mutually_exclusive = currentRelationships.mutually_exclusive || [];
@@ -631,7 +854,7 @@ var QuestTracker = QuestTracker || (function () {
 				return !excludedQuests.has(qId);
 			});
 			return validQuests;
-		};
+		}; 
 		const addQuest = () => {
 			const newQuestId = H.generateNewQuestId();
 			const defaultQuestData = {
@@ -641,7 +864,7 @@ var QuestTracker = QuestTracker || (function () {
 				hidden: true,
 				autoadvance: {}
 			};
-			const questTable = findObjs({ type: 'rollabletable', name: 'quests' })[0];
+			const questTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0];
 			QUEST_TRACKER_globalQuestData[newQuestId] = defaultQuestData;
 			QUEST_TRACKER_globalQuestArray.push({ id: newQuestId, weight: 1 });
 			if (questTable) {
@@ -654,16 +877,13 @@ var QuestTracker = QuestTracker || (function () {
 			Utils.updateHandoutField('quest')
 		};
 		const removeQuest = (questId) => {
-			if (!QUEST_TRACKER_globalQuestData[questId]) {
-				return;
-			}
 			H.removeQuestReferences(questId);
 			H.removeQuestFromRollableTable(questId);
 			Rumours.removeAllRumoursForQuest(questId);
 			delete QUEST_TRACKER_globalQuestData[questId];
 			QUEST_TRACKER_globalQuestArray = QUEST_TRACKER_globalQuestArray.filter(quest => quest.id !== questId);
 			Utils.updateHandoutField('quest');
-		};
+		}; 
 		const cleanUpLooseEnds = () => {
 			const processedPairs = new Set();
 			Object.keys(QUEST_TRACKER_globalQuestData).forEach(questId => {
@@ -684,7 +904,7 @@ var QuestTracker = QuestTracker || (function () {
 					}
 				});
 			});
-		};
+		}; 
 		const populateQuestsToAutoAdvance = () => {
 			QUEST_TRACKER_questsToAutoAdvance = Object.keys(QUEST_TRACKER_globalQuestData).filter(questId => {
 				const quest = QUEST_TRACKER_globalQuestData[questId];
@@ -706,11 +926,22 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			return 'Unknown';
 		};
+		const getQuestStatus = (questId) => {
+			const questTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0];
+			if (!questTable) {
+				return 1;
+			}
+			const questItem = findObjs({ type: 'tableitem', rollabletableid: questTable.id }).find(item => item.get('name') === questId);
+			if (!questItem) {
+				return 1;
+			}
+			return questItem.get('weight');
+		}; 
 		const manageQuestObject = ({ action, field, current, old = '', newItem }) => {
 			const quest = QUEST_TRACKER_globalQuestData[current];
 			switch (field) {
 				case 'status':
-					quest.status = parseInt(newItem, 10);
+					H.updateQuestStatus(current, newItem);
 					QuestPageBuilder.updateQuestStatusColor(current, newItem);
 					break;
 				case 'hidden':
@@ -764,20 +995,19 @@ var QuestTracker = QuestTracker || (function () {
 					}
 					break;
 				default:
-					Utils.sendGMMessage(`Error: Unsupported field "${field}".`);
+					errorCheck(11, 'msg', null,`Unsupported action for type ( ${field} )`);
 					break;
 			}
 			Utils.updateHandoutField('quest');
-		};
+		}; 
 		const manageGroups = (action, newItem = null, groupId = null) => {
-			let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+			let groupTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0];
 			if (!groupTable) {
-				Utils.sendGMMessage('Error: Quest groups table not found.');
+				errorCheck(12, 'msg', null,`Quest groups table not found.`)
 				return;
 			}
 			switch (action) {
 				case 'add':
-					if (!newItem) return;
 					const allGroups = findObjs({ type: 'tableitem', rollabletableid: groupTable.id }).map(item => item.get('name').toLowerCase());
 					if (allGroups.includes(Utils.sanitizeString(newItem.toLowerCase()))) return;
 					const newWeight = H.getNewGroupId(groupTable);
@@ -789,7 +1019,7 @@ var QuestTracker = QuestTracker || (function () {
 					});
 					break;
 				case 'remove':
-					if (!groupId || groupId === 1) return;
+					if (groupId === 1) return;
 					let groupToRemove = findObjs({ type: 'tableitem', rollabletableid: groupTable.id }).find(item => item.get('weight') == groupId);
 					H.removeQuestsFromGroup(groupTable, groupId);
 					groupToRemove.remove();
@@ -803,9 +1033,55 @@ var QuestTracker = QuestTracker || (function () {
 					}
 					break;
 			}
-		};
+		}; 
+		const autoAdvance = (autoAdvanceData) => {
+			Object.keys(autoAdvanceData).forEach((questId) => {
+				const questStatuses = autoAdvanceData[questId];
+				const validStatuses = Object.keys(questStatuses)
+					.filter((status) => questStatuses[status])
+					.map((status) => {
+						const statusValue = Object.keys(statusMapping).find(
+							(key) => statusMapping[key].toLowerCase() === status.toLowerCase()
+						);
+						return statusValue ? { statusName: status, statusValue: parseInt(statusValue, 10) } : null;
+					})
+					.filter((value) => value !== null);
+				if (validStatuses.length === 0) {
+					return;
+				}
+				const highestStatus = validStatuses.reduce((max, current) =>
+					current.statusValue > max.statusValue ? current : max
+				);
+				const quest = QUEST_TRACKER_globalQuestData[questId];
+				const currentStatus = Object.keys(statusMapping).find(
+					(key) => statusMapping[key] === quest.status
+				);
+				if (currentStatus !== highestStatus.statusValue) {
+					Quest.manageQuestObject({
+						action: "update",
+						field: "status",
+						questID: questId,
+						oldStatus: currentStatus,
+						newStatus: highestStatus.statusValue
+					});
+					QuestPageBuilder.updateQuestStatusColor(questId, highestStatus.statusValue);
+					Utils.sendGMMessage(`Quest "${questId}" has been automatically advanced to status: "${highestStatus.statusName}".`);
+				}
+				Object.keys(questStatuses).forEach((status) => {
+					if (questStatuses[status]) {
+						Quest.manageQuestObject({
+							action: "remove",
+							field: "autoadvance",
+							current: quest.autoAdvance[status],
+							newItem: status
+						});
+					}
+				});
+			});
+		}; 
 		return {
 			getStatusNameByQuestId,
+			getQuestStatus,
 			populateQuestsToAutoAdvance,
 			getValidQuestsForDropdown,
 			manageRelationship,
@@ -813,75 +1089,864 @@ var QuestTracker = QuestTracker || (function () {
 			removeQuest,
 			cleanUpLooseEnds,
 			manageQuestObject,
-			manageGroups
+			manageGroups,
+			autoAdvance
 		};
-	})();
+	})(); 
 	const Calendar = (() => {
 		const H = {
-			getStatusByName: (statusName) => {
-				const statusKey = Object.keys(statusMapping).find(key => statusMapping[key].toLowerCase() === statusName.toLowerCase());
-				return statusKey ? parseInt(statusKey, 10) : 1; 
-			}
-		};
-		const setCurrentDate = (newDate, isPublic = false, fromValue = 'Quest Tracker', messageValue = null) => {
-			QUEST_TRACKER_currentDate = newDate;
-			saveQuestTrackerData();
-			Quest.populateQuestsToAutoAdvance();
-			const defaultMessage = `The date has been set to ${QUEST_TRACKER_currentDate}`;
-			sendDateChangeMessage(defaultMessage, isPublic, fromValue, messageValue);
-		};
-		const modifyDate = (days, isPublic = false, fromValue = 'Quest Tracker', messageValue = null) => {
-			const oldDate = new Date(QUEST_TRACKER_currentDate);
-			const newDate = new Date(oldDate);
-			newDate.setDate(oldDate.getDate() + days);
-			QUEST_TRACKER_currentDate = newDate.toISOString().split('T')[0];
-			saveQuestTrackerData();
-			Quest.populateQuestsToAutoAdvance();
-			const defaultMessage = days > 0
-				? (days === 1 
-					? `The date has been advanced to ${QUEST_TRACKER_currentDate}`
-					: `The date has been advanced by ${days} days to ${QUEST_TRACKER_currentDate}`)
-				: (days === -1 
-					? `The date has been retreated to ${QUEST_TRACKER_currentDate}`
-					: `The date has been retreated by ${Math.abs(days)} days to ${QUEST_TRACKER_currentDate}`);
-			sendDateChangeMessage(defaultMessage, isPublic, fromValue, messageValue);
-		};
-		const sendDateChangeMessage = (defaultMessage, isPublic, fromValue, messageValue) => {
-			Utils.sendGMMessage(defaultMessage);
-			if (isPublic) {
-				const sender = (fromValue !== undefined && fromValue !== null) ? fromValue : 'Quest Tracker';
-				const publicMessage = messageValue || defaultMessage;
-				sendChat(sender, publicMessage);
-			}
-		};
-		const reviewQuestAdvancement = () => {
-			QUEST_TRACKER_questsToAutoAdvance = QUEST_TRACKER_questsToAutoAdvance.filter(questId => {
-				const quest = QUEST_TRACKER_globalQuestData[questId];
-				const currentStatus = Quest.getStatusNameByQuestId(questId, QUEST_TRACKER_globalQuestArray);
-				if (currentStatus === 'Completed' || currentStatus === 'Completed By Someone Else' || currentStatus === 'Failed') {
-					return false; // Remove from the array
-				}
-				Object.keys(quest.autoadvance).forEach(status => {
-					const dateToAdvance = quest.autoadvance[status];
-					if (QUEST_TRACKER_currentDate >= dateToAdvance) {
-						const statusWeight = H.getStatusByName(status);
-						Quest.updateQuestStatus(questId, statusWeight);
-						Utils.sendGMMessage(`Quest "${quest.name}" has been automatically advanced to status: "${status}".`);
+			generateNewEventId: () => {
+				const existingEventIds = Object.keys(QUEST_TRACKER_Events);
+				const highestEventNumber = existingEventIds.reduce((max, id) => {
+					const match = id.match(/^event_(\d+)$/);
+					return match ? Math.max(max, parseInt(match[1], 10)) : max;
+				}, 0);
+				return `event_${highestEventNumber + 1}`;
+			},
+			checkQuestAutoAdvance: () => {
+				const autoAdvanceData = {};
+				Object.keys(QUEST_TRACKER_globalQuestData).forEach((questId) => {
+					const quest = QUEST_TRACKER_globalQuestData[questId];
+					if (!quest.autoAdvance || Object.keys(quest.autoAdvance).length === 0) {
+						return;
+					}
+					const statusUpdates = {};
+					Object.keys(quest.autoAdvance).forEach((status) => {
+						const dateToAdvance = quest.autoAdvance[status];
+						if (!dateToAdvance || !/^\d{4}-\d{2}-\d{2}$/.test(dateToAdvance)) {
+							return;
+						}
+						statusUpdates[status] = QUEST_TRACKER_currentDate >= dateToAdvance;
+					});
+					if (Object.keys(statusUpdates).length > 0) {
+						autoAdvanceData[questId] = statusUpdates;
 					}
 				});
-				const newStatus = Quest.getStatusNameByQuestId(questId, QUEST_TRACKER_globalQuestArray);
-				if (newStatus === 'Completed' || newStatus === 'Completed By Someone Else' || newStatus === 'Failed') {
+				Quest.autoAdvance(autoAdvanceData);
+			},
+			checkEvent: () => {
+				if (!QUEST_TRACKER_Events || typeof QUEST_TRACKER_Events !== "object") {
+					return;
+				}
+				Object.keys(QUEST_TRACKER_Events).forEach((eventId) => {
+					const event = QUEST_TRACKER_Events[eventId];
+					if (event.hidden) return;
+					if (errorCheck(13, 'exists', event.date, 'event.date')) return;
+					if (errorCheck(14, 'date', event.date)) return;
+					if (QUEST_TRACKER_currentDate === event.date) {
+						Utils.sendGMMessage(`Event triggered: "${event.name}" - ${event.description}`);
+						if (!event.repeatable) {
+							delete QUEST_TRACKER_Events[eventId];
+							Utils.updateHandoutField("event");
+						} else {
+							const frequencyDays = event.frequency || 1;
+							const [year, month, day] = event.date.split("-").map(Number);
+							const nextDate = new Date(year, month - 1, day + frequencyDays)
+								.toISOString()
+								.split("T")[0];
+							event.date = nextDate;
+							Utils.updateHandoutField("event");
+						}
+					}
+				});
+			},
+			evaluateLogic: (logic, year) => {
+				if (errorCheck(15, 'exists', logic,'logic')) return false;
+				if (errorCheck(16, 'exists', logic.operation,'logic.operation')) return false;
+				if (logic.conditions) {
+					if (logic.operation === "or") {
+						return logic.conditions.some((condition) => H.evaluateLogic(condition, year));
+					} else if (logic.operation === "and") {
+						return logic.conditions.every((condition) => H.evaluateLogic(condition, year));
+					}
+					errorCheck(17, 'msg', null,`Unsupported logic operation: ${logic.operation}`);
 					return false;
 				}
-				return true;
+				if (logic.operation === "mod") {
+					const result = (year % logic.operand) === logic.equals;
+					return logic.negate ? !result : result;
+				}
+				errorCheck(18, 'msg', null,`Unsupported condition operation: ${logic.operation}`);
+				return false;
+			},
+			getDaysInMonth: (monthIndex, year) => {
+				const month = CALENDARS[QUEST_TRACKER_calenderType].months[monthIndex - 1];
+				if (month.leap) {
+					const isLeapYear = H.evaluateLogic(month.leap.logic, year);
+					if (isLeapYear) {
+						return month.leap.days;
+					}
+				}
+				return month.days;
+			},
+			getTotalDaysInYear: (year) => {
+				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+				if (errorCheck(19, 'exists', calendar,'calendar')) return;
+				if (errorCheck(20, 'exists', calendar.months,'calendar.monthsn')) return;
+				return calendar.months.reduce((totalDays, monthObj, index) => {
+					const daysInMonth = H.getDaysInMonth(index + 1, year);
+					return totalDays + daysInMonth;
+				}, 0);
+			},
+			calculateDateDifference: (target, baseYear, baseMonth, baseDay) => {
+				if (!target) return Infinity;
+				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+				if (errorCheck(21, 'exists', calendar,'calendar')) return Infinity;
+				const { year: targetYear, month: targetMonth, day: targetDay } = target;
+				let totalDays = 0;
+				if (targetYear === baseYear) {
+					if (targetMonth === baseMonth) {
+						return targetDay - baseDay;
+					}
+					totalDays += H.getDaysInMonth(baseMonth, baseYear) - baseDay;
+					for (let m = baseMonth + 1; m < targetMonth; m++) {
+						totalDays += H.getDaysInMonth(m, baseYear);
+					}
+					totalDays += targetDay;
+					return totalDays;
+				}
+				totalDays += H.getDaysInMonth(baseMonth, baseYear) - baseDay;
+				for (let m = baseMonth + 1; m <= calendar.months.length; m++) {
+					totalDays += H.getDaysInMonth(m, baseYear);
+				}
+				for (let y = baseYear + 1; y < targetYear; y++) {
+					totalDays += H.getTotalDaysInYear(y);
+				}
+				for (let m = 1; m < targetMonth; m++) {
+					totalDays += H.getDaysInMonth(m, targetYear);
+				}
+				totalDays += targetDay;
+				return totalDays;
+			},
+			findNextEvents: (limit = 1) => {
+				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+				const daysOfWeek = calendar.daysOfWeek || [];
+				const specialDays = calendar.significantDays || {};
+				const events = QUEST_TRACKER_Events || {};
+				const [currentYear, currentMonth, currentDay] = QUEST_TRACKER_currentDate.split("-").map(Number);
+				let upcomingEvents = [];
+				const calculateNextOccurrences = (event, maxOccurrences) => {
+					let { date, repeatable, frequency, name, weekdayName } = event;
+					let [eventYear, eventMonth, eventDay] = date.split("-").map(Number);
+					const occurrences = [];
+					if (repeatable) {
+						const freqType = frequencyMapping[frequency];
+						if (errorCheck(22, 'exists', freqType,'freqType')) return occurrences;
+						let occurrencesCount = 0;
+						while (occurrencesCount < maxOccurrences) {
+							switch (freqType) {
+								case "Daily":
+									eventYear = currentYear;
+									eventMonth = currentMonth;
+									eventDay += occurrencesCount + 1;
+									while (eventDay > H.getDaysInMonth(eventMonth, eventYear)) {
+										eventDay -= H.getDaysInMonth(eventMonth, eventYear);
+										eventMonth++;
+										if (eventMonth > calendar.months.length) {
+											eventMonth = 1;
+											eventYear++;
+										}
+									}
+									break;
+								case "Weekly":
+									if (weekdayName) {
+										const targetWeekdayIndex = daysOfWeek.indexOf(weekdayName);
+										const currentWeekdayIndex = daysOfWeek.indexOf(QUEST_TRACKER_currentWeekdayName);
+										let daysToAdd = (targetWeekdayIndex - currentWeekdayIndex + daysOfWeek.length) % daysOfWeek.length;
+										eventYear = currentYear;
+										eventMonth = currentMonth;
+										eventDay = currentDay + daysToAdd + occurrencesCount * 7;
+										while (eventDay > H.getDaysInMonth(eventMonth, eventYear)) {
+											eventDay -= H.getDaysInMonth(eventMonth, eventYear);
+											eventMonth++;
+											if (eventMonth > calendar.months.length) {
+												eventMonth = 1;
+												eventYear++;
+											}
+										}
+									}
+									break;
+								case "Monthly":
+									eventYear = currentYear;
+									eventMonth += occurrencesCount;
+									if (eventMonth > calendar.months.length) {
+										eventYear += Math.floor((eventMonth - 1) / calendar.months.length);
+										eventMonth = ((eventMonth - 1) % calendar.months.length) + 1;
+									}
+									break;
+								case "Yearly":
+									eventYear += occurrencesCount;
+									break;
+							}
+							if (H.getDaysInMonth(eventMonth, eventYear) >= eventDay) {
+								occurrences.push([
+									`${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`,
+									name
+								]);
+								occurrencesCount++;
+							} else {
+								break;
+							}
+						}
+					} else {
+						occurrences.push([
+							`${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`,
+							name
+						]);
+					}
+					return occurrences;
+				};
+				Object.values(events).forEach((event) => {
+					const eventOccurrences = calculateNextOccurrences(event, limit);
+					upcomingEvents.push(...eventOccurrences);
+				});
+				Object.entries(specialDays).forEach(([key, name]) => {
+					const [eventMonth, eventDay] = key.split("-").map(Number);
+					let eventYear = currentYear;
+					if (eventMonth < currentMonth || (eventMonth === currentMonth && eventDay <= currentDay)) {
+						eventYear++;
+					}
+					if (H.getDaysInMonth(eventMonth, eventYear) >= eventDay) {
+						upcomingEvents.push([
+							`${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`,
+							name
+						]);
+					}
+				});
+				upcomingEvents.sort((a, b) => {
+					const [aYear, aMonth, aDay] = a[0].split("-").map(Number);
+					const [bYear, bMonth, bDay] = b[0].split("-").map(Number);
+					return H.calculateDateDifference({ year: aYear, month: aMonth, day: aDay }, currentYear, currentMonth, currentDay)
+						- H.calculateDateDifference({ year: bYear, month: bMonth, day: bDay }, currentYear, currentMonth, currentDay);
+				});
+				return upcomingEvents.slice(0, limit);
+			},
+			calculateWeekday: (year, month, day) => {
+				if (errorCheck(23, 'calendar', calendar)) return;
+				if (errorCheck(24, 'calendar.daysOfWeek', calendar.daysOfWeek)) return;
+				if (errorCheck(25, 'calendar.startingWeekday', calendar.startingWeekday)) return;
+				if (errorCheck(26, 'calendar.startingYear', calendar.startingYear)) return;
+				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+				const daysOfWeek = calendar.daysOfWeek;
+				const startingWeekday = calendar.startingWeekday;
+				const startingYear = calendar.startingYear;
+				let totalDays = 0;
+				for (let y = startingYear; y < year; y++) {
+					totalDays += H.getTotalDaysInYear(y);
+				}
+				for (let m = 1; m < month; m++) {
+					totalDays += typeof calendar.months[m - 1].days === "function"
+						? calendar.months[m - 1].days(year)
+						: calendar.months[m - 1].days;
+				}
+				totalDays += day - 1;
+				return daysOfWeek[(daysOfWeek.indexOf(startingWeekday) + totalDays) % daysOfWeek.length];
+			}
+		};
+		const determineWeather = (date) => {
+			const W = {
+				getSeasonBoundaries: (year) => {				
+					if (errorCheck(27, 'exists', CALENDARS[QUEST_TRACKER_calenderType]?.climates[QUEST_TRACKER_Location], `CALENDARS[${QUEST_TRACKER_calenderType}]?.climates[${QUEST_TRACKER_Location}]`)) return;
+					const climate = CALENDARS[QUEST_TRACKER_calenderType]?.climates[QUEST_TRACKER_Location];
+					const boundaries = [];
+					const seasonStart = climate.seasonStart || {};
+					for (const [seasonName, startMonth] of Object.entries(seasonStart)) {
+						let startDayOfYear = 0;
+						const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+						for (let i = 0; i < startMonth - 1; i++) {
+							const monthObj = calendar.months[i];
+							startDayOfYear += typeof monthObj.days === "function" ? monthObj.days(year) : monthObj.days;
+						}
+						boundaries.push({ season: seasonName, startDayOfYear });
+					}
+					boundaries.sort((a, b) => a.startDayOfYear - b.startDayOfYear);
+					const totalDaysInYear = H.getTotalDaysInYear(year);
+					boundaries.forEach((boundary, i) => {
+						const nextIndex = (i + 1) % boundaries.length;
+						boundary.endDayOfYear =
+							boundaries[nextIndex].startDayOfYear - 1 >= 0
+								? boundaries[nextIndex].startDayOfYear - 1
+								: totalDaysInYear - 1;
+					});
+					return boundaries;
+				},
+				getCurrentSeason: (date) => {
+					const [year, month, day] = date.split("-").map(Number);
+					const boundaries = W.getSeasonBoundaries(year);
+					if (!boundaries || boundaries.length === 0) return null;
+					let dayOfYear = 0;
+					const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+					for (let i = 0; i < month - 1; i++) {
+						const monthObj = calendar.months[i];
+						dayOfYear += typeof monthObj.days === "function" ? monthObj.days(year) : monthObj.days;
+					}
+					dayOfYear += day;
+					for (const { season, startDayOfYear, endDayOfYear } of boundaries) {
+						if (startDayOfYear <= endDayOfYear) {
+							if (dayOfYear >= startDayOfYear && dayOfYear <= endDayOfYear) {
+								return { season, dayOfYear };
+							}
+						} else {
+							if (dayOfYear >= startDayOfYear || dayOfYear <= endDayOfYear) {
+								return { season, dayOfYear };
+							}
+						}
+					}
+					return null;
+				},
+				getSuddenSeasonalChangeProbability: (dayOfYear, boundaries) => {
+					const buffer = 5;
+					for (const { startDayOfYear, endDayOfYear } of boundaries) {
+						if (Math.abs(dayOfYear - startDayOfYear) <= buffer || Math.abs(dayOfYear - endDayOfYear) <= buffer) {
+							return 0.25;
+						}
+					}
+					return 0.05;
+				},
+				applyForcedTrends: (rolls) => {
+					const { temperatureRoll, precipitationRoll, windRoll, humidityRoll, visibilityRoll, cloudCoverRoll } = rolls;
+					return {
+						temperatureRoll: QUEST_TRACKER_FORCED_WEATHER_TRENDS.heat
+							? Math.min(100, temperatureRoll + 20)
+							: QUEST_TRACKER_FORCED_WEATHER_TRENDS.cold
+							? Math.max(1, temperatureRoll - 20)
+							: temperatureRoll,
+						precipitationRoll: QUEST_TRACKER_FORCED_WEATHER_TRENDS.wet
+							? Math.min(100, precipitationRoll + 20)
+							: QUEST_TRACKER_FORCED_WEATHER_TRENDS.dry
+							? Math.max(1, precipitationRoll - 20)
+							: precipitationRoll,
+						windRoll: QUEST_TRACKER_FORCED_WEATHER_TRENDS.wind
+							? Math.min(100, windRoll + 20)
+							: windRoll,
+						humidityRoll: QUEST_TRACKER_FORCED_WEATHER_TRENDS.humid
+							? Math.min(100, humidityRoll + 20)
+							: humidityRoll,
+						visibilityRoll: QUEST_TRACKER_FORCED_WEATHER_TRENDS.visibility
+							? Math.min(100, visibilityRoll + 20)
+							: visibilityRoll,
+						cloudCoverRoll: QUEST_TRACKER_FORCED_WEATHER_TRENDS.cloudy
+							? Math.min(100, cloudCoverRoll + 20)
+							: cloudCoverRoll,
+					};
+				},
+				applyTrends: (rolls) => {
+					const { temperatureRoll, precipitationRoll, windRoll, humidityRoll, visibilityRoll, cloudCoverRoll } = rolls;
+					return {
+						temperatureRoll:
+							temperatureRoll +
+							(QUEST_TRACKER_WEATHER_TRENDS.heat || 0) * 2 -
+							(QUEST_TRACKER_WEATHER_TRENDS.cold || 0) * 2,
+						precipitationRoll:
+							precipitationRoll +
+							(QUEST_TRACKER_WEATHER_TRENDS.wet || 0) * 2 -
+							(QUEST_TRACKER_WEATHER_TRENDS.dry || 0) * 2,
+						windRoll: windRoll + (QUEST_TRACKER_WEATHER_TRENDS.wind || 0) * 2,
+						humidityRoll: humidityRoll + (QUEST_TRACKER_WEATHER_TRENDS.humid || 0) * 2,
+						visibilityRoll: visibilityRoll + (QUEST_TRACKER_WEATHER_TRENDS.visibility || 0) * 2,
+						cloudCoverRoll: cloudCoverRoll + (QUEST_TRACKER_WEATHER_TRENDS.cloudy || 0) * 2,
+					};
+				},
+				updateTrends: (rolls) => {
+					["heat", "cold", "wet", "dry", "wind", "visibility", "cloudy"].forEach((trendType) => {
+						const roll = rolls[`${trendType}Roll`];
+						if (["wind", "visibility", "cloudy"].includes(trendType) && roll < 60) {
+							QUEST_TRACKER_WEATHER_TRENDS[trendType] = 0;
+						} else if (roll > 80) {
+							QUEST_TRACKER_WEATHER_TRENDS[trendType] =
+								(QUEST_TRACKER_WEATHER_TRENDS[trendType] || 0) + 1;
+						} else if (QUEST_TRACKER_WEATHER_TRENDS[trendType]) {
+							QUEST_TRACKER_WEATHER_TRENDS[trendType] = 0;
+						}
+					});
+					if (rolls.precipitationRoll > 80) QUEST_TRACKER_WEATHER_TRENDS.dry = 0;
+					if (rolls.temperatureRoll > 80) QUEST_TRACKER_WEATHER_TRENDS.cold = 0;
+					if (rolls.temperatureRoll < 20) QUEST_TRACKER_WEATHER_TRENDS.heat = 0;
+				},
+				generateBellCurveRoll: () => {
+					const roll = Math.random() + Math.random() + Math.random();
+					const scaled = (roll / 3) * 60 + 20;
+					return Math.round(scaled);
+				}
+			};
+			const [year, month, day] = date.split("-").map(Number);
+			const currentSeasonData = W.getCurrentSeason(date);
+			if (!currentSeasonData) return;
+			const { season, dayOfYear } = currentSeasonData;
+			const boundaries = W.getSeasonBoundaries(year);
+			const suddenChangeProbability = W.getSuddenSeasonalChangeProbability(dayOfYear, boundaries);
+			const rolls = {
+				temperatureRoll: W.generateBellCurveRoll(),
+				precipitationRoll: W.generateBellCurveRoll(),
+				windRoll: W.generateBellCurveRoll(),
+				humidityRoll: W.generateBellCurveRoll(),
+				visibilityRoll: W.generateBellCurveRoll(),
+				cloudCoverRoll: W.generateBellCurveRoll(),
+			};
+			const forcedAdjustedRolls = W.applyForcedTrends(rolls);
+			const trendAdjustedRolls = W.applyTrends(forcedAdjustedRolls);
+			W.updateTrends(trendAdjustedRolls);
+			const climateModifiers = CALENDARS[QUEST_TRACKER_calenderType]?.climates[QUEST_TRACKER_Location.climateZone]?.modifiers;
+			trendAdjustedRolls.temperatureRoll += climateModifiers?.heat?.[season] || 0;
+			trendAdjustedRolls.precipitationRoll += climateModifiers?.wet?.[season] || 0;
+			trendAdjustedRolls.windRoll += climateModifiers?.wind?.[season] || 0;
+			trendAdjustedRolls.humidityRoll += climateModifiers?.humid?.[season] || 0;
+			trendAdjustedRolls.visibilityRoll += climateModifiers?.visibility?.[season] || 0;
+			if (Math.random() < suddenChangeProbability) {
+				const nextSeasonIndex = (boundaries.findIndex((b) => b.season === season) + 1) % boundaries.length;
+				const nextSeason = boundaries[nextSeasonIndex].season;
+				const currentModifiers = climateModifiers?.[season] || {};
+				const nextModifiers = climateModifiers?.[nextSeason] || {};
+				trendAdjustedRolls.temperatureRoll += (nextModifiers.heat || 0) - (currentModifiers.heat || 0);
+				trendAdjustedRolls.precipitationRoll += (nextModifiers.wet || 0) - (currentModifiers.wet || 0);
+				trendAdjustedRolls.windRoll += (nextModifiers.wind || 0) - (currentModifiers.wind || 0);
+				trendAdjustedRolls.humidityRoll += (nextModifiers.humid || 0) - (currentModifiers.humid || 0);
+				trendAdjustedRolls.visibilityRoll += (nextModifiers.visibility || 0) - (currentModifiers.visibility || 0);
+			}
+			Object.keys(trendAdjustedRolls).forEach((key) => {
+				trendAdjustedRolls[key] = Math.max(1, Math.min(100, trendAdjustedRolls[key]));
 			});
+			const weather = {
+				date,
+				season,
+				...trendAdjustedRolls,
+				trends: { ...QUEST_TRACKER_WEATHER_TRENDS },
+				forcedTrends: { ...QUEST_TRACKER_FORCED_WEATHER_TRENDS },
+				nearBoundary: suddenChangeProbability > 0.05,
+			};
+			QUEST_TRACKER_HISTORICAL_WEATHER[date] = weather;
+			saveQuestTrackerData();
+			Utils.updateHandoutField("weather");
+		};
+		const modifyDate = ({ type = "day", amount = 1, newDate = null }) => {
+			const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+			if (errorCheck(28, 'exists', calendar,'calendar')) return;
+			const L = {
+				formatDate: (year, month, day) => {
+					return `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+				},
+				wrapAround: () => {
+					while (day > H.getDaysInMonth(month, year)) {
+						day -= H.getDaysInMonth(month, year);
+						month++;
+						if (month > calendar.months.length) {
+							month = 1;
+							year++;
+						}
+					}
+					while (day < 1) {
+						month--;
+						if (month < 1) {
+							month = calendar.months.length;
+							year--;
+						}
+						day += H.getDaysInMonth(month, year);
+					}
+				},
+				generateDateArray: () => {
+					const dates = [];
+					let targetDate = null;
+					if (type === "event") {
+						const closestEvent = H.findNextEvents(1);
+						if (!closestEvent || closestEvent.length === 0) {
+							Utils.sendGMMessage("No upcoming festivals, events, or significant dates found.");
+							return [];
+						}
+						targetDate = closestEvent[0][0];
+					}
+					while (steps >= 0 || targetDate) {
+						dates.push(L.formatDate(year, month, day));
+						if (type === "event" && targetDate) {
+							const [targetYear, targetMonth, targetDay] = targetDate.split("-").map(Number);
+							while (
+								year !== targetYear ||
+								month !== targetMonth ||
+								day !== targetDay
+							) {
+								day += direction;
+								L.wrapAround();
+								dates.push(L.formatDate(year, month, day));
+							}
+							break;
+						}
+						switch (type) {
+							case "day":
+								day += direction;
+								L.wrapAround();
+								break;
+							case "week":
+								day += direction * calendar.daysOfWeek.length;
+								L.wrapAround();
+								break;
+							case "month":
+								month += direction;
+								if (month > calendar.months.length) {
+									month -= calendar.months.length;
+									year++;
+								} else if (month < 1) {
+									month += calendar.months.length;
+									year--;
+								}
+								day = Math.min(day, H.getDaysInMonth(month, year));
+								break;
+							case "year":
+								year += direction;
+								day = Math.min(day, H.getDaysInMonth(month, year));
+								break;
+							default:
+								break;
+						}
+						steps--;
+					}
+					return dates;
+				},
+				generateCompleteDateList: (startDate, endDate) => {
+					const [startYear, startMonth, startDay] = startDate.split("-").map(Number);
+					const [endYear, endMonth, endDay] = endDate.split("-").map(Number);
+					let currentYear = startYear, currentMonth = startMonth, currentDay = startDay;
+					const dateList = [];
+					while (
+						currentYear < endYear ||
+						(currentYear === endYear && currentMonth < endMonth) ||
+						(currentYear === endYear && currentMonth === endMonth && currentDay <= endDay)
+					) {
+						dateList.push(L.formatDate(currentYear, currentMonth, currentDay));
+						currentDay++;
+						if (currentDay > H.getDaysInMonth(currentMonth, currentYear)) {
+							currentDay = 1;
+							currentMonth++;
+							if (currentMonth > calendar.months.length) {
+								currentMonth = 1;
+								currentYear++;
+							}
+						}
+					}
+					dateList.push(L.formatDate(endYear, endMonth, endDay));
+					return dateList;
+				},
+				validateISODate: (date) => {
+					const [y, m, d] = date.split("-").map(Number);
+					if (!y || !m || !d || m < 1 || m > calendar.months.length) {
+						errorCheck(29, 'msg', null,`Invalid ISO date format or date out of range for calendar: ${date}`);
+						return null;
+					}
+					const daysInMonth = H.getDaysInMonth(m, y);
+					if (d < 1 || d > daysInMonth) {
+						errorCheck(30, 'msg', null,`Day out of range for the specified month: ${date}`);
+						return null;
+					}
+					return { year: y, month: m, day: d };
+				},
+				isAfterCurrentDate: (eventYear, eventMonth, eventDay) => {
+					if (eventYear > year) return true;
+					if (eventYear === year && eventMonth > month) return true;
+					if (eventYear === year && eventMonth === month && eventDay > day) return true;
+					return false;
+				}
+			};
+			let [year, month, day] = QUEST_TRACKER_currentDate.split("-").map(Number);
+			if (type === "set" && newDate) {
+				const { year: newYear, month: newMonth, day: newDay } = H.validateISODate(newDate);
+				QUEST_TRACKER_currentDate = L.formatDate(newYear, newMonth, newDay);
+				saveQuestTrackerData();
+				return;
+			}
+			let steps = Math.abs(amount);
+			let direction = Math.sign(amount);
+			const dateArray = L.generateDateArray();
+			if (QUEST_TRACKER_WEATHER && dateArray.length > 0) {
+				dateArray.forEach((date) => {
+					if (!QUEST_TRACKER_HISTORICAL_WEATHER[date]) {
+						determineWeather(date);
+					}
+				});
+			}
+			const [finalYear, finalMonth, finalDay] = dateArray[dateArray.length - 1].split("-").map(Number);
+			year = finalYear;
+			month = finalMonth;
+			day = finalDay;
+			QUEST_TRACKER_currentDate = L.formatDate(year, month, day);
+			QUEST_TRACKER_currentWeekdayName = H.calculateWeekday(year, month, day);
+			H.checkEvent();
+			H.checkQuestAutoAdvance();
+			describeWeather();
+			saveQuestTrackerData();
+			Utils.sendMessage(`Date is now: ${Calendar.formatDateFull()}`)
+			Utils.sendDescMessage(QUEST_TRACKER_CURRENT_WEATHER['description']);
+			Menu.buildWeather({ isMenu: false });
+		};
+		const addEvent = () => {
+			const newEventId = H.generateNewEventId();
+			const defaultEventData = {
+				name: 'New Event',
+				description: 'Description',
+				date: `${QUEST_TRACKER_defaultDate}`,
+				hidden: true,
+				repeatable: false,
+				frequency: null
+			};
+			QUEST_TRACKER_Events[newEventId] = defaultEventData;
+			Utils.updateHandoutField('event');
+		};
+		const getNextEvents = (number) => {
+			return H.findNextEvents(number);
+		};
+		const removeEvent = (eventId) => {
+			delete QUEST_TRACKER_Events[eventId];
+			Utils.updateHandoutField('event');
+		};
+		const manageEventObject = ({ action, field, current, old = '', newItem, date }) => {
+			const event = QUEST_TRACKER_Events[current];
+			switch (field) {
+				case 'hidden':
+					event.hidden = !event.hidden;
+					break;
+				case 'repeatable':
+					event.repeatable = !event.repeatable;
+					event.frequency = 1;
+					break;
+				case 'frequency':
+					event.frequency = newItem;
+					if (newItem === "2") {
+						const [year, month, day] = date.split("-").map(Number);
+						event.weekdayName = H.calculateWeekday(year, month, day);
+					}
+					break;
+				case 'name':
+					event.name = newItem;
+					break;
+				case 'date':
+					event.date = newItem;
+					if (event.frequency === "2" && event.repeatable) {
+						const [year, month, day] = newItem.split("-").map(Number);
+						event.weekdayName = H.calculateWeekday(year, month, day);
+					}
+					break;
+				case 'description':
+					event.description = newItem;
+					break;
+				default:
+					errorCheck(31, 'msg', null,`Unknown field command: ${field}`);
+					break;
+			}
+			Utils.updateHandoutField('event');
+		};
+		const setCalender = (calender) => {
+			QUEST_TRACKER_calenderType = calender;
+			const calendar = CALENDARS[calender];
+			QUEST_TRACKER_currentDate = calendar.defaultDate;
+			QUEST_TRACKER_defaultDate = calendar.defaultDate;
+			const [year, month, day] = QUEST_TRACKER_currentDate.split("-").map(Number);
+			QUEST_TRACKER_currentWeekdayName = H.calculateWeekday(year, month, day);
+			const firstClimate = Object.keys(calendar.climates)[0];
+			if (firstClimate) {
+				setClimate(firstClimate);
+			}
 			saveQuestTrackerData();
 		};
+		const setClimate = (climate) => {
+			const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+			QUEST_TRACKER_Location = climate;
+			saveQuestTrackerData();
+		};
+		const setWeatherTrend = (type, amount) => {
+			QUEST_TRACKER_WEATHER_TRENDS[type] = parseInt(QUEST_TRACKER_WEATHER_TRENDS[type], 10) || 0;
+			amount = parseInt(amount, 10);
+			QUEST_TRACKER_WEATHER_TRENDS[type] += amount;
+			saveQuestTrackerData();
+		};
+		const formatDateFull = () => {
+			const [year, month, day] = QUEST_TRACKER_currentDate.split("-").map(Number);
+			const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+			const monthName = calendar.months[month - 1].name;
+			const format = calendar.dateFormat || "{day}{ordinal} of {month}, {year}";
+			const ordinal = (n) => {
+				const s = ["th", "st", "nd", "rd"];
+				const v = n % 100;
+				return s[(v - 20) % 10] || s[v] || s[0];
+			};
+			return format
+				.replace("{day}", day)
+				.replace("{ordinal}", ordinal(day))
+				.replace("{month}", monthName)
+				.replace("{year}", year);
+		};
+		const forceWeatherTrend = (field) => {
+			const fieldList = ["dry", "wet", "heat", "cold"];
+			const isCurrentlyTrue = QUEST_TRACKER_FORCED_WEATHER_TRENDS[field];
+			QUEST_TRACKER_FORCED_WEATHER_TRENDS[field] = !isCurrentlyTrue;
+			if (QUEST_TRACKER_FORCED_WEATHER_TRENDS[field] === true) {
+				fieldList
+					.filter((f) => f !== field)
+					.forEach((f) => {
+						QUEST_TRACKER_FORCED_WEATHER_TRENDS[f] = false;
+					});
+			}
+			saveQuestTrackerData();
+		};
+		const getLunarPhase = (date) => {
+			const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+			if (!calendar.lunarCycle) return null;
+			const lunarCycle = calendar.lunarCycle;
+			const baselineDate = new Date(lunarCycle.baselineNewMoon);
+			const currentDate = new Date(date);
+			const daysSinceBaseline = (currentDate - baselineDate) / (1000 * 60 * 60 * 24);
+			const phase = (daysSinceBaseline % lunarCycle.cycleLength + lunarCycle.cycleLength) % lunarCycle.cycleLength;
+			for (const { name, start, end } of lunarCycle.phases) {
+				if (phase >= start && phase < end) {
+					return name;
+				}
+			}
+			return "Unknown Phase";
+		};
+		const describeWeather = () => {
+			const L = {
+				meetsCondition: (value, cond) => {
+					if (cond.gte !== undefined && value < cond.gte) return false;
+					if (cond.lte !== undefined && value > cond.lte) return false;
+					return true;
+				},
+				matchesConditions: (rolls, conditions, ignoreKeys = []) => {
+					for (const [metric, cond] of Object.entries(conditions)) {
+						if (ignoreKeys.includes(metric)) continue;
+						const val = rolls[metric];
+						if (val === undefined) return false;
+						if (!L.meetsCondition(val, cond)) return false;
+					}
+					return true;
+				},
+				countMatches: (rolls, conditions, ignoreKeys = []) => {
+					let matchCount = 0;
+					for (const [metric, cond] of Object.entries(conditions)) {
+						if (ignoreKeys.includes(metric)) continue;
+						const val = rolls[metric];
+						if (val !== undefined && L.meetsCondition(val, cond)) {
+							matchCount++;
+						}
+					}
+					return matchCount;
+				},
+				determineWeatherType: (rolls) => {
+					const WEATHER_TYPES = WEATHER.weather;
+					let matches = [];
+					for (const [typeName, typeData] of Object.entries(WEATHER_TYPES)) {
+						if (L.matchesConditions(rolls, typeData.conditions)) {
+							matches.push(typeName);
+						}
+					}
+					if (matches.length > 0) {
+						const chosenMatch = matches[Math.floor(Math.random() * matches.length)];
+						return { type: chosenMatch };
+					}
+					matches = [];
+					for (const [typeName, typeData] of Object.entries(WEATHER_TYPES)) {
+						if (L.matchesConditions(rolls, typeData.conditions, ['visibility'])) {
+							matches.push(typeName);
+						}
+					}
+					if (matches.length > 0) {
+						const chosenMatch = matches[Math.floor(Math.random() * matches.length)];
+						return { type: chosenMatch };
+					}
+					matches = [];
+					for (const [typeName, typeData] of Object.entries(WEATHER_TYPES)) {
+						if (L.matchesConditions(rolls, typeData.conditions, ['visibility', 'cloudCover'])) {
+							matches.push(typeName);
+						}
+					}
+					if (matches.length > 0) {
+						const chosenMatch = matches[Math.floor(Math.random() * matches.length)];
+						return { type: chosenMatch };
+					}
+					let bestType = null;
+					let bestCount = -1;
+					for (const [typeName, typeData] of Object.entries(WEATHER_TYPES)) {
+						const count = L.countMatches(rolls, typeData.conditions);
+						if (count > bestCount) {
+							bestCount = count;
+							bestType = typeName;
+						}
+					}
+					if (bestType) {
+						return { type: bestType };
+					}
+					return { type: "unclassified normal weather" };
+				},
+				getScaleDescription: (metric, value) => {
+					const scaleEntries = Object.entries(WEATHER.scales[metric]);
+					const numericKeys = scaleEntries.map(([k]) => parseInt(k,10)).sort((a,b) => a - b);
+					let chosenKey = numericKeys[0];
+					for (let k of numericKeys) {
+						if (k <= value) {
+							chosenKey = k;
+						} else {
+							break;
+						}
+					}
+					return WEATHER.scales[metric][chosenKey.toString()].description;
+				}
+			};
+			const todayWeather = QUEST_TRACKER_HISTORICAL_WEATHER[QUEST_TRACKER_currentDate];
+			if (!todayWeather) return;
+			const rolls = {
+				temperature: todayWeather.temperatureRoll,
+				precipitation: todayWeather.precipitationRoll,
+				wind: todayWeather.windRoll,
+				humidity: todayWeather.humidityRoll,
+				cloudCover: todayWeather.cloudCoverRoll,
+				visibility: todayWeather.visibilityRoll
+			};
+			const result = L.determineWeatherType(rolls);
+			const chosenType = result.type;
+			let chosenWeatherData;
+			if (WEATHER.weather[chosenType]) {
+				chosenWeatherData = WEATHER.weather[chosenType];
+			} else {
+				chosenWeatherData = {
+					descriptions: {
+						[QUEST_TRACKER_WeatherLocation]: {
+							"1": "Unclassified normal weather conditions."
+						}
+					}
+				};
+			}
+			const envDescriptions = chosenWeatherData.descriptions[QUEST_TRACKER_WeatherLocation] || { "1": "No description available." };
+			const envDescriptionKeys = Object.keys(envDescriptions);
+			const randomDescKey = envDescriptionKeys[Math.floor(Math.random() * envDescriptionKeys.length)];
+			const chosenDescription = envDescriptions[randomDescKey];
+			QUEST_TRACKER_CURRENT_WEATHER = {
+				weatherType: chosenType,
+				description: chosenDescription,
+				environment: WEATHER.enviroments[QUEST_TRACKER_WeatherLocation] ? WEATHER.enviroments[QUEST_TRACKER_WeatherLocation].name : QUEST_TRACKER_WeatherLocation,
+				rolls: { ...rolls },
+				scaleDescriptions: {
+					temperature: L.getScaleDescription("temperature", rolls.temperature),
+					humidity: L.getScaleDescription("humidity", rolls.humidity),
+					wind: L.getScaleDescription("wind", rolls.wind),
+					precipitation: L.getScaleDescription("precipitation", rolls.precipitation),
+					cloudCover: L.getScaleDescription("cloudCover", rolls.cloudCover),
+					visibility: L.getScaleDescription("visibility", rolls.visibility)
+				}
+			};
+		};
+		const adjustLocation = (location) => {
+			if (WEATHER.enviroments.hasOwnProperty(location)) {
+				QUEST_TRACKER_WeatherLocation = location;
+			} else return;
+		};
 		return {
-			setCurrentDate,
 			modifyDate,
-			sendDateChangeMessage,
-			reviewQuestAdvancement
+			addEvent,
+			removeEvent,
+			manageEventObject,
+			setCalender,
+			formatDateFull,
+			setClimate,
+			setWeatherTrend,
+			forceWeatherTrend,
+			getLunarPhase,
+			getNextEvents,
+			adjustLocation
 		};
 	})();
 	const QuestPageBuilder = (() => {
@@ -893,6 +1958,7 @@ var QuestTracker = QuestTracker || (function () {
 			PAGE_HEADER_HEIGHT: 150,
 			ROUNDED_RECT_WIDTH: 200,
 			ROUNDED_RECT_HEIGHT: 50,
+			ROUNDED_RECT_CORNER_RADIUS: 10,
 			VERTICAL_SPACING: 100,
 			HORIZONTAL_SPACING: 160,
 			DEFAULT_FILL_COLOR: '#CCCCCC',
@@ -1056,7 +2122,7 @@ var QuestTracker = QuestTracker || (function () {
 							if (typeof prereq === 'string') {
 								prereqId = prereq;
 							} else if (typeof prereq === 'object' && prereq.conditions) {
-								prereqId = prereq.conditions[0]; // Simplification
+								prereqId = prereq.conditions[0];
 							}
 							return questData[prereqId]?.level || 0;
 						});
@@ -1150,7 +2216,7 @@ var QuestTracker = QuestTracker || (function () {
 				Object.entries(questPositions).forEach(([questId, position]) => {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
 					if (!questData) {
-						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
+						errorCheck(32, 'msg', null,`Quest data for "${questId}" is missing.`);
 						return;
 					}
 					const x = position.x + totalWidth / 2;
@@ -1161,15 +2227,15 @@ var QuestTracker = QuestTracker || (function () {
 				if (typeof callback === 'function') callback();
 			},
 			drawQuestGraphics: (questId, questData, pageId, x, y, isHidden) => {
-				const questTable = findObjs({ type: 'rollabletable', name: 'quests' })[0];
+				const questTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0];
 				if (!questTable) {
-					Utils.sendGMMessage('Error: Quests rollable table not found.');
+					errorCheck(33, 'msg', null,`Quests rollable table not found.`);
 					return;
 				}
 				const questTableItems = findObjs({ type: 'tableitem', rollabletableid: questTable.id });
 				const questTableItem = questTableItems.find(item => item.get('name').toLowerCase() === questId.toLowerCase());
 				if (!questTableItem) {
-					Utils.sendGMMessage(`Error: Rollable table item for quest "${questId}" not found.`);
+					errorCheck(34, 'msg', null,`Rollable table item for quest "${questId}" not found.`);
 					return;
 				}
 				const statusWeight = questTableItem.get('weight');
@@ -1177,22 +2243,22 @@ var QuestTracker = QuestTracker || (function () {
 				const statusColor = H.getStatusColor(statusName);
 				let imgsrc = questTableItem.get('avatar');
 				if (!imgsrc || !imgsrc.includes('https://')) {
-					imgsrc = 'https://s3.amazonaws.com/files.d20.io/images/64616840/d93g5KPAtmXCQVwf58sG1Q/thumb.jpg?15392669545';
+					imgsrc = QUEST_TRACKER_BASE_QUEST_ICON_URL;
 				} else {
 					imgsrc = H.replaceImageSize(imgsrc);
 				}
-				D.drawRoundedRectangle(pageId, x, y, vars.ROUNDED_RECT_WIDTH, vars.ROUNDED_RECT_HEIGHT, 10, statusColor, isHidden ? 'gmlayer' : 'map', questId);
+				D.drawRoundedRectangle(pageId, x, y, vars.ROUNDED_RECT_WIDTH, vars.ROUNDED_RECT_HEIGHT, vars.ROUNDED_RECT_CORNER_RADIUS, statusColor, isHidden ? 'gmlayer' : 'map', questId);
 				const avatarSpacing = 10;
 				const avatarX = x;
 				const avatarY = y - (vars.ROUNDED_RECT_HEIGHT / 2) - (vars.AVATAR_SIZE / 2) - avatarSpacing;
-				D.placeAvatar(pageId, avatarX, avatarY, vars.AVATAR_SIZE, imgsrc, isHidden ? 'gmlayer' : 'objects', questId);
+				if (imgsrc !== '') D.placeAvatar(pageId, avatarX, avatarY, vars.AVATAR_SIZE, imgsrc, isHidden ? 'gmlayer' : 'objects', questId);
 			},
 			drawQuestTextAfterGraphics: (page, questPositions) => {
 				const totalWidth = page.get('width') * vars.DEFAULT_PAGE_UNIT;
 				Object.entries(questPositions).forEach(([questId, position]) => {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
 					if (!questData) {
-						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
+						errorCheck(35, 'msg', null,`Quest data for "${questId}" is missing.`);
 						return;
 					}
 					const x = position.x + totalWidth / 2;
@@ -1222,7 +2288,7 @@ var QuestTracker = QuestTracker || (function () {
 				Object.entries(questPositions).forEach(([questId, position]) => {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
 					if (!questData) {
-						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
+						errorCheck(36, 'msg', null,`Quest data for "${questId}" is missing.`);
 						return;
 					}
 					(questData.relationships?.conditions || []).forEach(prereq => {
@@ -1239,7 +2305,7 @@ var QuestTracker = QuestTracker || (function () {
 				Object.entries(questPositions).forEach(([questId, position]) => {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
 					if (!questData) {
-						Utils.sendGMMessage(`Warning: Quest data for "${questId}" is missing.`);
+						errorCheck(37, 'msg', null,`Quest data for "${questId}" is missing.`);
 						return;
 					}
 					const startX = position.x + offsetX;
@@ -1255,7 +2321,7 @@ var QuestTracker = QuestTracker || (function () {
 						}
 						const prereqPosition = questPositions[prereqId];
 						if (!prereqPosition) {
-							Utils.sendGMMessage(`Warning: Position data for prerequisite "${prereqId}" is missing.`);
+							errorCheck(38, 'msg', null,`Position data for prerequisite "${prereqId}" is missing.`);
 							return;
 						}
 						const endX = prereqPosition.x + offsetX;
@@ -1277,29 +2343,44 @@ var QuestTracker = QuestTracker || (function () {
 					});
 				});
 			},
-			drawPath: (pageId, startPos, endPos, color = '#FF0000', layer = 'objects', questId, pathToQuestId, midY) => {
+			drawPath: (pageId, startPos, endPos, color = '#FF0000', layer = 'objects', questId, pathToQuestId, controlY = null, isMutualExclusion = false) => {
 				let pathData;
 				let left, top, width, height;
+				controlY = (controlY === null) ? (startPos.y + endPos.y) / 2 : controlY;
+				if (isMutualExclusion) {
+					pathData = [
+						['M', startPos.x, startPos.y],
+						['L', endPos.x, endPos.y]
+					];
+				} else {
+					pathData = [
+						['M', startPos.x, startPos.y],
+						['L', startPos.x, controlY],
+						['L', endPos.x, controlY],
+						['L', endPos.x, endPos.y]
+					];
+				}
 				const minX = Math.min(startPos.x, endPos.x);
 				const maxX = Math.max(startPos.x, endPos.x);
-				const minY = Math.min(startPos.y, endPos.y, midY);
-				const maxY = Math.max(startPos.y, endPos.y, midY);
+				const minY = Math.min(startPos.y, endPos.y, controlY);
+				const maxY = Math.max(startPos.y, endPos.y, controlY);
 				left = (minX + maxX) / 2;
 				top = (minY + maxY) / 2;
 				width = maxX - minX;
 				height = maxY - minY;
-				pathData = [
-					['M', startPos.x - left, startPos.y - top],
-					['L', startPos.x - left, midY - top],
-					['L', endPos.x - left, midY - top],
-					['L', endPos.x - left, endPos.y - top]
-				];
+				const adjustedPathData = pathData.map(command => {
+					const [cmd, ...coords] = command;
+					const adjustedCoords = coords.map((coord, index) => {
+						return coord - (index % 2 === 0 ? left : top);
+					});
+					return [cmd, ...adjustedCoords];
+				});
 				const pathObj = createObj('path', {
 					_pageid: pageId,
 					layer: layer,
 					stroke: color,
 					fill: 'transparent',
-					path: JSON.stringify(pathData),
+					path: JSON.stringify(adjustedPathData),
 					stroke_width: 2,
 					controlledby: '',
 					left: left,
@@ -1307,8 +2388,15 @@ var QuestTracker = QuestTracker || (function () {
 					width: width,
 					height: height
 				});
-				H.storeQuestRef(questId, 'paths', pathObj.id, pathToQuestId);
-				H.storeQuestRef(pathToQuestId, 'paths', pathObj.id, questId);
+				if (pathObj) {
+					if (isMutualExclusion) {
+						H.storeQuestRef(questId, 'mutualExclusion', pathObj.id, pathToQuestId);
+						H.storeQuestRef(pathToQuestId, 'mutualExclusion', pathObj.id, questId);
+					} else {
+						H.storeQuestRef(questId, 'paths', pathObj.id, pathToQuestId);
+						H.storeQuestRef(pathToQuestId, 'paths', pathObj.id, questId);
+					}
+				}
 			},
 			drawMutuallyExclusiveConnections: (pageId, questPositions) => {
 				const page = getObj('page', pageId);
@@ -1327,7 +2415,7 @@ var QuestTracker = QuestTracker || (function () {
 					const position1 = questPositions[questId1];
 					const position2 = questPositions[questId2];
 					if (!position1 || !position2) {
-						Utils.sendGMMessage(`Error: Position data for quests "${questId1}" or "${questId2}" is missing.`);
+						errorCheck(39, 'msg', null,`Position data for quests "${questId1}" or "${questId2}" is missing.`);
 						return;
 					}
 					const x1 = position1.x + offsetX;
@@ -1336,33 +2424,11 @@ var QuestTracker = QuestTracker || (function () {
 					const y2 = position2.y + vars.PAGE_HEADER_HEIGHT + vars.VERTICAL_SPACING;
 					const startPos = { x: x1, y: y1 };
 					const endPos = { x: x2, y: y2 };
-					const minX = Math.min(x1, x2);
-					const maxX = Math.max(x1, x2);
-					const minY = Math.min(y1, y2);
-					const maxY = Math.max(y1, y2);
-					const left = (minX + maxX) / 2;
-					const top = (minY + maxY) / 2;
-					const width = maxX - minX;
-					const height = maxY - minY;
-					const pathData = [
-						['M', startPos.x - left, startPos.y - top],
-						['L', endPos.x - left, endPos.y - top]
-					];
-					const pathObj = createObj('path', {
-						_pageid: pageId,
-						layer: 'objects',
-						stroke: '#FF0000',
-						fill: 'transparent',
-						path: JSON.stringify(pathData),
-						stroke_width: 2,
-						controlledby: '',
-						left: left,
-						top: top,
-						width: width,
-						height: height
-					});
-					H.storeQuestRef(questId1, 'mutualExclusion', pathObj.id, questId2);
-					H.storeQuestRef(questId2, 'mutualExclusion', pathObj.id, questId1);
+					const questData1 = QUEST_TRACKER_globalQuestData[questId1];
+					const questData2 = QUEST_TRACKER_globalQuestData[questId2];
+					const isHidden = questData1.hidden || questData2.hidden;
+					const connectionLayer = isHidden ? 'gmlayer' : 'map';
+					D.drawPath(pageId, startPos, endPos, '#FF0000', connectionLayer, questId1, questId2, null, true);
 				});
 			},
 			drawText: (pageId, x, y, textContent, color = '#000000', layer = 'objects', font_size = vars.TEXT_FONT_SIZE, font_family = 'Arial', questId, text_align = 'center', vertical_align = 'middle') => {
@@ -1413,21 +2479,35 @@ var QuestTracker = QuestTracker || (function () {
 				}
 			},
 			drawRoundedRectangle: (pageId, x, y, width, height, radius, statusColor, layer = 'objects', questId) => {
-				let pathData;
-				let left = x;
-				let top = y;
-				pathData = [
-					['M', -width / 2 + radius, -height / 2],
-					['L', width / 2 - radius, -height / 2],
-					['Q', width / 2, -height / 2, width / 2, -height / 2 + radius],
-					['L', width / 2, height / 2 - radius],
-					['Q', width / 2, height / 2, width / 2 - radius, height / 2],
-					['L', -width / 2 + radius, height / 2],
-					['Q', -width / 2, height / 2, -width / 2, height / 2 - radius],
-					['L', -width / 2, -height / 2 + radius],
-					['Q', -width / 2, -height / 2, -width / 2 + radius, -height / 2],
-					['Z']
-				];
+				let pathData = [];
+				const w = width;
+				const h = height;
+				if (QUEST_TRACKER_jumpGate) {
+					pathData = [
+						['M', -w / 2, -h / 2],
+						['L', w / 2, -h / 2],
+						['L', w / 2, h / 2],
+						['L', -w / 2, h / 2],
+						['L', -w / 2, -h / 2],
+						['Z']
+					];
+				}
+				else {
+					radius = Math.min(radius, width / 2, height / 2);
+					const r = radius;
+					pathData = [
+						['M', -w / 2 + r, -h / 2],
+						['L', w / 2 - r, -h / 2],
+						['Q', w / 2, -h / 2, w / 2, -h / 2 + r],
+						['L', w / 2, h / 2 - r],
+						['Q', w / 2, h / 2, w / 2 - r, h / 2],
+						['L', -w / 2 + r, h / 2],
+						['Q', -w / 2, h / 2, -w / 2, h / 2 - r],
+						['L', -w / 2, -h / 2 + r],
+						['Q', -w / 2, -h / 2, -w / 2 + r, -h / 2],
+						['Z']
+					];
+				}
 				const rectObj = createObj('path', {
 					_pageid: pageId,
 					layer: layer,
@@ -1436,11 +2516,12 @@ var QuestTracker = QuestTracker || (function () {
 					path: JSON.stringify(pathData),
 					stroke_width: 4,
 					controlledby: '',
-					left: left,
-					top: top,
+					left: x,
+					top: y,
 					width: width,
 					height: height
 				});
+
 				if (rectObj) {
 					H.storeQuestRef(questId, 'rectangle', rectObj.id);
 				}
@@ -1466,7 +2547,7 @@ var QuestTracker = QuestTracker || (function () {
 		const buildQuestTreeOnPage = () => {
 			let questTreePage = findObjs({ _type: 'page', name: QUEST_TRACKER_pageName })[0];
 			if (!questTreePage) {
-				Utils.sendGMMessage(`Error: Page "${QUEST_TRACKER_pageName}" not found. Please create the page manually.`);
+				errorCheck(40, 'msg', null,`Page "${QUEST_TRACKER_pageName}" not found. Please create the page manually.`);
 				return;
 			}
 			H.adjustPageSettings(questTreePage);
@@ -1480,7 +2561,6 @@ var QuestTracker = QuestTracker || (function () {
 				D.drawQuestTreeFromPositions(questTreePage, questPositions, () => {
 					D.drawQuestTextAfterGraphics(questTreePage, questPositions);
 					saveQuestTrackerData();
-					Utils.sendGMMessage("Quest Tree rendering complete.");
 				});
 			});
 		};
@@ -1600,6 +2680,7 @@ var QuestTracker = QuestTracker || (function () {
 					});
 				});
 				Utils.updateHandoutField('rumour');
+				calculateRumoursByLocation();
 			}
 		};
 		const calculateRumoursByLocation = () => {
@@ -1621,17 +2702,11 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const sendRumours = (locationId, numberOfRumours) => {
 			let allRumours = [];
-			let locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
-			if (!locationTable) {
-				Utils.sendGMMessage('Error: Locations table not found.');
-				return;
-			}
+			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
+			if (errorCheck(41, 'exists', locationTable,`locationTable`)) return;
 			let locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
 			let location = locationItems.find(loc => loc.get('weight').toString() === locationId.toString());
-			if (!location) {
-				Utils.sendGMMessage(`Error: Location with ID "${locationId}" not found.`);
-				return;
-			}
+			if (errorCheck(42, 'exists', location,`location`)) return;
 			const normalizedLocationId = location.get('name').toLowerCase();
 			if (normalizedLocationId === 'everywhere') {
 				allRumours = Object.values(QUEST_TRACKER_rumoursByLocation['everywhere'] || {}).map((rumour, index) => `${index}|${Utils.sanitizeInput(rumour, 'STRING')}`);
@@ -1650,7 +2725,7 @@ var QuestTracker = QuestTracker || (function () {
 				});
 			}
 			if (allRumours.length === 0) {
-				Utils.sendGMMessage(`Error: No rumours available for this location.`);
+				Utils.sendGMMessage(`No rumours available for this location.`);
 				return;
 			}
 			let selectedRumours = [];
@@ -1662,21 +2737,15 @@ var QuestTracker = QuestTracker || (function () {
 				allRumours = allRumours.filter(rumour => !rumour.startsWith(`${rumourKey}|`));
 			}
 			selectedRumours.forEach(rumour => {
-				sendChat('', "/desc " + rumour);
+				Utils.sendDescMessage(rumour);
 			});
 		};
 		const getLocationNameById = (locationId) => {
-			const locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
-			if (!locationTable) {
-				Utils.sendGMMessage('Error: Locations table not found.');
-				return null;
-			}
+			const locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
+			if (errorCheck(43, 'exists', locationTable,`locationTable`)) return null;
 			const locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
 			const locationItem = locationItems.find(item => item.get('weight').toString() === locationId.toString());
-			if (!locationItem) {
-				Utils.sendGMMessage(`Error: Location with ID "${locationId}" not found.`);
-				return null;
-			}
+			if (errorCheck(44, 'exists', locationItem,`locationItem`)) return null;
 			return locationItem.get('name');
 		};
 		const removeAllRumoursForQuest = (questId) => {
@@ -1692,46 +2761,17 @@ var QuestTracker = QuestTracker || (function () {
 			Utils.updateHandoutField('rumour');
 			calculateRumoursByLocation();
 		};
-		const cleanupRumoursJSON = () => {
-			const cleanUpRecursive = (obj, questId, path = '') => {
-				if (typeof obj !== 'object' || obj === null) return obj;
-				Object.keys(obj).forEach(key => {
-					const currentPath = path ? `${path}|${key}` : key;
-					obj[key] = cleanUpRecursive(obj[key], questId, currentPath);
-					if (typeof obj[key] === 'object' && Object.keys(obj[key]).length === 0) {
-						delete obj[key];
-						Utils.handleFieldAction('remove', `qt-remove-${currentPath}`, questId, null, 'force', 'rumour', 'OBJECT');
-					}
-				});
-				return obj;
-			};
-			Object.keys(QUEST_TRACKER_globalRumours).forEach(questId => {
-				cleanUpRecursive(QUEST_TRACKER_globalRumours[questId], questId);
-			});
-			Object.keys(QUEST_TRACKER_globalRumours).forEach(questId => {
-				if (typeof QUEST_TRACKER_globalRumours[questId] === 'object' && Object.keys(QUEST_TRACKER_globalRumours[questId]).length === 0) {
-					delete QUEST_TRACKER_globalRumours[questId];
-					Utils.handleFieldAction('remove', `qt-remove-${questId}`, questId, null, 'force', 'rumour', 'OBJECT');
-				}
-			});
-		};
 		const getAllLocations = () => {
-			let rollableTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
-			if (!rollableTable) {
-				Utils.sendGMMessage(`Error: Rollable table "${tableName}" not found.`);
-				return [];
-			}
+			let rollableTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
+			if (errorCheck(45, 'exists', rollableTable,`rollableTable`)) return [];
 			const tableItems = findObjs({ _type: 'tableitem', _rollabletableid: rollableTable.id });
 			const locations = tableItems.map(item => item.get('name'));
 			return locations;
 		};
 		const manageRumourLocation = (action, newItem = null, locationid = null) => {
 			const allLocations = Rumours.getAllLocations();
-			let locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
-			if (!locationTable) {
-				Utils.sendGMMessage('Error: Locations table not found.');
-				return;
-			}
+			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
+			if (errorCheck(46, 'exists', locationTable,`locationTable`)) return;
 			switch (action) {
 				case 'add':
 					if (!newItem) return;
@@ -1760,17 +2800,12 @@ var QuestTracker = QuestTracker || (function () {
 		const manageRumourObject = ({ action, questId, newItem = '', status, location, rumourId = ''}) => {
 			let locationString = getLocationNameById(location)
 			const sanitizedLocation = locationString ? Utils.sanitizeString(locationString.toLowerCase()) : '';
-			if (!QUEST_TRACKER_globalRumours[questId]) {
-				QUEST_TRACKER_globalRumours[questId] = {};
-			}
-			if (!QUEST_TRACKER_globalRumours[questId][status]) {
-				QUEST_TRACKER_globalRumours[questId][status] = {};
-			}
+			if (!QUEST_TRACKER_globalRumours[questId]) QUEST_TRACKER_globalRumours[questId] = {};
+			if (!QUEST_TRACKER_globalRumours[questId][status]) QUEST_TRACKER_globalRumours[questId][status] = {};
 			const questRumours = QUEST_TRACKER_globalRumours[questId];
 			const statusRumours = questRumours[status];
 			switch (action) {
 				case 'add':
-					if (!newItem) return;
 					if (!statusRumours[sanitizedLocation]) {
 						statusRumours[sanitizedLocation] = {};
 					}
@@ -1778,7 +2813,6 @@ var QuestTracker = QuestTracker || (function () {
 					statusRumours[sanitizedLocation][newRumourKey] = newItem;
 					break;
 				case 'remove':
-					if (!rumourId) return;
 					if (statusRumours[sanitizedLocation] && statusRumours[sanitizedLocation][rumourId]) {
 						delete statusRumours[sanitizedLocation][rumourId];
 						if (Object.keys(statusRumours[sanitizedLocation]).length === 0) {
@@ -1790,6 +2824,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 			}
 			Utils.updateHandoutField('rumour');
+			calculateRumoursByLocation();
 		};
 		return {
 			calculateRumoursByLocation,
@@ -1797,7 +2832,6 @@ var QuestTracker = QuestTracker || (function () {
 			manageRumourLocation,
 			getLocationNameById,
 			removeAllRumoursForQuest,
-			cleanupRumoursJSON,
 			getAllLocations,
 			manageRumourObject
 		};
@@ -1821,6 +2855,7 @@ var QuestTracker = QuestTracker || (function () {
 			marginRight: 'margin-right: 2px',
 			floatLeft: 'float: left;',
 			floatRight: 'float: right;',
+			floatClearRight: 'float: right; clear: right;',
 			overflow: 'overflow: hidden; margin:1px',
 			rumour: 'text-overflow: ellipsis;overflow: hidden;width: 165px;display: block;word-break: break-all;white-space: nowrap;',
 			link: 'color: #007bff; text-decoration: underline; cursor: pointer;',
@@ -1837,12 +2872,14 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const H = {
 			showActiveQuests: () => {
-				const activeStatuses = [2, 3, 4];
 				let AQMenu = "";
-				const activeQuests = QUEST_TRACKER_globalQuestArray.filter(quest => {
-					const statusName = Quest.getStatusNameByQuestId(quest.id, QUEST_TRACKER_globalQuestArray);
-					return activeStatuses.includes(quest.weight) || activeStatuses.includes(parseInt(statusMapping[quest.weight]));
-				});
+				const activeStatuses = [2, 3, 4];
+				const activeQuests = QUEST_TRACKER_globalQuestArray
+					.filter(quest => {
+						const status = parseInt(Quest.getQuestStatus(quest.id), 10);
+						return activeStatuses.includes(status);
+					})
+					.map(quest => quest.id);
 				if (activeQuests.length === 0) {
 					AQMenu += `<ul>
 						<li style="${styles.overflow}">
@@ -1852,32 +2889,22 @@ var QuestTracker = QuestTracker || (function () {
 				} else {
 					AQMenu += `<ul style="${styles.list}">`;
 					activeQuests.forEach(quest => {
-						let questData = QUEST_TRACKER_globalQuestData[quest.id];
-						if (questData) {
-							questData = Object.keys(questData).reduce((acc, key) => {
-								acc[key.toLowerCase()] = questData[key];
-								return acc;
-							}, {});
-							if (questData.name) {
-								AQMenu += `
-								<li style="${styles.overflow}">
-									<span style="${styles.floatLeft}"><small>${questData.name}</small></span>
-									<span style="${styles.floatRight}">
-										<a style="${styles.button}" href="!qt-menu action=quest|id=${quest.id}">Inspect</a>
-									</span>
-								</li>`;
-							} else {
-								log(`Error: Quest data for "${quest.id}" is missing or incomplete.`);
-							}
-						}
+						let questData = QUEST_TRACKER_globalQuestData[quest];
+						AQMenu += `
+						<li style="${styles.overflow}">
+							<span style="${styles.floatLeft}"><small>${questData.name}</small></span>
+							<span style="${styles.floatRight}">
+								<a style="${styles.button}" href="!qt-menu action=quest|id=${quest}">Inspect</a>
+							</span>
+						</li>`;
 					});
 					AQMenu += `</ul>`;
 				}
 				return AQMenu;
 			},
 			showActiveRumours: () => {
-				let menu = "";
-				let locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
+				let menu = `<ul style="${styles.list}">`;
+				let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
 				if (locationTable) {
 					let locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
 					locationItems.sort((a, b) => a.get('weight') - b.get('weight')).forEach(location => {
@@ -1901,6 +2928,7 @@ var QuestTracker = QuestTracker || (function () {
 						}
 					});
 				}
+				menu += `</ul>`;
 				return menu;
 			},
 			generateQuestList: (groupName, quests) => {
@@ -2167,7 +3195,7 @@ var QuestTracker = QuestTracker || (function () {
 				if (quest && quest.group) {
 					result += 'Remove from Group,remove|';
 				}
-				const questGroupsTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+				const questGroupsTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0];
 				if (!questGroupsTable) return result;
 				const questGroups = findObjs({ type: 'tableitem', rollabletableid: questGroupsTable.id });
 				result += questGroups
@@ -2178,7 +3206,7 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			getQuestGroupNameByWeight: (weight) => {
 				if (!weight) return 'No Assigned Group';
-				let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+				let groupTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0];
 				if (!groupTable) {
 					Utils.sendGMMessage('Error: Quest Groups table not found. Please check if the table exists in the game.');
 					return null;
@@ -2186,6 +3214,171 @@ var QuestTracker = QuestTracker || (function () {
 				let groupItems = findObjs({ type: 'tableitem', rollabletableid: groupTable.id });
 				let group = groupItems.find(item => item.get('weight') == weight);
 				return group.get('name');
+			},
+			showUpcomingEvents: () => {
+				const upcomingEvents = Calendar.getNextEvents(5);
+				let menu = "";
+				if (upcomingEvents.length === 0) {
+					menu += `<ul>
+						<li style="${styles.overflow}">
+							<span style="${styles.floatLeft}">
+								<small>No Upcoming Events</small>
+							</span>
+						</li>
+					</ul>`;
+				} else {
+					menu += `<ul style="${styles.list}">`;
+					upcomingEvents.forEach((event, index) => {
+						const [date, name] = event;
+						const eventId = `event-${index}`;
+						menu += `<li style="${styles.overflow}">
+							<span style="${styles.floatLeft}">
+								${name}
+								<br>
+								<small>${date}</small>
+							</span>`;
+						if (index === 0) {
+							menu += `
+							<span style="${styles.floatRight}">
+								<a style="${styles.button}" href="!qt-date action=modify|home=true|unit=event|new=1">Advance</a>
+							</span>`;
+						}
+						menu += `</li>`;
+					});
+					menu += `</ul>`;
+				}
+
+				return menu;
+			},
+			buildFrequencyDropdown: () => {
+				const dropdownString = Object.entries(frequencyMapping)
+					.map(([key, value]) => `|${value},${key}`)
+					.join('');
+				return dropdownString;
+			},
+			buildLocationDropdown: () => {
+				const dropdownString = Object.entries(WEATHER.enviroments)
+					.map(([key, value]) => `|${value.name},${key}`)
+					.join('');
+				return dropdownString;
+			},
+			buildCalenderDropdown: () => {
+				const dropdownString = Object.entries(CALENDARS)
+					.map(([key, value]) => `|${value.name},${key}`)
+					.join('');
+				return dropdownString;
+			},
+			buildClimateDropdown: () => {
+				const currentCalendar = CALENDARS[QUEST_TRACKER_calenderType];
+				const dropdownString = Object.keys(currentCalendar.climates)
+					.map((climate) => `|${climate.charAt(0).toUpperCase() + climate.slice(1)},${climate}`)
+					.join("");
+				return dropdownString;
+			} 
+		};
+		const buildWeather = (isMenu = false, isHome = false) => {
+			const FromValue = {
+				temperature: (x) => {
+					const celsius = ((-0.0113 * x * x) + (2.589 * x) - 89.2).toFixed(1);
+					const fahrenheit = ((celsius * 9 / 5) + 32).toFixed(1);
+					return { celsius: parseFloat(celsius), fahrenheit: parseFloat(fahrenheit) };
+				},
+				humidity: (x) => {
+					const k = 0.1;
+					const c = 50;
+					const humidity = 100 / (1 + Math.exp(-k * (x - c)));
+					return parseFloat(Math.max(humidity, 0).toFixed(1));
+				},
+				precipitation: (x) => {
+					const k = 0.04;
+					const maxPrecipitation = 500;
+					const center = 50;
+					const precipitationMm = maxPrecipitation * (Math.exp(k * (x - center)) - 1) / (Math.exp(k * (100 - center)) - 1);
+					const precipitationInches = precipitationMm * 0.0393701;
+					return {
+						mm: parseFloat(Math.max(precipitationMm, 0).toFixed(1)),
+						inches: parseFloat(Math.max(precipitationInches, 0).toFixed(1))
+					};
+				},
+				windSpeed: (x) => {
+					const k = 0.02;
+					const maxSpeed = 400;
+					const windSpeedKmh = maxSpeed * (Math.exp(k * x) - 1) / (Math.exp(k * 100) - 1);
+					const windSpeedMph = windSpeedKmh * 0.621371;
+					return {
+						kmh: parseFloat(Math.max(windSpeedKmh, 0).toFixed(1)),
+						mph: parseFloat(Math.max(windSpeedMph, 0).toFixed(1))
+					};
+				},
+				visibility: (x) => {
+					const maxDistanceMeters = 50000;
+					const visibilityMeters = maxDistanceMeters * (x / 100);
+					let result = {
+						imperial: {},
+						metric: {}
+					};
+					if (visibilityMeters <= 100) {
+						result.metric.distance = parseFloat(visibilityMeters.toFixed(1));
+						result.metric.unit = "m";
+					} else {
+						result.metric.distance = parseFloat((visibilityMeters / 1000).toFixed(1));
+						result.metric.unit = "km";
+					}
+					const visibilityFeet = visibilityMeters * 3.28084;
+					if (visibilityFeet <= 100) {
+						result.imperial.distance = parseFloat(visibilityFeet.toFixed(1));
+						result.imperial.unit = "\"";
+					} else if (visibilityFeet <= 300) {
+						result.imperial.distance = parseFloat(visibilityFeet.toFixed(1));
+						result.imperial.unit = "\"";
+					} else {
+						result.imperial.distance = parseFloat((visibilityFeet / 5280).toFixed(1));
+						result.imperial.unit = "mi";
+					}
+					return result;
+				}
+			};
+			const temperatureValue = FromValue.temperature(QUEST_TRACKER_CURRENT_WEATHER['rolls']['temperature']);
+			const windSpeedValue = FromValue.windSpeed(QUEST_TRACKER_CURRENT_WEATHER['rolls']['wind']);
+			const precipitationValue = FromValue.precipitation(QUEST_TRACKER_CURRENT_WEATHER['rolls']['precipitation']);
+			const visibilityValue = FromValue.visibility(QUEST_TRACKER_CURRENT_WEATHER['rolls']['visibility']);
+			const humidityDisplay = FromValue.humidity(QUEST_TRACKER_CURRENT_WEATHER['rolls']['humidity']);
+			const temperatureDisplay = QUEST_TRACKER_imperialMeasurements['temperature'] ? temperatureValue['fahrenheit'] + "&deg;F" : temperatureValue['celsius'] + "&deg;C";
+			const windSpeedDisplay = QUEST_TRACKER_imperialMeasurements['wind'] ? windSpeedValue['mph'] + "mph" : windSpeedValue['kmh'] + "kmh";
+			const precipitationDisplay = QUEST_TRACKER_imperialMeasurements['precipitation'] ? precipitationValue['inches'] + "'" : precipitationValue['mm'] + "mm";
+			const cloudCoverDisplay = QUEST_TRACKER_CURRENT_WEATHER['rolls']['cloudCover'];
+			const visibilityDisplay = QUEST_TRACKER_imperialMeasurements['wind'] ? visibilityValue['imperial']['distance']  + visibilityValue['metric']['unit'] : visibilityValue['metric']['unit'] + visibilityValue['imperial']['unit'];
+			const locationDropdown = H.buildLocationDropdown();
+			const returnto = isMenu ? "menu=true|" : isHome ? "home=true|" : "";
+			let menu = `
+				<table style="width:100%;">
+					<tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+					<tr><td colspan=2><strong>Weather</strong></td></tr>
+					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['weatherType']}</small></td></tr>
+					<tr><td colspan=2><strong>Lunar Phase</strong></td></tr>
+					<tr><td colspan=2><small>${Calendar.getLunarPhase(QUEST_TRACKER_currentDate)}</small></td></tr>
+					<tr><td colspan=2><strong>Location</strong></td></tr>
+					<tr><td><small>${QUEST_TRACKER_WeatherLocation}</small></td><td><a style="${styles.button}" href="!qt-date action=adjustlocation|${returnto}new=?{Change Location{${locationDropdown}}">Change</a></td></tr>
+					<tr><td><strong>Temperature</strong></td><td>${temperatureDisplay}</td></tr>
+					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['scaleDescriptions']['temperature']}</small></td></tr>
+					<tr><td><strong>Precipitation</strong></td><td>${precipitationDisplay}</td></tr>
+					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['scaleDescriptions']['precipitation']}</small></td></tr>
+					<tr><td><strong>Wind</strong></td><td>${windSpeedDisplay}</td></tr>
+					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['scaleDescriptions']['wind']}</small></td></tr>
+					<tr><td><strong>Humidity</strong></td><td>${humidityDisplay}%</td></tr>
+					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['scaleDescriptions']['humidity']}</small></td></tr>
+					<tr><td><strong>Cloud Cover</strong></td><td>${cloudCoverDisplay}%</td></tr><tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['scaleDescriptions']['cloudCover']}</small></td></tr><tr><td><strong>Visibility</strong></td><td>${visibilityDisplay}</td></tr>
+					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['scaleDescriptions']['visibility']}</small></td></tr>
+				</table>`;
+			if (!isMenu) {
+				let newMenu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Weather</h3>`;			
+				newMenu += menu;
+				newMenu += `</div>`;
+				newMenu = newMenu.replace(/[\r\n]/g, ''); 
+				Utils.sendGMMessage(newMenu);
+			}
+			else {
+				return menu;
 			}
 		};
 		const displayQuestRelationships = (questId) => {
@@ -2383,15 +3576,8 @@ var QuestTracker = QuestTracker || (function () {
 					});
 					l.connectHorizontalLines(depthMap, instructionsPerColumn);
 					return instructionsPerColumn;
-				}
-			};
-			const quest = QUEST_TRACKER_globalQuestData[questId];
-			let questLayers = {};
-			if (!quest || !quest.relationships || !Array.isArray(quest.relationships.conditions) || quest.relationships.conditions.length === 0) {
-				return `<ul style="${styles.ulStyle}"> ${d.drawQuestBox("Q", [])} </ul>`;
-			}
-			else {
-				const buildQuestListHTML = (flattenedLogic, columnInstructionsMap, depth = 0) => {
+				},
+				buildQuestListHTML: (flattenedLogic, columnInstructionsMap, depth = 0) => {
 					let questListHTML = `<table style="width:100%;"><tr><td colspan="3"><ul style="${styles.ulStyle}">`;
 					let questIndex = 0;
 					flattenedLogic.forEach((item, index) => {
@@ -2403,11 +3589,18 @@ var QuestTracker = QuestTracker || (function () {
 					});
 					questListHTML += '</ul>';
 					return questListHTML;
-				};
+				}
+			};
+			const quest = QUEST_TRACKER_globalQuestData[questId];
+			let questLayers = {};
+			if (!quest || !quest.relationships || !Array.isArray(quest.relationships.conditions) || quest.relationships.conditions.length === 0) {
+				return `<ul style="${styles.ulStyle}"> ${d.drawQuestBox("Q", [])} </ul>`;
+			}
+			else {
 				const flattenedLogic = l.processConditions(quest.relationships.conditions, quest.relationships.logic || 'AND');
 				const columnInstructionsMap = l.buildQuestTreeBottomUp(quest.relationships);
 				let html = `<div style="${styles.treeContainerStyle}"><div style="${styles.treeStyle}">`;
-				html += buildQuestListHTML(flattenedLogic, columnInstructionsMap, 0);
+				html += l.buildQuestListHTML(flattenedLogic, columnInstructionsMap, 0);
 				html += `
 					<ul style="${styles.ulStyle}">
 						${d.drawQuestBox("Q", [], questLayers['1'] ? true : false)}
@@ -2418,12 +3611,21 @@ var QuestTracker = QuestTracker || (function () {
 			}
 		};
 		const generateGMMenu = () => {
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Active Quests</h3>`;
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Calendar</h3>`;
+			menu += `<br>${Calendar.formatDateFull()}<br>( ${QUEST_TRACKER_currentDate} )`;
+			if (QUEST_TRACKER_WEATHER && QUEST_TRACKER_CURRENT_WEATHER !== null) {
+				menu += buildWeather({ isMenu: true });
+			}
+			menu += `<br><br><a style="${styles.button}" href="!qt-menu action=adjustdate">Adjust Date</a>`;
+			menu += `<br><hr><h3 style="margin-bottom: 10px;">Active Quests</h3>`;
 			menu += H.showActiveQuests();
 			menu += `<br><a style="${styles.button}" href="!qt-menu action=allquests">Show All Quests</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Active Rumours</h3>`;
 			menu += H.showActiveRumours();
 			menu += `<br><a style="${styles.button}" href="!qt-menu action=allrumours">Show All Rumours</a>`;
+			menu += `<br><hr><h3 style="margin-bottom: 10px;">Upcoming Events</h3>`;
+			menu += H.showUpcomingEvents();
+			menu += `<br><a style="${styles.button}" href="!qt-menu action=allevents">Show All Events</a>`;
 			menu += `<br><hr><a style="${styles.button} ${styles.floatRight}" href="!qt-menu action=config">Configuration</a>`;
 			menu += `</div>`;
 			menu = menu.replace(/[\r\n]/g, ''); 
@@ -2563,7 +3765,7 @@ var QuestTracker = QuestTracker || (function () {
 			const statusName = statusMapping[statusId] || statusId;
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Rumours for ${questDisplayName}</h3><h3>Status: ${statusName}</h3>`;
 			menu += `<p>This menu displays all the rumours currently associated with ${questDisplayName} under the status "${statusName}". Use the options below to update, add, or remove rumours.</p><p>To add new lines into the rumours use &#37;NEWLINE&#37;. To add in quotation marks you need to use &amp;quot;.</p><br><hr>`;
-			const locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
+			const locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
 			if (!locationTable) {
 				menu += `
 					<p>Error: Locations table not found. Please check if the table exists in the game.</p>
@@ -2656,6 +3858,7 @@ var QuestTracker = QuestTracker || (function () {
 			let hiddenStatus = quest.hidden ? 'Yes' : 'No';
 			let questGroup = H.getQuestGroupNameByWeight(quest.group);
 			let hiddenStatusTorF = quest.hidden ? 'true' : 'false';
+			let hiddenStatusTorF_reverse = quest.hidden ? 'false' : 'true';
 			let relationshipsHtml = displayQuestRelationships(questId);
 			let relationshipMenuHtml = H.relationshipMenu(questId);
 			let validQuestGrouping = H.getValidQuestGroups(questId);
@@ -2680,7 +3883,7 @@ var QuestTracker = QuestTracker || (function () {
 					<h4 style="${styles.bottomBorder} ${styles.topMargin}">Hidden</h4><br>
 					<span>${hiddenStatus}</span>
 					<span style="${styles.floatRight}">
-						<a style="${styles.button}" href="!qt-quest action=update|field=hidden|current=${questId}|old=${hiddenStatusTorF}|new=?{Is Quest Hidden?|Yes,true|No,false}">Change</a>
+						<a style="${styles.button}" href="!qt-quest action=update|field=hidden|current=${questId}|old=${hiddenStatusTorF}|new=${hiddenStatusTorF_reverse}">Change</a>
 					</span>
 					<h4 style="${styles.bottomBorder} ${styles.topMargin}">Quest Group</h4><br>
 					<span>${questGroup}</span>
@@ -2696,7 +3899,7 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const manageRumourLocations = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Rumour Locations</h3>`;
-			let locationTable = findObjs({ type: 'rollabletable', name: 'locations' })[0];
+			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
 			if (!locationTable) {
 				menu += `<p>Error: Locations table not found. Please check if the table exists in the game.</p></div>`;
 				Utils.sendGMMessage(menu.replace(/[\r\n]/g, ''));
@@ -2728,7 +3931,7 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const manageQuestGroups = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Quest Groups</h3>`;
-			let groupTable = findObjs({ type: 'rollabletable', name: 'quest-groups' })[0];
+			let groupTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0];
 			if (!groupTable) {
 				menu += `<p>Error: Quest Groups table not found. Please check if the table exists in the game.</p></div>`;
 			}
@@ -2769,15 +3972,183 @@ var QuestTracker = QuestTracker || (function () {
 			if (Object.keys(QUEST_TRACKER_globalQuestData).length !== 0) {
 				RefreshImport = "Refresh";
 			}
-			menu += `<br><hr><a style="${styles.button}" href="!qt-config action=togglereadableJSON|value=${QUEST_TRACKER_readableJSON === true ? 'false' : 'true'}">Toggle Readable JSON (${QUEST_TRACKER_readableJSON === true ? 'on' : 'off'})</a>`;
-			menu += `<a style="${styles.button}" href="!qt-config action=togglejumpgate|value=${QUEST_TRACKER_jumpGate === true ? 'false' : 'true'}">Toggle JumpGate (${QUEST_TRACKER_jumpGate === true ? 'on' : 'off'})</a>`;
-			menu += `<br><a style="${styles.button}" href="!qt-import">${RefreshImport} Quest and Rumour Data</a>`;
-			menu += `<br><a style="${styles.button}" href="!qt-questtree action=build">Build Quest Tree Page</a>`;
-			menu += `<br><hr><a style="${styles.button} ${styles.floatRight}" href="!qt-menu action=main">Back to Main Menu</a>`;
+			const calenderDropdown = H.buildCalenderDropdown();
+			const climateDropdown = H.buildClimateDropdown();
+			menu += `<br><h4>Settings</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=togglereadableJSON|value=${QUEST_TRACKER_readableJSON === true ? 'false' : 'true'}">Toggle Readable JSON (${QUEST_TRACKER_readableJSON === true ? 'on' : 'off'})</a>`;
+			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=togglejumpgate|value=${QUEST_TRACKER_jumpGate === true ? 'false' : 'true'}">Toggle JumpGate (${QUEST_TRACKER_jumpGate === true ? 'on' : 'off'})</a>`;
+			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleVerboseErrors|value=${QUEST_TRACKER_verboseErrorLogging === true ? 'false' : 'true'}">Toggle Verbose Errors (${QUEST_TRACKER_verboseErrorLogging === true ? 'on' : 'off'})</a>`;
+			menu += `<br clear=all><h4>Data</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-import">${RefreshImport} JSON Data</a>`;
+			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=reset|confirmation=?{Are you sure? This will also clear all historical weather data. Type CONFIRM to continue|}">Reset to Defaults</a>`;
+			menu += `<br clear=all><h4>Quest Tree</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-questtree action=build">Build Quest Tree Page</a>`;
+			menu += `<br><h4>Calander</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=setcalender|new=?{Choose Calender${calenderDropdown}}">Calendar: ${CALENDARS[QUEST_TRACKER_calenderType]?.name || "Unknown Calendar"}</a>`;
+			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=set|new=?{Set Current Date|}">Current Date: ${QUEST_TRACKER_currentDate || "Unknown"}</a>`;
+			menu += `<br clear=all><h4>Weather</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleWeather|value=${QUEST_TRACKER_WEATHER === true ? 'false' : 'true'}">Toggle Weather (${QUEST_TRACKER_WEATHER === true ? 'on' : 'off'})</a>`;
+			if (QUEST_TRACKER_WEATHER) {
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=setclimate|new=?{Choose Calender${climateDropdown}}">Climate: ${QUEST_TRACKER_Location}</a>`;
+				menu += `<br clear=all><h4>Weather Trends</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=dry|new=?{Set Trend}">Dry: ${QUEST_TRACKER_WEATHER_TRENDS['dry'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=wet|new=?{Set Trend}">Wet: ${QUEST_TRACKER_WEATHER_TRENDS['wet'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=heat|new=?{Set Trend}">Heat: ${QUEST_TRACKER_WEATHER_TRENDS['heat'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=cold|new=?{Set Trend}">Cold: ${QUEST_TRACKER_WEATHER_TRENDS['cold'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=wind|new=?{Set Trend}">Wind: ${QUEST_TRACKER_WEATHER_TRENDS['wind'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=humid|new=?{Set Trend}">Humidity: ${QUEST_TRACKER_WEATHER_TRENDS['humid'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=visibility|new=?{Set Trend}">Fog: ${QUEST_TRACKER_WEATHER_TRENDS['visibility'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=cloudy|new=?{Set Trend}">Cloud Cover: ${QUEST_TRACKER_WEATHER_TRENDS['cloudy'] || 0}</a>`;
+				menu += `<br clear=all><h4>Forced Weather Trends</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=dry">Dry: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['dry'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=wet">Wet: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['wet'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=heat">Heat: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['heat'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=cold">Cold: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cold'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=wind">Wind: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['wind'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=humid">Humidity: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['humid'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=visibility">Visibility: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['visibility'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=cloudy">Cloud Cover: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cloudy'] || 'False'}</a>`;
+			}
+			menu += `<br clear=all><hr><a style="${styles.button} ${styles.floatClearRight}" href="!qt-menu action=main">Back to Main Menu</a>`;
 			menu += `</div>`;
 			menu = menu.replace(/[\r\n]/g, ''); 
 			Utils.sendGMMessage(menu);
 		};
+		const showAllEvents = () => {
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">All Events</h3>`;
+			if (Object.keys(QUEST_TRACKER_Events).length === 0) {
+				menu += `
+					<p>There doesn't seem to be any Events, you need to create a quest or Import from the Handouts.</p>
+				`;
+			} else {
+				menu += `<ul style="${styles.list}">`;
+				Object.keys(QUEST_TRACKER_Events).forEach(eventId => {
+					const event = QUEST_TRACKER_Events[eventId];
+					const name = event.name;
+					const date = event.date;
+					menu += `
+						<li style="${styles.overflow}">
+							<span style="${styles.floatLeft}">
+								${name}
+								<br>
+								<small>${date}</small>
+							</span>
+							<span style="${styles.floatRight}">
+								<a style="${styles.button}" href="!qt-menu action=showevent|eventid=${eventId}">Inspect</a>
+								<a style="${styles.button} ${styles.smallButton}" href="!qt-date action=removeevent|eventid=${eventId}|confirmation=?{Type DELETE into this field to confirm deletion of this quest|}">x</a>
+							</span>
+						</li>
+							`;
+				});
+				menu += `</ul>`;
+			}
+			menu += `
+				<br><hr>
+				<span style="${styles.floatRight}">
+					<a style="${styles.button}" href="!qt-date action=addevent">Add New Event</a>
+				</span>
+				<br><hr>
+				<a style="${styles.button}" href="!qt-menu action=main">Back to Main Menu</a>
+			</div>`;
+			menu = menu.replace(/[\r\n]/g, ''); 
+			Utils.sendGMMessage(menu);
+		};
+		const showEventDetails = (eventid) => {
+			let event = QUEST_TRACKER_Events[eventid];
+			if (!event) {
+				Utils.sendGMMessage(`Error: Event "${eventid}" not found.`);
+				return;
+			}
+			let hiddenStatus = event.hidden ? 'Yes' : 'No';
+			let hiddenStatusTorF = event.hidden ? 'true' : 'false';
+			let hiddenStatusTorF_reverse = event.hidden ? 'false' : 'true';
+			let repeatStatus = event.repeatable ? 'Yes' : 'No';
+			let repeatStatusTorF = event.repeatable ? 'true' : 'false';
+			let repeatStatusTorF_reverse = event.repeatable ? 'false' : 'true';
+			const frequencyDropdown = H.buildFrequencyDropdown();
+			const showFrequency = event.repeatable ? `<br><br><span>Frequency: <small>${frequencyMapping[event.frequency]}</small></span><span style="${styles.floatRight}"><a style="${styles.button}" href="!qt-date action=update|field=frequency|current=${eventid}|date=${event.date}|old=${event.frequency}|new=?{Frequency${frequencyDropdown}}">Adjust</a></span>` : '';
+			let menu = `
+				<div style="${styles.menu}">
+					<h3 style="margin-bottom: 10px;">${event.name || 'Unnamed Event'}</h3>
+					<p>${event.description || 'No description available.'}</p>
+					<span style="${styles.floatRight}">
+						<a style="${styles.button}" href="!qt-date action=update|field=name|current=${eventid}|old=${event.name || ''}|new=?{Title|${event.name || ''}}">Edit Event Name</a>
+						&nbsp;
+						<a style="${styles.button}" href="!qt-date action=update|field=description|current=${eventid}|old=${event.description || ''}|new=?{Description|${event.description || ''}}">Edit Description</a>
+					</span>
+					<br>
+					<h4 style="${styles.bottomBorder} ${styles.topMargin}">${event.repeatable ? 'Starting ' : ''}Date</h4><br>
+					<span>${event.date}</span>
+					<span style="${styles.floatRight}">
+						<a style="${styles.button}" href="!qt-date action=update|field=date|current=${eventid}|old=${event.date}|new=?{Change${event.repeatable ? 'Starting ' : ''} Date, Must be digits separated by dashes (e.g., YYYY-MM-DD or similar).}">Change</a>
+					</span>
+					<br>
+					<h4 style="${styles.bottomBorder} ${styles.topMargin}">Hidden</h4><br>
+					<span>${hiddenStatus}</span>
+					<span style="${styles.floatRight}">
+						<a style="${styles.button}" href="!qt-date action=update|field=hidden|current=${eventid}|old=${hiddenStatusTorF}|new=${hiddenStatusTorF_reverse}">Change</a>
+					</span>
+					<br>
+					<h4 style="${styles.bottomBorder} ${styles.topMargin}">Repeatable</h4><br>
+					<span>${repeatStatus}</span>
+					<span style="${styles.floatRight}">
+						<a style="${styles.button}" href="!qt-date action=update|field=repeatable|current=${eventid}|old=${repeatStatusTorF}|new=${repeatStatusTorF_reverse}">Change</a>
+					</span>
+					${showFrequency}`;
+			if (event.repeatable && event.frequency === "2") {
+				menu += `<br><small>Occurs every ${event.weekdayName  || 'Unknown'}</small>`;
+			}
+			menu += `<br><hr>
+					<a style="${styles.button}" href="!qt-menu action=allevents">All Events</a>
+					&nbsp;
+					<a style="${styles.button}" href="!qt-menu action=main">Back to Main Menu</a>
+				</div>`;
+			menu = menu.replace(/[\r\n]/g, ''); 
+			Utils.sendGMMessage(menu);
+		};
+		const adjustDate = () => {
+			let menu = `
+				<div style="${styles.menu}">
+					<h3 style="margin-bottom: 10px;">Adjust Date</h3>
+					<br>${Calendar.formatDateFull()}<br>( ${QUEST_TRACKER_currentDate} )`;
+			if (QUEST_TRACKER_WEATHER && QUEST_TRACKER_CURRENT_WEATHER !== null) {
+				menu += buildWeather({ isHome: true });
+			}
+			menu += `<br><br><a style="${styles.button} ${styles.floatRight}" href="!qt-menu action=adjustdate">Adjust Date</a>
+					<br><hr><h3>Advance Date</h3>`;
+			if (QUEST_TRACKER_WEATHER) {
+				menu += `<small>Advancing Dates calculates weather so there are hard limits imposed.</small>`;
+			}
+			menu += `<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=day|new=1">Day</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=week|new=1">Week</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=month|new=1">Month</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=year|new=1">Year</a>
+					<br><strong>Custom</strong>`;
+			if (QUEST_TRACKER_WEATHER) {	
+				menu += `<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=day|new=?{Enter number of Days, Max 500}">Day</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=week|new=?{Enter number of Weeks, Max 60}">Week</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=month|new=?{Enter number of Months, max 15}">Month</a>`;
+			}
+			else {
+				menu += `<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=day|new=?{Enter number of Days}">Day</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=week|new=?{Enter number of Weeks}">Week</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=month|new=?{Enter number of Months}">Month</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=month|new=?{Enter number of Years}">Year</a>`;
+			}
+			menu += `<br><hr><h3>Retreat Date</h3>`;
+			if (QUEST_TRACKER_WEATHER) {
+				menu += `<small>Retreating Dates does not calculate weather, so there are no limits imposed.</small>`;
+			}
+			menu += `<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=day|new=-1">Day</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=week|new=-1">Week</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=month|new=-1">Month</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|unit=year|new=-1">Year</a>
+					<br><strong>Custom</strong>
+					<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=day|new=-?{Enter number of Days}">Day</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=week|new=-?{Enter number of Weeks}">Week</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=month|new=-?{Enter number of Months}">Month</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=year|new=-?{Enter number of Years}">Year</a>
+					<br><hr><h3>Special Advance</h3>
+					<small>Nothing will happen if there are no Festivals, Significant Dates or Events set in your Calendar.</small>
+					<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=event|new=1">Next Date of Significance</a>
+					<br clear=all><hr><a style="${styles.button} ${styles.floatClearRight}" href="!qt-menu action=main">Back to Main Menu</a>
+				</div>`;
+			menu = menu.replace(/[\r\n]/g, ''); 
+			Utils.sendGMMessage(menu);
+		}
 		return {
 			generateGMMenu,
 			showQuestDetails,
@@ -2786,19 +4157,20 @@ var QuestTracker = QuestTracker || (function () {
 			showRumourDetails,
 			showQuestDetails,
 			showQuestRumourByStatus,
+			showAllEvents,
+			showEventDetails,
 			manageRumourLocations,
 			manageQuestGroups,
-			adminMenu
+			adminMenu,
+			adjustDate,
+			buildWeather
 		};
 	})();
 	const handleInput = (msg) => {
-		if (msg.type === 'api' && playerIsGM(msg.playerid) && msg.content === '!qt') {
-			Menu.generateGMMenu();
-			return;
-		}
 		if (msg.type !== 'api' || !playerIsGM(msg.playerid) || !msg.content.startsWith('!qt')) {
 			return;
 		}
+		msg.content = Utils.inputAlias(msg.content);
 		const args = msg.content.split(' ');
 		const command = args.shift();
 		const params = args.join(' ').split('|').reduce((acc, param) => {
@@ -2808,36 +4180,36 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			return acc;
 		}, {});
+		if (errorCheck(47, 'exists', command,'command')) return;
 		if (command === '!qt-quest') {
 			const { action, field, current, old = '', new: newItem = '', id, confirmation } = params;
+			if (errorCheck(48, 'exists', action,'action')) return;
 			switch (action) {
 				case 'removequest':
-					if (confirmation !== 'DELETE') {
-						Utils.sendGMMessage('Error: Confirmation is required to delete the quest. Please type DELETE to confirm.');
-						return;
-					}
+					if (errorCheck(49, 'confirmation', confirmation, 'DELETE')) return;
+					if (errorCheck(50, 'exists', id,'id')) return;
+					if (errorCheck(51, 'exists', QUEST_TRACKER_globalQuestData[id],`QUEST_TRACKER_globalQuestData[${id}]`)) return;
 					Quest.removeQuest(id);
 					setTimeout(() => {
 						Menu.showAllQuests();
 					}, 500);
 					break;
-
 				case 'addquest':
 					Quest.addQuest();
 					setTimeout(() => {
 						Menu.showAllQuests();
 					}, 500);
 					break;
-
 				case 'add':
 				case 'remove':
 				case 'update':
+					if (errorCheck(52, 'exists', field,'field')) return;
+					if (errorCheck(53, 'exists', newItem,'newItem')) return;
+					if (errorCheck(54, 'exists', QUEST_TRACKER_globalQuestData[current],`QUEST_TRACKER_globalQuestData[${current}]`)) return;
 					switch (field) {
 						case 'status':
-							if (action === 'add' || action === 'remove') {
-								Quest.manageQuestObject({ action, field, current, old, newItem });
-								QuestPageBuilder.updateQuestStatusColor(current, newItem);
-							}
+							Quest.manageQuestObject({ action, field, current, old, newItem });
+							QuestPageBuilder.updateQuestStatusColor(current, newItem);
 							break;
 						case 'name':
 							if (action === 'add') {
@@ -2872,28 +4244,27 @@ var QuestTracker = QuestTracker || (function () {
 							}
 							break;
 						case 'autoadvance':
-							const dateToAdd = Utils.sanitizeInput(newItem, 'DATE');
-							if (dateToAdd) {
-								switch (action) {
-									case 'add':
-										Quest.manageQuestObject({ action, field, current, old, newItem: dateToAdd });
-										break;
-									case 'remove':
-										Quest.manageQuestObject({ action, field, current, old });
-										break;
-									case 'update':
-										Quest.manageQuestObject({ action: 'remove', field, current, old });
-										Quest.manageQuestObject({ action: 'add', field, current, old, newItem: dateToAdd });
-										break;
-									default:
-										Utils.sendGMMessage('Error: Unsupported action for "autoadvance".');
-										break;
-								}
-							} else {
-								Utils.sendGMMessage('Error: Invalid date format for "autoadvance".');
+							if (errorCheck(55, 'exists', old,'old')) return;
+							switch (action) {
+								case 'add':
+									if (errorCheck(56, 'date', newItem)) return;
+									Quest.manageQuestObject({ action, field, current, old, newItem });
+									break;
+								case 'remove':
+									Quest.manageQuestObject({ action, field, current, old });
+									break;
+								case 'update':
+									if (errorCheck(57, 'date', newItem)) return;
+									Quest.manageQuestObject({ action: 'remove', field, current, old });
+									Quest.manageQuestObject({ action: 'add', field, current, old, newItem });
+									break;
+								default:
+									errorCheck(58, 'msg', null,`Unsupported action for autoadvance ( ${action} )`);
+									break;
 							}
 							break;
 						default:
+							errorCheck(59, 'msg', null,`Unsupported action for field ( ${field} )`);
 							break;
 					}
 					setTimeout(() => {
@@ -2901,22 +4272,19 @@ var QuestTracker = QuestTracker || (function () {
 					}, 500);
 					break;
 				default:
+					errorCheck(60, 'msg', null,`Unsupported action for action ( ${action} )`);
 					break;
 			}
 		} else if (command === '!qt-questrelationship') {
 			const { action, type, currentquest, quest, groupConditions, groupnum, oldquest, confirmation } = params;
-			if (!action || !type) return;
-			if (!currentquest) {
-				Utils.sendGMMessage('Error: Current quest ID is required.');
-				return;
-			}
-			const currentQuestData = QUEST_TRACKER_globalQuestData[currentquest];
-			if (!currentQuestData) {
-				Utils.sendGMMessage(`Error: Quest data for "${currentquest}" not found.`);
-				return;
-			}
+			if (errorCheck(61, 'exists', action,'action')) return;
+			if (errorCheck(62, 'exists', type,'type')) return;
+			if (errorCheck(63, 'exists', currentquest,'currentquest')) return;
+			if (errorCheck(64, 'exists', QUEST_TRACKER_globalQuestData[currentquest],`QUEST_TRACKER_globalQuestData[${currentquest}]`)) return;
 			switch (action) {
 				case 'add':
+					if (errorCheck(65, 'exists', quest,'quest')) return;
+					if (errorCheck(66, 'exists', QUEST_TRACKER_globalQuestData[quest],`QUEST_TRACKER_globalQuestData[${quest}]`)) return;
 					switch (type) {
 						case 'mutuallyexclusive':
 							Quest.manageRelationship(currentquest, 'add', 'mutuallyExclusive', quest);
@@ -2926,54 +4294,65 @@ var QuestTracker = QuestTracker || (function () {
 							Quest.manageRelationship(currentquest, 'add', 'single', quest);
 							break;
 						case 'group':
+							if (errorCheck(67, 'exists', groupnum,'groupnum')) return;
 							Quest.manageRelationship(currentquest, 'add', 'group', quest, groupnum);
 							break;
 						case 'addgroup':
 							Quest.manageRelationship(currentquest, 'add', 'addgroup', quest);
 						default:
-							Utils.sendGMMessage('Error: Unsupported relationship type.');
+							errorCheck(68, 'msg', null,`Unsupported action for type ( ${type} )`);
 							break;
 					}
 					break;
-
 				case 'remove':
 					switch (type) {
 						case 'mutuallyexclusive':
+							if (errorCheck(69, 'exists', quest,'quest')) return;
+							if (errorCheck(70, 'exists', QUEST_TRACKER_globalQuestData[quest],`QUEST_TRACKER_globalQuestData[${quest}]`)) return;
+							if (errorCheck(71, 'exists', quest,'quest')) return;
 							Quest.manageRelationship(currentquest, 'remove', 'mutuallyExclusive', quest);
 							Quest.manageRelationship(quest, 'remove', 'mutuallyExclusive', currentquest);
 							break;
 						case 'single':
+							if (errorCheck(72, 'exists', quest,'quest')) return;
+							if (errorCheck(73, 'exists', QUEST_TRACKER_globalQuestData[quest],`QUEST_TRACKER_globalQuestData[${quest}]`)) return;
+							if (errorCheck(74, 'exists', quest,'quest')) return;
 							Quest.manageRelationship(currentquest, 'remove', 'single', quest);
 							break;
 						case 'group':
+							if (errorCheck(75, 'exists', quest,'quest')) return;
+							if (errorCheck(76, 'exists', QUEST_TRACKER_globalQuestData[quest],`QUEST_TRACKER_globalQuestData[${quest}]`)) return;
+							if (errorCheck(77, 'exists', groupnum,'groupnum')) return;
 							Quest.manageRelationship(currentquest, 'remove', 'group', quest, groupnum);
 							break;
 						case 'removegroup':
-							if (!groupnum || confirmation !== 'DELETE') {
-								Utils.sendGMMessage('Error: Group number and confirmation are required for group relationship removal.');
-								break;
-							}
+							if (errorCheck(78, 'exists', groupnum,'groupnum')) return;
+							if (errorCheck(79, 'confirmation', confirmation, 'DELETE')) return;
 							Quest.manageRelationship(currentquest, 'remove', 'removegroup', null, groupnum);
 							break;
 						default:
-							Utils.sendGMMessage('Error: Unsupported relationship type.');
+							errorCheck(80, 'msg', null,`Unsupported action for type ( ${type} )`);
 							break;
 					}
 					break;
-
 				case 'update':
 					switch (type) {
 						case 'mutuallyexclusive':
+							if (errorCheck(81, 'exists', quest,'quest')) return;
+							if (errorCheck(82, 'exists', oldquest,'oldquest')) return;
 							Quest.manageRelationship(currentquest, 'remove', 'mutuallyExclusive', oldquest);
 							Quest.manageRelationship(oldquest, 'remove', 'mutuallyExclusive', currentquest);
 							Quest.manageRelationship(currentquest, 'add', 'mutuallyExclusive', quest);
 							Quest.manageRelationship(quest, 'add', 'mutuallyExclusive', currentquest);
 							break;
 						case 'single':
+							if (errorCheck(83, 'exists', quest,'quest')) return;
 							Quest.manageRelationship(currentquest, 'add', 'single', quest);
 							Quest.manageRelationship(currentquest, 'remove', 'single', oldquest);
 							break;
 						case 'group':
+							if (errorCheck(84, 'exists', quest,'quest')) return;
+							if (errorCheck(85, 'exists', oldquest,'oldquest')) return;
 							Quest.manageRelationship(currentquest, 'add', 'group', quest, groupnum);
 							Quest.manageRelationship(currentquest, 'remove', 'group', oldquest, groupnum);
 							break;
@@ -2984,84 +4363,84 @@ var QuestTracker = QuestTracker || (function () {
 							Quest.manageRelationship(currentquest, 'update', 'logic', null);
 							break;
 						default:
-							Utils.sendGMMessage('Error: Unsupported relationship type.');
+							errorCheck(86, 'msg', null,`Unsupported action for type ( ${type} )`);
 							break;
 					}
 					break;
 				default:
-					Utils.sendGMMessage('Error: Unsupported action for quest relationship.');
+					errorCheck(87, 'msg', null,`Unsupported action for action ( ${action} )`);
 					break;
 			}
-
 			setTimeout(() => {
 				Menu.showQuestDetails(currentquest);
 			}, 500);
 		} else if (command === '!qt-rumours') {
 			const { action, questid, status, location, rumourid, new: newItem, number, locationId, old, confirmation } = params;
-			if (!action) return;
+			if (errorCheck(88, 'exists', action, 'action')) return;
 			switch (action) {
 				case 'send':
-					const numberOfRumours = parseInt(number, 10);
-					if (!location || isNaN(numberOfRumours)) {
-						Utils.sendGMMessage('Invalid location or number of rumours specified.');
-						return;
-					}
-					Rumours.sendRumours(location, numberOfRumours);
+					if (errorCheck(89, 'exists', number, 'number')) return;
+					if (errorCheck(90, 'number', number, 'number')) return;
+					if (errorCheck(91, 'exists', location, 'location')) return;
+					Rumours.sendRumours(location, number);
 					break;
 				case 'add':
 				case 'update':
 				case 'remove':
-					if (!questid || !status || !location || (action !== 'remove' && !newItem)) {
-						Utils.sendGMMessage('Error: Missing required parameters for adding/updating/removing a rumour.');
-						return;
-					}
+					if (errorCheck(92, 'exists', location, 'location')) return;
+					if (errorCheck(93, 'exists', status, 'status')) return;
+					if (errorCheck(94, 'exists', questid, 'questid')) return;
 					if (action === 'add') {
+						if (errorCheck(95, 'exists', newItem, 'newItem')) return;
 						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem, status, location });
 						setTimeout(() => {
 							Menu.showRumourDetails(questid, status);
 						}, 500);
-
 					} else if (action === 'update') {
-						if (!newItem || typeof newItem !== 'string') {
-							Utils.sendGMMessage('Error: Invalid or missing new rumour text.');
-							return;
-						}
+						if (errorCheck(96, 'exists', newItem, 'newItem')) return;
+						if (errorCheck(97, 'exists', rumourid, 'rumourid')) return;
+						if (errorCheck(98, 'exists', QUEST_TRACKER_globalRumours[questid], `QUEST_TRACKER_globalRumours[${questid}]`)) return;
 						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, location, rumourId: rumourid });
 						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem, status, location, rumourId: rumourid });
 						setTimeout(() => {
 							Menu.showRumourDetails(questid, status);
 						}, 500);
 					} else if (action === 'remove') {
+						if (errorCheck(99, 'exists', QUEST_TRACKER_globalRumours[questid], `QUEST_TRACKER_globalRumours[${questid}]`)) return;
+						if (errorCheck(100, 'exists', QUEST_TRACKER_globalRumours[questid][status], `QUEST_TRACKER_globalRumours[${questid}][${status}]`)) return;
+						if (errorCheck(101, 'exists', Rumours.getLocationNameById(location), `getLocationNameById(${location})`)) return;
+						if (errorCheck(102, 'exists', QUEST_TRACKER_globalRumours[questid][status][Rumours.getLocationNameById(location).toLowerCase()], `QUEST_TRACKER_globalRumours[${questid}][${status}][getLocationNameById(${location}).toLowerCase()]`)) return;
 						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, location, rumourId: rumourid });
 						setTimeout(() => {
 							Menu.showRumourDetails(questid, status);
 						}, 500);
 					}
 					break;
-				case 'addLocation':	
+				case 'addLocation':
+					if (errorCheck(103, 'exists', newItem, 'newItem')) return;
 					Rumours.manageRumourLocation('add', newItem, null);
 					setTimeout(() => {
 						Menu.manageRumourLocations();
 					}, 500);
 					break;
 				case 'editGroupName':
+					if (errorCheck(104, 'exists', newItem, 'newItem')) return;
+					if (errorCheck(105, 'exists', locationId, 'locationId')) return;
 					Rumours.manageRumourLocation('update', newItem, locationId);
 					setTimeout(() => {
 						Menu.manageRumourLocations();
 					}, 500);
 					break;
 				case 'removeLocation':
-					if (!locationId || confirmation !== 'DELETE') {
-						Utils.sendGMMessage('Error: Confirmation required to delete location. Please type DELETE to confirm.');
-						return;
-					}
+					if (errorCheck(106, 'exists', locationId, 'locationId')) return;
+					if (errorCheck(107, 'confirmation', confirmation, 'DELETE')) return;
 					Rumours.manageRumourLocation('remove', null, locationId);
 					setTimeout(() => {
 						Menu.manageRumourLocations();
 					}, 500);
 					break;
 				default:
-					Utils.sendGMMessage('Error: Invalid parameters for rumour action.');
+					errorCheck(108, 'msg', null,`Unsupported action for type ( ${action} )`);
 					break;
 			}
 		} else if (command === '!qt-questgroup') {
@@ -3069,133 +4448,297 @@ var QuestTracker = QuestTracker || (function () {
 			if (!action) return;
 			switch (action) {
 				case 'add':	
+					if (errorCheck(109, 'exists', newItem,'newItem')) return;
 					Quest.manageGroups('add', newItem, null);
 					setTimeout(() => {
 						Menu.manageQuestGroups();
 					}, 500);
 					break;
 				case 'update':
+					if (errorCheck(110, 'exists', newItem,'newItem')) return;
+					if (errorCheck(111, 'exists', groupid,'groupid')) return;
 					Quest.manageGroups('update', newItem, groupid);
 					setTimeout(() => {
 						Menu.manageQuestGroups();
 					}, 500);
 					break;
 				case 'remove':
-					if (!groupid || confirmation !== 'DELETE') {
-						Utils.sendGMMessage('Error: Confirmation required to delete location. Please type DELETE to confirm.');
-						return;
-					}
+					if (errorCheck(112, 'exists', groupid,'groupid')) return;
+					if (errorCheck(113, 'confirmation', confirmation, 'CONFIRM')) return;
 					Quest.manageGroups('remove', null, groupid);
 					setTimeout(() => {
 						Menu.manageQuestGroups();
 					}, 500);
 					break;
 				default:
-					Utils.sendGMMessage('Error: Invalid parameters for Quest Group action.');
+					errorCheck(114, 'msg', null,`Unsupported action for type ( ${action} )`);
 					break;
 			}
 		} else if (command === '!qt-menu') {
-			const { action, id, questId, locationId, status } = params;
+			const { action, id, questId, locationId, status, eventid } = params;
 			if (!action || action === 'main') {
 				Menu.generateGMMenu();
 			} else if (action === 'config') {
 				Menu.adminMenu();
-			}else if (action === 'quest') {
-				if (id) {
-					Menu.showQuestDetails(id);
-				} else {
-					log(`Error: Quest ID is required for action 'quest'.`);
-				}
+			} else if (action === 'quest') {
+				if (errorCheck(115, 'exists', id,'id')) return;
+				Menu.showQuestDetails(id);
 			} else if (action === 'allquests') {
 				Menu.showAllQuests();
 			} else if (action === 'allrumours') {
 				Menu.showAllRumours();
 			} else if (action === 'showQuestRumours') {
-				if (questId) {
-					Menu.showQuestRumourByStatus(questId);
-				} else {
-					log(`Error: Quest ID is required for action 'showQuestRumours'.`);
-				}
+				if (errorCheck(116, 'exists', questId,'questId')) return;
+				Menu.showQuestRumourByStatus(questId);
 			} else if (action === 'showRumourDetails') {
-				if (questId && status) {
-					Menu.showRumourDetails(questId, status);
-				} else {
-					log(`Error: Quest ID and Status are required for action 'showRumourDetails'.`);
-				}
+				if (errorCheck(117, 'exists', questId,'questId')) return;
+				if (errorCheck(118, 'exists', status,'status')) return;
+				Menu.showRumourDetails(questId, status);
 			} else if (action === 'manageRumourLocations') {
 				Menu.manageRumourLocations();
 			} else if (action === 'manageQuestGroups') {
 				Menu.manageQuestGroups();
-			} else {
-				log(`Error: Unknown menu action: ${action}`);
-			}
+			} else if (action === 'allevents') {
+				Menu.showAllEvents();
+			} else if (action === 'showevent') {
+				if (errorCheck(119, 'exists', eventid,'eventid')) return;
+				Menu.showEventDetails(eventid);
+			} else if (action === 'adjustdate') {
+				Menu.adjustDate();
+			} else errorCheck(120, 'msg', null,`Unknown menu action: ${action}`);
 		} else if (command === '!qt-date') {
-			const isPublic = params.public === 'true';
-			const fromValue = params.from || 'Quest Tracker';
-			const messageValue = params.message || null;
-			switch (params.action) {
+			const { action, field, current, old, new: newItem, unit = 'day', date, eventid, menu = false, home = false} = params;
+			if (errorCheck(121, 'exists', action,'action')) return;
+			switch (action) {
 				case 'set':
-					Calendar.setCurrentDate(params.date, isPublic, fromValue, messageValue);
+					if (errorCheck(122, 'date', newItem)) return;
+					Calendar.modifyDate('set', newItem);
+					setTimeout(() => {
+						Menu.adminMenu();
+					}, 500);
 					break;
-				case 'advance':
-					if (params.unit === 'day') {
-						Calendar.modifyDate(1, isPublic, fromValue, messageValue);
-					} else if (params.unit === 'days') {
-						Calendar.modifyDate(parseInt(params.amount, 10), isPublic, fromValue, messageValue);
+				case 'addevent':
+					Calendar.addEvent();
+					setTimeout(() => {
+						Menu.showAllEvents();
+					}, 500);
+					break;
+				case 'removeevent':
+					if (errorCheck(123, 'exists', eventid, 'eventid')) return;
+					Calendar.removeEvent(eventid);
+					setTimeout(() => {
+						Menu.showAllEvents();
+					}, 500);
+					break;
+				case 'update':
+					if (errorCheck(124, 'exists', date, 'date')) return;
+					if (errorCheck(125, 'date', date)) return;
+					Calendar.manageEventObject({ action, field, current, old, newItem, date});
+					setTimeout(() => {
+						Menu.showEventDetails(current);
+					}, 500);
+					break;
+				case 'setcalender':
+					if (errorCheck(126, 'exists', newItem, 'newItem')) return;
+					Calendar.setCalender(newItem);
+					setTimeout(() => {
+						Menu.adminMenu();
+					}, 500);
+					break;
+				case 'setclimate':
+					if (errorCheck(127, 'exists', newItem, 'newItem')) return;
+					Calendar.setClimate(newItem);
+					setTimeout(() => {
+						Menu.adminMenu();
+					}, 500);
+					break;
+				case 'adjustlocation':
+					if (errorCheck(128, 'exists', newItem, 'newItem')) return;
+					Calendar.adjustLocation(newItem);
+					if (menu) {
+						setTimeout(() => {
+							Menu.adjustDate();
+						}, 500);
+					}
+					else if (home) {
+						setTimeout(() => {
+							Menu.generateGMMenu();
+						}, 500);
 					}
 					break;
-				case 'retreat':
-					if (params.unit === 'day') {
-						Calendar.modifyDate(-1, isPublic, fromValue, messageValue);
-					} else if (params.unit === 'days') {
-						Calendar.modifyDate(-parseInt(params.amount, 10), isPublic, fromValue, messageValue);
+				case 'settrend':
+					if (errorCheck(129, 'exists', newItem, 'newItem')) return;
+					if (errorCheck(130, 'number', newItem, 'newItem')) return;
+					const num = Math.trunc(newItem);
+					if (num <= 0) return;
+					Calendar.setWeatherTrend(field, num);
+					setTimeout(() => {
+						Menu.adminMenu();
+					}, 500);
+					break;
+				case 'forcetrend':
+					if (errorCheck(131, 'exists', field, 'field')) return;
+					Calendar.forceWeatherTrend(field);
+					setTimeout(() => {
+						Menu.adminMenu();
+					}, 500);
+					break;
+				case 'modify':
+					if (errorCheck(132, 'exists', newItem, 'newItem')) return;
+					if (errorCheck(133, 'number', newItem, 'newItem')) return;
+					if (errorCheck(134, 'exists', unit, 'unit')) return;
+					const number = Math.trunc(newItem);
+					if (QUEST_TRACKER_WEATHER) {
+						switch (unit.toLowerCase()) {
+							case "years":
+								if (number > 1) number = 1;
+								break;
+							case "days":
+								if (number > 500) number = 500;
+								break;
+							case "weeks":
+								if (number > 60) number = 60;
+								break;
+							case "months":
+								if (number > 15) number = 15;
+								break;
+							default:
+								errorCheck(135, 'msg', null,`Unknown unit ${unit}`);
+								break;
+						}
+					}
+					Calendar.modifyDate({type: unit, amount: number});
+					if (menu) {
+						setTimeout(() => {
+							Menu.adjustDate();
+						}, 500);
+					}
+					else if (home) {
+						setTimeout(() => {
+							Menu.generateGMMenu();
+						}, 500);
 					}
 					break;
 				default:
-					log(`Error: Unknown date command: ${params.action}`);
+					errorCheck(136, 'msg', null,`Unknown date command: ${params.action}`);
 					break;
 			}
 		} else if (command === '!qt-import') {
 			Import.fullImportProcess();
 		} else if (command === '!qt-config') {
-			const { action, value } = params;
+			const { action, value, confirmation } = params;
 			if (action === 'togglereadableJSON'){
+				if (errorCheck(137, 'exists', value, 'value')) return;
 				Utils.togglereadableJSON(value);
 				setTimeout(() => {
 					Menu.adminMenu();
 				}, 500);
-			}
-			else if (action === 'togglejumpgate'){
+			} else if (action === 'toggleWeather'){
+				if (errorCheck(138, 'exists', value, 'value')) return;
+				Utils.toggleWeather(value);
+				setTimeout(() => {
+					Menu.adminMenu();
+				}, 500);
+			} else if (action === 'togglejumpgate'){
+				if (errorCheck(139, 'exists', value, 'value')) return;
 				Utils.toggleJumpGate(value);
+				setTimeout(() => {
+					Menu.adminMenu();
+				}, 500);
+			} else if (action === 'toggleVerboseErrors'){
+				if (errorCheck(140, 'exists', value, 'value')) return;
+				Utils.toggleVerboseError(value);
+				setTimeout(() => {
+					Menu.adminMenu();
+				}, 500);
+			} else if (action === 'reset') {
+				if (errorCheck(141, 'confirmation', confirmation, 'CONFIRM')) return;
+				state.QUEST_TRACKER = {};
+				initializeQuestTrackerState(true);
+				loadQuestTrackerData();
+				QUEST_TRACKER_HISTORICAL_WEATHER = {};
+				Utils.updateHandoutField("weather");
+				saveQuestTrackerData();
 				setTimeout(() => {
 					Menu.adminMenu();
 				}, 500);
 			}
 		} else if (command === '!qt-questtree') {
 			const { action, value } = params;
-			if (action === 'build'){
-				QuestPageBuilder.buildQuestTreeOnPage();
+			if (errorCheck(142, 'exists', action, 'action')) return;
+			switch (action) {
+				case 'build':
+					QuestPageBuilder.buildQuestTreeOnPage();
+					break;
+				default:
+					errorCheck(143, 'msg', null,`Unknown action: ${action}`);
+					break;
 			}
 		} 
 		else {
-			log(`Error: Unknown command: ${command}`);
+			errorCheck(144, 'msg', null,`Unknown command: ${command}`);
 		}
 	};
-return {
-	loadQuestTrackerData,
-	saveQuestTrackerData,
-	handleInput,
-	Import,
-	Calendar,
-	Quest,
-	Rumours,
-	QuestPageBuilder,
-	Menu,
-	initializeQuestTrackerState
-};
+	const errorCheck = (id = 0, type = null, data = null, check = null) => {
+		switch (type) {
+			case 'confirmation':
+				if (data === check) return true;
+				else {
+					switch (check) {
+						case 'CONFIRM':
+							Utils.sendGMMessage(`Error ${id}: Confirmation required to reset all data. Please type CONFIRM when prompted.`);
+							break;
+						case 'DELETE':
+							Utils.sendGMMessage(`Error ${id}: Confirmation required to delete location. Please type DELETE to confirm.`);
+							break;
+					}
+				}
+				break;
+			case 'date':
+				if (!/^\d+-\d+-\d+$/.test(data)) {
+					Utils.sendGMMessage(`Error ${id}: Invalid date format: ${data}. Must be digits separated by dashes (e.g., YYYY-MM-DD or similar).`);
+					return true
+				}
+				break;
+			case 'exists':
+				if (data === null) {
+					if (QUEST_TRACKER_verboseErrorLogging) Utils.sendGMMessage(`Error ${id}: The variable ${check} does not exist.`);
+					return true;
+				}
+				break;
+			case 'msg':
+				Utils.sendGMMessage(`Error ${id}: ${check}`);
+				break;
+			case 'number':
+				if (isNaN(data)) {
+					if (QUEST_TRACKER_verboseErrorLogging) Utils.sendGMMessage(`Error ${id}: ${check} is not a number.`);
+					return true;
+				}
+				break;
+		}
+		return false;
+	};
+	return {
+		CALENDARS,
+		WEATHER,
+		loadQuestTrackerData,
+		saveQuestTrackerData,
+		handleInput,
+		Import,
+		Calendar,
+		Quest,
+		Rumours,
+		QuestPageBuilder,
+		Menu,
+		errorCheck,
+		initializeQuestTrackerState,
+		getCalendarAndWeatherData
+	};
 })();
 on('ready', function () {
 	'use strict';
+	const { CALENDARS, WEATHER } = QuestTracker.getCalendarAndWeatherData();
+	if (!CALENDARS || !WEATHER) return;
 	QuestTracker.initializeQuestTrackerState();
 	QuestTracker.loadQuestTrackerData();
 	on('chat:message', function(msg) {

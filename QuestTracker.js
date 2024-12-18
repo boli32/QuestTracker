@@ -43,7 +43,6 @@ var QuestTracker = QuestTracker || (function () {
 	let QUEST_TRACKER_RumourHandoutName = "QuestTracker Rumours";
 	let QUEST_TRACKER_EventHandoutName = "QuestTracker Events";
 	let QUEST_TRACKER_WeatherHandoutName = "QuestTracker Weather";
-	let QUEST_TRACKER_WeatherDescriptionHandoutName = "QuestTracker Weather Description";
 	let QUEST_TRACKER_rumoursByLocation = {};
 	let QUEST_TRACKER_readableJSON = true;
 	let QUEST_TRACKER_pageName = "Quest Tree Page";
@@ -233,9 +232,6 @@ var QuestTracker = QuestTracker || (function () {
 			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_WeatherHandoutName })[0]) {
 				createObj('handout', { name: QUEST_TRACKER_WeatherHandoutName });
 			}
-			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_WeatherDescriptionHandoutName })[0]) {
-				createObj('handout', { name: QUEST_TRACKER_WeatherDescriptionHandoutName });
-			}
 			Utils.sendGMMessage("QuestTracker has been initialized.");
 		}
 	};
@@ -354,9 +350,6 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				case 'weather':
 					handoutName = QUEST_TRACKER_WeatherHandoutName;
-					break;
-				case 'weatherdescription':
-					handoutName = QUEST_TRACKER_WeatherDescriptionHandoutName;
 					break;
 				case 'quest':
 					handoutName = QUEST_TRACKER_QuestHandoutName;
@@ -607,7 +600,6 @@ var QuestTracker = QuestTracker || (function () {
 			H.importData(QUEST_TRACKER_RumourHandoutName, 'Rumour');
 			H.importData(QUEST_TRACKER_EventHandoutName, 'Events');
 			H.importData(QUEST_TRACKER_WeatherHandoutName, 'Weather');
-			H.importData(QUEST_TRACKER_WeatherDescriptionHandoutName, 'Weather Description');
 			H.syncQuestRollableTable();
 			Quest.cleanUpLooseEnds();
 			H.cleanUpDataFields();

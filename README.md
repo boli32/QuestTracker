@@ -2,9 +2,6 @@
 
 Quest Tracker is a comprehensive tool for managing quests, rumors, and events in a tabletop RPG setting. It integrates seamlessly with Roll20 to provide detailed tracking and visualization of game elements, making it ideal for GMs and players who want to streamline their campaigns.
 
----
-
-[Insert image of the quest tracker interface here]
 
 ## Features
 
@@ -75,8 +72,6 @@ Yes, the graphical interface allows you to adjust weather trends, add forced con
 Mutually exclusive quests are visually highlighted and organized in the quest tree to prevent conflicts.
 
 ---
-
-[Insert image of weather and event integration here]
 
 ## Contributing
 

@@ -358,10 +358,7 @@ var QuestTracker = QuestTracker || (function () {
 					return;
 			}
 			const handout = findObjs({ type: 'handout', name: handoutName })[0];
-			if (!handout) {
-				log(`Error: Handout "${handoutName}" not found.`);
-				return;
-			}
+			if (errorCheck(146, 'exists', handout,'handout')) return;
 			handout.get('gmnotes', (notes) => {
 				const cleanedContent = Utils.stripJSONContent(notes);
 				let data;
@@ -1121,7 +1118,6 @@ var QuestTracker = QuestTracker || (function () {
 					return;
 				}
 				const todayEvents = H.findNextEvents(0, true);
-				log(todayEvents)
 				todayEvents.forEach(([eventDate, eventName, eventID]) => {
 					if (eventID) {
 						const event = QUEST_TRACKER_Events[eventID];
@@ -1216,6 +1212,38 @@ var QuestTracker = QuestTracker || (function () {
 				totalDays += targetDay;
 				return totalDays;
 			},
+			isEventToday: (event, eventID) => {
+				let { date, repeatable, frequency, name, weekdayname } = event;
+				let [eventYear, eventMonth, eventDay] = date.split("-").map(Number);
+				const [currentYear, currentMonth, currentDay] = QUEST_TRACKER_currentDate.split("-").map(Number);
+				if (!repeatable) {
+					return date === QUEST_TRACKER_currentDate ? [[QUEST_TRACKER_currentDate, name, eventID]] : [];
+				}
+				const freqType = frequencyMapping[frequency];
+				switch (freqType) {
+					case "Daily":
+						return [[QUEST_TRACKER_currentDate, name, eventID]];
+					case "Weekly":
+						if (weekdayname && weekdayname === QUEST_TRACKER_currentWeekdayName) {
+							return [[QUEST_TRACKER_currentDate, name, eventID]];
+						}
+						break;
+					case "Monthly":
+						const daysInMonth = H.getDaysInMonth(currentMonth, currentYear);
+						if (eventDay <= daysInMonth && eventMonth === currentMonth && eventDay === currentDay) {
+							return [[QUEST_TRACKER_currentDate, name, eventID]];
+						}
+						break;
+					case "Yearly":
+						if (eventMonth === currentMonth && eventDay === currentDay) {
+							return [[QUEST_TRACKER_currentDate, name, eventID]];
+						}
+						break;
+					default:
+						break;
+				}
+				return [];
+			},
 			findNextEvents: (limit = 1, isToday = false) => {
 				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
 				const daysOfWeek = calendar.daysOfWeek || [];
@@ -1224,21 +1252,43 @@ var QuestTracker = QuestTracker || (function () {
 				const [currentYear, currentMonth, currentDay] = QUEST_TRACKER_currentDate.split("-").map(Number);
 				let upcomingEvents = [];
 				const todayEvents = [];
+				if (isToday) {
+					Object.entries(events).forEach(([eventID, event]) => {
+						const todaysOccurrences = H.isEventToday(event, eventID);
+						todayEvents.push(...todaysOccurrences);
+					});
+					Object.entries(specialDays).forEach(([key, name]) => {
+						const [eventMonth, eventDay] = key.split("-").map(Number);
+						if (eventMonth === currentMonth && eventDay === currentDay) {
+							todayEvents.push([QUEST_TRACKER_currentDate, name, null]);
+						}
+					});
+					return todayEvents;
+				}
 				const calculateNextOccurrences = (event, eventID, maxOccurrences) => {
 					let { date, repeatable, frequency, name, weekdayname } = event;
-					let [eventYear, eventMonth, eventDay] = date.split("-").map(Number);
+					let [startYear, startMonth, startDay] = date.split("-").map(Number);
+					let [currentYear, currentMonth, currentDay] = QUEST_TRACKER_currentDate.split("-").map(Number);
+					let [eventYear, eventMonth, eventDay] = [startYear, startMonth, startDay];
 					const occurrences = [];
+					const freqType = repeatable ? frequencyMapping[frequency] : null;
 					if (repeatable) {
-						const freqType = frequencyMapping[frequency];
-						if (errorCheck(22, 'exists', freqType, 'freqType')) return occurrences;
-						let occurrencesCount = 0;
-						while (occurrencesCount < maxOccurrences) {
-							switch (freqType) {
-								case "Daily":
-									eventYear = currentYear;
-									eventMonth = currentMonth;
-									eventDay += occurrencesCount + 1;
-									while (eventDay > H.getDaysInMonth(eventMonth, eventYear)) {
+						if (`${startYear}-${String(startMonth).padStart(2, "0")}-${String(startDay).padStart(2, "0")}` < QUEST_TRACKER_currentDate) {
+							[eventYear, eventMonth, eventDay] = [currentYear, currentMonth, currentDay];
+						}
+						switch (freqType) {
+							case "Daily":
+								break;
+							case "Weekly":
+								if (weekdayname) {
+									const targetWeekdayIndex = daysOfWeek.indexOf(weekdayname);
+									const currentWeekdayIndex = daysOfWeek.indexOf(QUEST_TRACKER_currentWeekdayName);
+									let daysToAdd = (targetWeekdayIndex - currentWeekdayIndex + daysOfWeek.length) % daysOfWeek.length;
+									if (daysToAdd === 0 && (eventYear === currentYear && eventMonth === currentMonth && eventDay === currentDay)) {
+										daysToAdd = daysOfWeek.length;
+									}
+									eventDay += daysToAdd;
+									if (eventDay > H.getDaysInMonth(eventMonth, eventYear)) {
 										eventDay -= H.getDaysInMonth(eventMonth, eventYear);
 										eventMonth++;
 										if (eventMonth > calendar.months.length) {
@@ -1246,61 +1296,75 @@ var QuestTracker = QuestTracker || (function () {
 											eventYear++;
 										}
 									}
-									break;
-								case "Weekly":
-									if (weekdayname) {
-										const targetWeekdayIndex = daysOfWeek.indexOf(weekdayname);
-										const currentWeekdayIndex = daysOfWeek.indexOf(QUEST_TRACKER_currentWeekdayName);
-										let daysToAdd = (targetWeekdayIndex - currentWeekdayIndex + daysOfWeek.length) % daysOfWeek.length;
-										eventYear = currentYear;
-										eventMonth = currentMonth;
-										eventDay = currentDay + daysToAdd + occurrencesCount * 7;
-										while (eventDay > H.getDaysInMonth(eventMonth, eventYear)) {
-											eventDay -= H.getDaysInMonth(eventMonth, eventYear);
-											eventMonth++;
-											if (eventMonth > calendar.months.length) {
-												eventMonth = 1;
-												eventYear++;
-											}
-										}
-									}
-									break;
-								case "Monthly":
-									eventYear = currentYear;
-									eventMonth += occurrencesCount;
-									while (eventMonth > calendar.months.length) {
-										eventYear += Math.floor((eventMonth - 1) / calendar.months.length);
-										eventMonth = ((eventMonth - 1) % calendar.months.length) + 1;
-									}
-									const daysInMonth = H.getDaysInMonth(eventMonth, eventYear);
-									if (daysInMonth < daysOfWeek.length) {
-										occurrencesCount++;
-										continue;
-									}
-									break;
-								case "Yearly":
-									eventYear += occurrencesCount;
-									break;
-							}
-							if (H.getDaysInMonth(eventMonth, eventYear) >= eventDay) {
-								const eventDate = `${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`;
-								if (eventDate === QUEST_TRACKER_currentDate) {
-									todayEvents.push([eventDate, name, eventID]);
-								} else if (!isToday) {
-									occurrences.push([eventDate, name, eventID]);
 								}
-								occurrencesCount++;
-							} else {
 								break;
-							}
+							case "Monthly":
+								while (
+									eventYear < currentYear ||
+									(eventYear === currentYear && eventMonth < currentMonth)
+								) {
+									eventMonth++;
+									if (eventMonth > calendar.months.length) {
+										eventMonth = 1;
+										eventYear++;
+									}
+								}
+								eventDay = Math.min(eventDay, H.getDaysInMonth(eventMonth, eventYear));
+								break;
+							case "Yearly":
+								if (eventYear < currentYear) {
+									eventYear = currentYear;
+								}
+								break;
+							default:
+								break;
 						}
-					} else {
+					}
+					let occurrencesCount = 0;
+					while (occurrencesCount < maxOccurrences) {
 						const eventDate = `${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`;
-						if (eventDate === QUEST_TRACKER_currentDate) {
-							todayEvents.push([eventDate, name, eventID]);
-						} else if (!isToday) {
+						if (eventDate >= date) {
 							occurrences.push([eventDate, name, eventID]);
+							occurrencesCount++;
 						}
+						switch (freqType) {
+							case "Daily":
+								eventDay++;
+								if (eventDay > H.getDaysInMonth(eventMonth, eventYear)) {
+									eventDay -= H.getDaysInMonth(eventMonth, eventYear);
+									eventMonth++;
+									if (eventMonth > calendar.months.length) {
+										eventMonth = 1;
+										eventYear++;
+									}
+								}
+								break;
+							case "Weekly":
+								eventDay += daysOfWeek.length;
+								if (eventDay > H.getDaysInMonth(eventMonth, eventYear)) {
+									eventDay -= H.getDaysInMonth(eventMonth, eventYear);
+									eventMonth++;
+									if (eventMonth > calendar.months.length) {
+										eventMonth = 1;
+										eventYear++;
+									}
+								}
+								break;
+							case "Monthly":
+								eventMonth++;
+								if (eventMonth > calendar.months.length) {
+									eventMonth = 1;
+									eventYear++;
+								}
+								eventDay = Math.min(eventDay, H.getDaysInMonth(eventMonth, eventYear));
+								break;
+							case "Yearly":
+								eventYear++;
+								break;
+							default:
+								break;
+						}
+						if (!repeatable) break;
 					}
 					return occurrences;
 				};
@@ -1311,30 +1375,29 @@ var QuestTracker = QuestTracker || (function () {
 				Object.entries(specialDays).forEach(([key, name]) => {
 					const [eventMonth, eventDay] = key.split("-").map(Number);
 					let eventYear = currentYear;
-					if (
-						eventMonth < currentMonth || 
-						(eventMonth === currentMonth && eventDay < currentDay) 
-					) {
+					if (eventMonth < currentMonth || (eventMonth === currentMonth && eventDay < currentDay)) {
 						eventYear++;
 					}
 					if (H.getDaysInMonth(eventMonth, eventYear) >= eventDay) {
 						const eventDate = `${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`;
-						log("eventDate: " + eventDate);
-						log("QUEST_TRACKER_currentDate: " + QUEST_TRACKER_currentDate);
-						if (eventDate === QUEST_TRACKER_currentDate) {
-							todayEvents.push([eventDate, name, null]);
-						} else if (!isToday) {
-							upcomingEvents.push([eventDate, name, null]);
+						if (isToday) {
+							if (eventDate === QUEST_TRACKER_currentDate) {
+								todayEvents.push([eventDate, name, null]);
+							}
+						} else {
+							if (eventDate > QUEST_TRACKER_currentDate) {
+								upcomingEvents.push([eventDate, name, null]);
+							}
 						}
 					}
 				});
-				if (isToday) return todayEvents;
 				upcomingEvents.sort((a, b) => {
 					const [aYear, aMonth, aDay] = a[0].split("-").map(Number);
 					const [bYear, bMonth, bDay] = b[0].split("-").map(Number);
 					return H.calculateDateDifference({ year: aYear, month: aMonth, day: aDay }, currentYear, currentMonth, currentDay)
 						- H.calculateDateDifference({ year: bYear, month: bMonth, day: bDay }, currentYear, currentMonth, currentDay);
 				});
+
 				return upcomingEvents.slice(0, limit);
 			},
 			calculateWeekday: (year, month, day) => {
@@ -2968,7 +3031,7 @@ var QuestTracker = QuestTracker || (function () {
 									</span>
 								</li>`;
 							} else {
-								log(`Error: Quest data for "${quest.id}" is missing or incomplete.`);
+								errorCheck(147, 'msg', handout,'Quest data for "${quest.id}" is missing or incomplete.')
 							}
 						}
 					});

@@ -4551,8 +4551,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				case 'update':
 					if (field === 'date') {
-						if (errorCheck(124, 'exists', date, 'date')) return;
-						if (errorCheck(125, 'date', date)) return;
+						if (errorCheck(125, 'date', newItem)) return;
 					}
 					Calendar.manageEventObject({ action, field, current, old, newItem, date});
 					setTimeout(() => {

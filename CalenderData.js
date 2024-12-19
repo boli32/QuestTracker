@@ -1525,7 +1525,7 @@ on('ready', () => {
 			}
 		}
 	};
-	// 11,352 different descriptions!
+	// 
 	state.CalenderData.WEATHER = {
 		"weather": {
 			"Arctic Chill": {
@@ -15738,52 +15738,52 @@ on('ready', () => {
 			},
 			"wind": {
 				"0": {
-					"description": "Completely calm, no movement in the air."
+					"description": "Completely calm, an unnatural stillness in the air."
 				},
 				"5": {
-					"description": "Barely perceptible breeze, leaves barely rustling."
+					"description": "Barely perceptible breeze, air feels eerily still."
 				},
 				"10": {
-					"description": "Gentle breeze, slight movement of leaves and light objects."
+					"description": "Gentle stirrings, slight movement in the air."
 				},
 				"15": {
-					"description": "Light wind, pleasant and refreshing."
+					"description": "Very light breeze, barely noticeable and pleasant."
 				},
 				"20": {
-					"description": "Moderate breeze, noticeable movement in trees."
+					"description": "Light breeze, occasional rustling of leaves."
 				},
 				"25": {
-					"description": "Mild wind, suitable for outdoor activities."
+					"description": "Noticeable breeze, light objects may shift slightly."
 				},
 				"30": {
-					"description": "Fresh breeze, branches begin to sway."
+					"description": "Fresh breeze, tree branches show slight movement."
 				},
 				"35": {
-					"description": "Brisk wind, noticeable resistance when walking."
+					"description": "Moderate breeze, pleasant but noticeable resistance while walking."
 				},
 				"40": {
-					"description": "Strong breeze, small objects may start to move."
+					"description": "Brisk wind, small branches begin to sway."
 				},
 				"45": {
-					"description": "Very windy, movement of large branches visible."
+					"description": "Strong breeze, noticeable movement of larger branches."
 				},
 				"50": {
-					"description": "Gale force, difficult to walk against the wind."
+					"description": "Blustery wind, significant movement of objects outdoors."
 				},
 				"60": {
-					"description": "Strong wind, minor structural damage possible."
+					"description": "Gale force, walking becomes difficult, minor damage possible."
 				},
 				"70": {
-					"description": "Severe gale, significant damage to trees and structures."
+					"description": "Strong gale, structural damage to weak buildings and trees likely."
 				},
 				"80": {
-					"description": "Storm force, dangerous conditions for outdoor activities."
+					"description": "Severe storm, hazardous conditions with potential widespread damage."
 				},
 				"90": {
-					"description": "Violent storm, widespread damage likely."
+					"description": "Violent storm, extreme danger and widespread destruction likely."
 				},
 				"100": {
-					"description": "Hurricane force, catastrophic destruction expected."
+					"description": "Hurricane force, catastrophic devastation expected."
 				}
 			},
 			"precipitation": {

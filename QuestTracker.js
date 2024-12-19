@@ -1120,15 +1120,19 @@ var QuestTracker = QuestTracker || (function () {
 				if (!QUEST_TRACKER_Events || typeof QUEST_TRACKER_Events !== "object") {
 					return;
 				}
-				Object.keys(QUEST_TRACKER_Events).forEach((eventId) => {
-					const event = QUEST_TRACKER_Events[eventId];
-					if (event.hidden) return;
-					if (errorCheck(13, 'exists', event.date, 'event.date')) return;
-					if (errorCheck(14, 'date', event.date)) return;
-					if (QUEST_TRACKER_currentDate === event.date) {
-						Utils.sendGMMessage(`Event triggered: "${event.name}" - ${event.description}`);
+				const todayEvents = H.findNextEvents(0, true);
+				log(todayEvents)
+				todayEvents.forEach(([eventDate, eventName, eventID]) => {
+					if (eventID) {
+						const event = QUEST_TRACKER_Events[eventID];
+						if (errorCheck(13, 'exists', event, 'event')) return occurrences;
+						if (event.hidden === false) {
+							Utils.sendMessage(`${event.name} - ${event.description}`);
+						} else {
+							Utils.sendGMMessage(`Event triggered: ${event.name} - ${event.description}`);
+						}
 						if (!event.repeatable) {
-							delete QUEST_TRACKER_Events[eventId];
+							delete QUEST_TRACKER_Events[eventID];
 							Utils.updateHandoutField("event");
 						} else {
 							const frequencyDays = event.frequency || 1;
@@ -1139,6 +1143,8 @@ var QuestTracker = QuestTracker || (function () {
 							event.date = nextDate;
 							Utils.updateHandoutField("event");
 						}
+					} else {
+						Utils.sendMessage(`Today is ${eventName}`);
 					}
 				});
 			},
@@ -1210,20 +1216,21 @@ var QuestTracker = QuestTracker || (function () {
 				totalDays += targetDay;
 				return totalDays;
 			},
-			findNextEvents: (limit = 1) => {
+			findNextEvents: (limit = 1, isToday = false) => {
 				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
 				const daysOfWeek = calendar.daysOfWeek || [];
 				const specialDays = calendar.significantDays || {};
 				const events = QUEST_TRACKER_Events || {};
 				const [currentYear, currentMonth, currentDay] = QUEST_TRACKER_currentDate.split("-").map(Number);
 				let upcomingEvents = [];
-				const calculateNextOccurrences = (event, maxOccurrences) => {
-					let { date, repeatable, frequency, name, weekdayName } = event;
+				const todayEvents = [];
+				const calculateNextOccurrences = (event, eventID, maxOccurrences) => {
+					let { date, repeatable, frequency, name, weekdayname } = event;
 					let [eventYear, eventMonth, eventDay] = date.split("-").map(Number);
 					const occurrences = [];
 					if (repeatable) {
 						const freqType = frequencyMapping[frequency];
-						if (errorCheck(22, 'exists', freqType,'freqType')) return occurrences;
+						if (errorCheck(22, 'exists', freqType, 'freqType')) return occurrences;
 						let occurrencesCount = 0;
 						while (occurrencesCount < maxOccurrences) {
 							switch (freqType) {
@@ -1241,8 +1248,8 @@ var QuestTracker = QuestTracker || (function () {
 									}
 									break;
 								case "Weekly":
-									if (weekdayName) {
-										const targetWeekdayIndex = daysOfWeek.indexOf(weekdayName);
+									if (weekdayname) {
+										const targetWeekdayIndex = daysOfWeek.indexOf(weekdayname);
 										const currentWeekdayIndex = daysOfWeek.indexOf(QUEST_TRACKER_currentWeekdayName);
 										let daysToAdd = (targetWeekdayIndex - currentWeekdayIndex + daysOfWeek.length) % daysOfWeek.length;
 										eventYear = currentYear;
@@ -1261,9 +1268,14 @@ var QuestTracker = QuestTracker || (function () {
 								case "Monthly":
 									eventYear = currentYear;
 									eventMonth += occurrencesCount;
-									if (eventMonth > calendar.months.length) {
+									while (eventMonth > calendar.months.length) {
 										eventYear += Math.floor((eventMonth - 1) / calendar.months.length);
 										eventMonth = ((eventMonth - 1) % calendar.months.length) + 1;
+									}
+									const daysInMonth = H.getDaysInMonth(eventMonth, eventYear);
+									if (daysInMonth < daysOfWeek.length) {
+										occurrencesCount++;
+										continue;
 									}
 									break;
 								case "Yearly":
@@ -1271,40 +1283,52 @@ var QuestTracker = QuestTracker || (function () {
 									break;
 							}
 							if (H.getDaysInMonth(eventMonth, eventYear) >= eventDay) {
-								occurrences.push([
-									`${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`,
-									name
-								]);
+								const eventDate = `${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`;
+								if (eventDate === QUEST_TRACKER_currentDate) {
+									todayEvents.push([eventDate, name, eventID]);
+								} else if (!isToday) {
+									occurrences.push([eventDate, name, eventID]);
+								}
 								occurrencesCount++;
 							} else {
 								break;
 							}
 						}
 					} else {
-						occurrences.push([
-							`${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`,
-							name
-						]);
+						const eventDate = `${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`;
+						if (eventDate === QUEST_TRACKER_currentDate) {
+							todayEvents.push([eventDate, name, eventID]);
+						} else if (!isToday) {
+							occurrences.push([eventDate, name, eventID]);
+						}
 					}
 					return occurrences;
 				};
-				Object.values(events).forEach((event) => {
-					const eventOccurrences = calculateNextOccurrences(event, limit);
+				Object.entries(events).forEach(([eventID, event]) => {
+					const eventOccurrences = calculateNextOccurrences(event, eventID, 5);
 					upcomingEvents.push(...eventOccurrences);
 				});
 				Object.entries(specialDays).forEach(([key, name]) => {
 					const [eventMonth, eventDay] = key.split("-").map(Number);
 					let eventYear = currentYear;
-					if (eventMonth < currentMonth || (eventMonth === currentMonth && eventDay <= currentDay)) {
+					if (
+						eventMonth < currentMonth || 
+						(eventMonth === currentMonth && eventDay < currentDay) 
+					) {
 						eventYear++;
 					}
 					if (H.getDaysInMonth(eventMonth, eventYear) >= eventDay) {
-						upcomingEvents.push([
-							`${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`,
-							name
-						]);
+						const eventDate = `${eventYear}-${String(eventMonth).padStart(2, "0")}-${String(eventDay).padStart(2, "0")}`;
+						log("eventDate: " + eventDate);
+						log("QUEST_TRACKER_currentDate: " + QUEST_TRACKER_currentDate);
+						if (eventDate === QUEST_TRACKER_currentDate) {
+							todayEvents.push([eventDate, name, null]);
+						} else if (!isToday) {
+							upcomingEvents.push([eventDate, name, null]);
+						}
 					}
 				});
+				if (isToday) return todayEvents;
 				upcomingEvents.sort((a, b) => {
 					const [aYear, aMonth, aDay] = a[0].split("-").map(Number);
 					const [bYear, bMonth, bDay] = b[0].split("-").map(Number);
@@ -1314,11 +1338,11 @@ var QuestTracker = QuestTracker || (function () {
 				return upcomingEvents.slice(0, limit);
 			},
 			calculateWeekday: (year, month, day) => {
-				if (errorCheck(23, 'calendar', calendar)) return;
+				if (errorCheck(23, 'calendar', CALENDARS[QUEST_TRACKER_calenderType])) return;
+				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
 				if (errorCheck(24, 'calendar.daysOfWeek', calendar.daysOfWeek)) return;
 				if (errorCheck(25, 'calendar.startingWeekday', calendar.startingWeekday)) return;
 				if (errorCheck(26, 'calendar.startingYear', calendar.startingYear)) return;
-				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
 				const daysOfWeek = calendar.daysOfWeek;
 				const startingWeekday = calendar.startingWeekday;
 				const startingYear = calendar.startingYear;
@@ -1637,8 +1661,8 @@ var QuestTracker = QuestTracker || (function () {
 				}
 			};
 			let [year, month, day] = QUEST_TRACKER_currentDate.split("-").map(Number);
-			if (type === "set" && newDate) {
-				const { year: newYear, month: newMonth, day: newDay } = H.validateISODate(newDate);
+			if (type === "set") {
+				const { year: newYear, month: newMonth, day: newDay } = L.validateISODate(newDate);
 				QUEST_TRACKER_currentDate = L.formatDate(newYear, newMonth, newDay);
 				saveQuestTrackerData();
 				return;
@@ -1701,7 +1725,7 @@ var QuestTracker = QuestTracker || (function () {
 					event.frequency = newItem;
 					if (newItem === "2") {
 						const [year, month, day] = date.split("-").map(Number);
-						event.weekdayName = H.calculateWeekday(year, month, day);
+						event.weekdayname = H.calculateWeekday(year, month, day);
 					}
 					break;
 				case 'name':
@@ -1711,7 +1735,7 @@ var QuestTracker = QuestTracker || (function () {
 					event.date = newItem;
 					if (event.frequency === "2" && event.repeatable) {
 						const [year, month, day] = newItem.split("-").map(Number);
-						event.weekdayName = H.calculateWeekday(year, month, day);
+						event.weekdayname = H.calculateWeekday(year, month, day);
 					}
 					break;
 				case 'description':
@@ -3293,13 +3317,14 @@ var QuestTracker = QuestTracker || (function () {
 					};
 				},
 				windSpeed: (x) => {
-					const k = 0.02;
 					const maxSpeed = 400;
-					const windSpeedKmh = maxSpeed * (Math.exp(k * x) - 1) / (Math.exp(k * 100) - 1);
+					const a = 5;
+					const c = 400;
+					const windSpeedKmh = (c / (1 + Math.exp(-0.2 * (x - 70)))) + (a * Math.pow(Math.max(x - 40, 0), 1.5)) / 50;
 					const windSpeedMph = windSpeedKmh * 0.621371;
 					return {
-						kmh: parseFloat(Math.max(windSpeedKmh, 0).toFixed(1)),
-						mph: parseFloat(Math.max(windSpeedMph, 0).toFixed(1))
+						kmh: parseFloat(windSpeedKmh.toFixed(1)),
+						mph: parseFloat(windSpeedMph.toFixed(1))
 					};
 				},
 				visibility: (x) => {
@@ -3973,7 +3998,6 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=reset|confirmation=?{Are you sure? This will also clear all historical weather data. Type CONFIRM to continue|}">Reset to Defaults</a>`;
 			menu += `<br clear=all><h4>Quest Tree</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-questtree action=build">Build Quest Tree Page</a>`;
 			menu += `<br><h4>Calander</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=setcalender|new=?{Choose Calender${calenderDropdown}}">Calendar: ${CALENDARS[QUEST_TRACKER_calenderType]?.name || "Unknown Calendar"}</a>`;
-			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=set|new=?{Set Current Date|}">Current Date: ${QUEST_TRACKER_currentDate || "Unknown"}</a>`;
 			menu += `<br clear=all><h4>Weather</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleWeather|value=${QUEST_TRACKER_WEATHER === true ? 'false' : 'true'}">Toggle Weather (${QUEST_TRACKER_WEATHER === true ? 'on' : 'off'})</a>`;
 			if (QUEST_TRACKER_WEATHER) {
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=setclimate|new=?{Choose Calender${climateDropdown}}">Climate: ${QUEST_TRACKER_Location}</a>`;
@@ -4081,7 +4105,7 @@ var QuestTracker = QuestTracker || (function () {
 					</span>
 					${showFrequency}`;
 			if (event.repeatable && event.frequency === "2") {
-				menu += `<br><small>Occurs every ${event.weekdayName  || 'Unknown'}</small>`;
+				menu += `<br><small>Occurs every ${event.weekdayname  || 'Unknown'}</small>`;
 			}
 			menu += `<br><hr>
 					<a style="${styles.button}" href="!qt-menu action=allevents">All Events</a>
@@ -4099,7 +4123,7 @@ var QuestTracker = QuestTracker || (function () {
 			if (QUEST_TRACKER_WEATHER && QUEST_TRACKER_CURRENT_WEATHER !== null) {
 				menu += buildWeather({ isHome: true });
 			}
-			menu += `<br><br><a style="${styles.button} ${styles.floatRight}" href="!qt-menu action=adjustdate">Adjust Date</a>
+			menu += `<br><br><a style="${styles.button} ${styles.floatRight}" href="!qt-date action=set|menu=true|new=?{Set Current Date|}">Set Date</a>
 					<br><hr><h3>Advance Date</h3>`;
 			if (QUEST_TRACKER_WEATHER) {
 				menu += `<small>Advancing Dates calculates weather so there are hard limits imposed.</small>`;
@@ -4178,7 +4202,7 @@ var QuestTracker = QuestTracker || (function () {
 			if (errorCheck(48, 'exists', action,'action')) return;
 			switch (action) {
 				case 'removequest':
-					if (errorCheck(49, 'confirmation', confirmation, 'DELETE')) return;
+					if (!errorCheck(49, 'confirmation', confirmation, 'DELETE')) return;
 					if (errorCheck(50, 'exists', id,'id')) return;
 					if (errorCheck(51, 'exists', QUEST_TRACKER_globalQuestData[id],`QUEST_TRACKER_globalQuestData[${id}]`)) return;
 					Quest.removeQuest(id);
@@ -4319,7 +4343,7 @@ var QuestTracker = QuestTracker || (function () {
 							break;
 						case 'removegroup':
 							if (errorCheck(78, 'exists', groupnum,'groupnum')) return;
-							if (errorCheck(79, 'confirmation', confirmation, 'DELETE')) return;
+							if (!errorCheck(79, 'confirmation', confirmation, 'DELETE')) return;
 							Quest.manageRelationship(currentquest, 'remove', 'removegroup', null, groupnum);
 							break;
 						default:
@@ -4425,7 +4449,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				case 'removeLocation':
 					if (errorCheck(106, 'exists', locationId, 'locationId')) return;
-					if (errorCheck(107, 'confirmation', confirmation, 'DELETE')) return;
+					if (!errorCheck(107, 'confirmation', confirmation, 'DELETE')) return;
 					Rumours.manageRumourLocation('remove', null, locationId);
 					setTimeout(() => {
 						Menu.manageRumourLocations();
@@ -4456,7 +4480,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				case 'remove':
 					if (errorCheck(112, 'exists', groupid,'groupid')) return;
-					if (errorCheck(113, 'confirmation', confirmation, 'CONFIRM')) return;
+					if (!errorCheck(113, 'confirmation', confirmation, 'CONFIRM')) return;
 					Quest.manageGroups('remove', null, groupid);
 					setTimeout(() => {
 						Menu.manageQuestGroups();
@@ -4467,7 +4491,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 			}
 		} else if (command === '!qt-menu') {
-			const { action, id, questId, locationId, status, eventid } = params;
+			const { action, id, questId, locationId, status, eventid, menu} = params;
 			if (!action || action === 'main') {
 				Menu.generateGMMenu();
 			} else if (action === 'config') {
@@ -4503,11 +4527,14 @@ var QuestTracker = QuestTracker || (function () {
 			if (errorCheck(121, 'exists', action,'action')) return;
 			switch (action) {
 				case 'set':
-					if (errorCheck(122, 'date', newItem)) return;
-					Calendar.modifyDate('set', newItem);
-					setTimeout(() => {
-						Menu.adminMenu();
-					}, 500);
+					if (errorCheck(122, 'exists', newItem)) return;
+					if (errorCheck(145, 'date', newItem)) return;
+					Calendar.modifyDate({type: 'set', newDate: newItem});
+					if (menu) {
+						setTimeout(() => {
+							Menu.adjustDate();
+						}, 500);
+					}
 					break;
 				case 'addevent':
 					Calendar.addEvent();
@@ -4523,8 +4550,10 @@ var QuestTracker = QuestTracker || (function () {
 					}, 500);
 					break;
 				case 'update':
-					if (errorCheck(124, 'exists', date, 'date')) return;
-					if (errorCheck(125, 'date', date)) return;
+					if (field === 'date') {
+						if (errorCheck(124, 'exists', date, 'date')) return;
+						if (errorCheck(125, 'date', date)) return;
+					}
 					Calendar.manageEventObject({ action, field, current, old, newItem, date});
 					setTimeout(() => {
 						Menu.showEventDetails(current);
@@ -4595,7 +4624,6 @@ var QuestTracker = QuestTracker || (function () {
 								if (number > 15) number = 15;
 								break;
 							default:
-								errorCheck(135, 'msg', null,`Unknown unit ${unit}`);
 								break;
 						}
 					}
@@ -4644,7 +4672,7 @@ var QuestTracker = QuestTracker || (function () {
 					Menu.adminMenu();
 				}, 500);
 			} else if (action === 'reset') {
-				if (errorCheck(141, 'confirmation', confirmation, 'CONFIRM')) return;
+				if (!errorCheck(141, 'confirmation', confirmation, 'CONFIRM')) return;
 				state.QUEST_TRACKER = {};
 				initializeQuestTrackerState(true);
 				loadQuestTrackerData();

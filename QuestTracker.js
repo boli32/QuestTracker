@@ -932,6 +932,7 @@ var QuestTracker = QuestTracker || (function () {
 				case 'status':
 					H.updateQuestStatus(current, newItem);
 					QuestPageBuilder.updateQuestStatusColor(current, newItem);
+					Rumours.calculateRumoursByLocation();
 					break;
 				case 'hidden':
 					if (action === 'update') {
@@ -2764,20 +2765,28 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const calculateRumoursByLocation = () => {
 			let rumoursByLocation = {};
+			let questTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0];
+			if (errorCheck(146, 'exists', questTable, `questTable`)) return;
+			let questItems = findObjs({ type: 'tableitem', rollabletableid: questTable.id });
+			if (errorCheck(147, 'exists', questItems, `questItems`)) return;
 			Object.keys(QUEST_TRACKER_globalRumours).forEach(questId => {
+				let relevantItem = questItems.find(item => item.get('name').toLowerCase() === questId.toLowerCase());
+				if (errorCheck(148, 'exists', relevantItem, `relevantItem for questId: ${questId}`)) return;
+				let relevantStatus = statusMapping[relevantItem.get('weight').toString()].toLowerCase();
 				let questRumours = QUEST_TRACKER_globalRumours[questId] || {};
-				Object.keys(questRumours).forEach(status => {
-					Object.keys(questRumours[status] || {}).forEach(location => {
-						let locationRumours = questRumours[status][location] || {};
+				if (questRumours[relevantStatus]) {
+					Object.keys(questRumours[relevantStatus] || {}).forEach(location => {
+						let locationRumours = questRumours[relevantStatus][location] || {};
 						if (!rumoursByLocation[location]) rumoursByLocation[location] = [];
 						Object.keys(locationRumours).forEach(rumourKey => {
 							const rumourText = locationRumours[rumourKey];
 							rumoursByLocation[location].push(rumourText);
 						});
 					});
-				});
+				}
 			});
 			QUEST_TRACKER_rumoursByLocation = rumoursByLocation;
+			saveQuestTrackerData();
 		};
 		const sendRumours = (locationId, numberOfRumours) => {
 			let allRumours = [];
@@ -2786,7 +2795,7 @@ var QuestTracker = QuestTracker || (function () {
 			let locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
 			let location = locationItems.find(loc => loc.get('weight').toString() === locationId.toString());
 			if (errorCheck(42, 'exists', location,`location`)) return;
-			const normalizedLocationId = location.get('name').toLowerCase();
+			const normalizedLocationId = Utils.sanitizeString(location.get('name')).toLowerCase();
 			if (normalizedLocationId === 'everywhere') {
 				allRumours = Object.values(QUEST_TRACKER_rumoursByLocation['everywhere'] || {}).map((rumour, index) => `${index}|${Utils.sanitizeInput(rumour, 'STRING')}`);
 			} else {
@@ -2988,7 +2997,7 @@ var QuestTracker = QuestTracker || (function () {
 					let locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
 					locationItems.sort((a, b) => a.get('weight') - b.get('weight')).forEach(location => {
 						let locationName = location.get('name');
-						let locationKey = locationName.toLowerCase();
+						let locationKey = Utils.sanitizeString(locationName).toLowerCase();
 						let locationWeight = location.get('weight');
 						let rumourCount = QUEST_TRACKER_rumoursByLocation[locationKey] ? Object.keys(QUEST_TRACKER_rumoursByLocation[locationKey]).length : 0;
 						let everywhereRumourCount = QUEST_TRACKER_rumoursByLocation['everywhere'] ? Object.keys(QUEST_TRACKER_rumoursByLocation['everywhere']).length : 0;

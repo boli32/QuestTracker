@@ -1567,8 +1567,8 @@ var QuestTracker = QuestTracker || (function () {
 			const trendAdjustedRolls = W.applyTrends(forcedAdjustedRolls);
 			W.updateTrends(trendAdjustedRolls);
 			const climateModifiers = CALENDARS[QUEST_TRACKER_calenderType]?.climates[QUEST_TRACKER_Location.climateZone]?.modifiers;
-			trendAdjustedRolls.temperatureRoll += climateModifiers?.heat?.[season] || 0;
-			trendAdjustedRolls.precipitationRoll += climateModifiers?.wet?.[season] || 0;
+			trendAdjustedRolls.temperatureRoll += climateModifiers?.temperature?.[season] || 0;
+			trendAdjustedRolls.precipitationRoll += climateModifiers?.precipitation?.[season] || 0;
 			trendAdjustedRolls.windRoll += climateModifiers?.wind?.[season] || 0;
 			trendAdjustedRolls.humidityRoll += climateModifiers?.humid?.[season] || 0;
 			trendAdjustedRolls.visibilityRoll += climateModifiers?.visibility?.[season] || 0;

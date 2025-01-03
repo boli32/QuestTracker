@@ -180,9 +180,9 @@ Mutually exclusive quests are visually highlighted and organized in the quest tr
 
 ## Updates
 
-* **v0.9.1** Adjusted climate values and streamlined climate values
-* **v0.9.0.1** Fixed rumour filtering issue
-* **v0.9** Initial Upload
+* 2025-01-03 **v0.9.1** Adjusted climate values and streamlined climate values
+* 2025-01-03 **v0.9.0.1** Fixed rumour filtering issue
+* 2024-12-19 **v0.9** Initial Upload
 
 
 ## Contributing

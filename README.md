@@ -106,6 +106,8 @@ Select the relevant quest and choose the status (unknown, discovered, etc.) to w
 
 **Location-Specific Actions:**
 
+![Rumour Screen](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumours.png)
+
 Under each location, buttons allow for streamlined rumour management:
 
 * "+" Add a Rumour: Add a new rumour to the specified location and status.
@@ -148,6 +150,14 @@ The same quest and status can yield different rumours depending on the location.
 *Example: In everywhere, a rumour might say "A strange light in the forest," while in general_store, it could suggest "A missing person was last seen here."*
 
 Updates are handled programmatically via the updateRumorState method, ensuring seamless transitions and consistency.
+
+**How to Show?**
+
+This is stright-forward; simply choose the location the players are in, and select how many (random) rumours will be shown in chat. 'Eeverywhere' is a global location and rumours will be chosen from either the selected location OR everywhere.
+
+![Show Button](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/show_rumours.png)
+
+![Rumour Display](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumour_display.png)
 
 ## Developer Considerations
 

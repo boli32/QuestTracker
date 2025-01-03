@@ -166,9 +166,105 @@ This is stright-forward; simply choose the location the players are in, and sele
 Ensure rumour_id fields are unique to prevent overwrites.
 Validate linked quest and location IDs to maintain data integrity.
 
-### Extensibility:
 
-Add new statuses or integration points as needed. Update corresponding logic in updateRumorState and UI components.
+# QUEST Module
+
+The QUEST Module is a core component of the Quest Tracker system for Roll20. It provides robust quest management features, allowing game masters to dynamically control quest progression, relationships, and status changes, all integrated seamlessly into sandbox-style RPG campaigns.
+
+---
+
+## Features
+
+### Quest Management
+- Create, update, and delete quests using an intuitive graphical interface.
+- Track quest statuses:
+  - **Active:** The quest is currently in progress.
+  - **Completed:** The quest has been successfully finished.
+  - **Failed:** The quest was not completed as intended.
+- Group quests into logical categories for better organization.
+
+### Prerequisites and Dependencies
+- Define quest prerequisites to unlock quests based on player actions or story progression.
+- Establish mutually exclusive relationships between quests to enforce narrative constraints.
+- Auto-advance quests based on time-sensitive conditions or in-game triggers.
+
+### Visual Quest Trees
+- Display individual quest relationships as a tree diagram for clarity.
+- Build a full quest tree showing all relationships, prerequisites, and dependencies on a dedicated Roll20 map page.
+- Use quest tokens for easy visualization:
+  - Quest icons are placed on the GM layer to keep hidden quests secret.
+  - Planned integration with TokenMod for triggering quests directly from tokens.
+
+---
+
+## Data Structure
+
+Quests are stored in a hierarchical JSON format, supporting complex relationships. Example:
+
+```json
+"quest_1": {
+    "name": "Primary Quest",
+    "description": "This is a Primary Quest",
+    "relationships": {
+      "logic": "AND",
+      "conditions": [
+        "quest_4",
+        {
+          "logic": "OR",
+          "conditions": [
+            "quest_2",
+            "quest_3"
+          ]
+        },
+        {
+          "logic": "OR",
+          "conditions": [
+            "quest_7",
+            "quest_9"
+          ]
+        }
+      ],
+      "mutually_exclusive": []
+    },
+    "hidden": false,
+    "autoadvance": {
+      "unknown": "1970-01-01"
+    },
+    "group": "6",
+    "level": 3
+  },
+  "quest_8": {
+    "name": "Secondary Quest",
+    "description": "There are more quests here?",
+    "relationships": {
+      "logic": "AND",
+      "conditions": [
+        "quest_12"
+      ]
+    },
+    "hidden": false,
+    "autoadvance": {},
+    "level": 1,
+    "group": "6"
+  },
+  ""quest_11": {
+    "name": "Another Quest?",
+    "description": "Clearly this game has a lot of quests.",
+    "relationships": {
+      "logic": "AND",
+      "conditions": [
+        "quest_4"
+      ],
+      "mutually_exclusive": [
+        "quest_12"
+      ]
+    },
+    "hidden": false,
+    "autoadvance": {},
+    "group": "6",
+    "level": 2
+  }
+```
 
 
 
@@ -178,10 +274,10 @@ Add new statuses or integration points as needed. Update corresponding logic in 
 ## FAQ
 
 ### How do I access the quest tracker interface?
-Use the in-game interface provided by the tool. Simply open the menu to begin navigating quests, rumors, and events.
+Use the in-game interface provided by the tool. Simply open the menu to begin navigating quests, rumors, and events by typing !qt into chat
 
 ### Can I customize the weather settings?
-Yes, the graphical interface allows you to adjust weather trends, add forced conditions, and view detailed weather summaries.
+Yes, the graphical interface allows you to adjust weather trends, add forced conditions.
 
 ### How are mutually exclusive quests displayed?
 Mutually exclusive quests are visually highlighted and organized in the quest tree to prevent conflicts.
@@ -191,6 +287,7 @@ Mutually exclusive quests are visually highlighted and organized in the quest tr
 ## Updates
 
 #### 2025-01-03
+* **v0.9.1.2** Disabled Quest Relationship buttons when no quests available.
 * **v0.9.1.1** Fixed Quest Group Dropdown Menu
 * **v0.9.1** Adjusted climate values and streamlined climate values
 #### 2025-01-02

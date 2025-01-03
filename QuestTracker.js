@@ -3280,17 +3280,26 @@ var QuestTracker = QuestTracker || (function () {
 			getValidQuestGroups: (questId) => {
 				let result = '';
 				const quest = QUEST_TRACKER_globalQuestData[questId];
-				if (quest && quest.group) {
-					result += 'Remove from Group,remove|';
-				}
 				const questGroupsTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0];
 				if (!questGroupsTable) return result;
 				const questGroups = findObjs({ type: 'tableitem', rollabletableid: questGroupsTable.id });
+				if (quest && quest.group) {
+					if (questGroups.length === 1) {
+						return "remove";
+					}
+					else {
+						result += 'Remove from Group,remove|';
+					}
+				}
 				result += questGroups
 					.filter(group => parseInt(quest.group) !== parseInt(group.get('weight')))
 					.map(group => `${group.get('name')},${group.get('weight')}`)
 					.join('|');
-				return result;
+				if (result.includes('|')) return "?{Change Quest Grouping|" + result + "}";
+				else {
+					const [f,s] = result.split(',');
+					return s;
+				}
 			},
 			getQuestGroupNameByWeight: (weight) => {
 				if (!weight) return 'No Assigned Group';
@@ -3977,7 +3986,7 @@ var QuestTracker = QuestTracker || (function () {
 					<h4 style="${styles.bottomBorder} ${styles.topMargin}">Quest Group</h4><br>
 					<span>${questGroup}</span>
 					<span style="${styles.floatRight}">
-						<a style="${styles.button}" href="!qt-quest action=update|field=group|current=${questId}|new=?{Change Quest Grouping|${validQuestGrouping}}">Adjust</a>
+						<a style="${styles.button}" href="!qt-quest action=update|field=group|current=${questId}|new=${validQuestGrouping}">Adjust</a>
 					</span>
 					${H.formatAutocompleteListWithDates('autoadvance', questId, statusMapping)}
 					<br><hr>

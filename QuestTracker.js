@@ -842,6 +842,9 @@ var QuestTracker = QuestTracker || (function () {
 			const validQuests = Object.keys(QUEST_TRACKER_globalQuestData).filter(qId => {
 				return !excludedQuests.has(qId);
 			});
+			if (validQuests.length === 0) {
+				return false;
+			}
 			return validQuests;
 		}; 
 		const addQuest = () => {
@@ -3116,6 +3119,8 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			formatConditions: (questId, conditions, parentLogic = 'AND', indent = false, groupnum = 0, isInLogicGroup = false) => {
 				if (!Array.isArray(conditions)) return '';
+				let spanOrAnchor = `${H.buildDropdownString(questId) === '' ? 'span' : 'a'}`;
+				let renderButtonStyle = `${H.buildDropdownString(questId) === '' ? styles.buttonDisabled : styles.button}`;
 				groupnum += H.calculateStartingGroupNum(conditions, isInLogicGroup);
 				return conditions.map((condition, index) => {
 					const currentGroupNum = H.calculateGroupNum(condition, conditions, groupnum);
@@ -3143,7 +3148,7 @@ var QuestTracker = QuestTracker || (function () {
 									<small>Add Relationship</small>
 								</td>
 								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=add|type=group|groupnum=${currentGroupNum}|quest=?{Choose Quest|${H.buildDropdownString(questId)}}">+</a>
+									<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=group|groupnum=${currentGroupNum}|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
 								</td>
 							</tr>
 							` : ''}
@@ -3153,7 +3158,7 @@ var QuestTracker = QuestTracker || (function () {
 									<small>Add Relationship</small>
 								</td>
 								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}">+</a>
+									<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
 								</td>
 							</tr>
 							` : ''}
@@ -3169,7 +3174,7 @@ var QuestTracker = QuestTracker || (function () {
 										<small>Add Relationship</small>
 									</td>
 									<td style="${styles.smallButtonContainer}">
-										<a href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+										<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
 									</td>
 								</tr>`;
 						}
@@ -3192,12 +3197,15 @@ var QuestTracker = QuestTracker || (function () {
 				}).join('');
 			},
 			buildDropdownString: (questId) => {
-				const validQuests = Quest.getValidQuestsForDropdown(questId);
-				validQuests.sort((a, b) => H.getQuestName(a).localeCompare(H.getQuestName(b)));
-				const dropdownString = validQuests.map(questId => {
-					return `${H.getQuestName(questId)},${questId}`;
-				}).join('|');
-				return dropdownString;
+				if (!Quest.getValidQuestsForDropdown(questId)) return '';
+				else {
+					const validQuests = Quest.getValidQuestsForDropdown(questId);
+					validQuests.sort((a, b) => H.getQuestName(a).localeCompare(H.getQuestName(b)));
+					const dropdownString = validQuests.map(questId => {
+						return `${H.getQuestName(questId)},${questId}`;
+					}).join('|');
+					return dropdownString;
+				}
 			},
 			getQuestName: (questId) => {
 				return QUEST_TRACKER_globalQuestData[questId]?.name || 'Unnamed Quest';
@@ -3205,6 +3213,8 @@ var QuestTracker = QuestTracker || (function () {
 			relationshipMenu: (questId) => {
 				const quest = QUEST_TRACKER_globalQuestData[questId];
 				let htmlOutput = "";
+				let spanOrAnchor = `${H.buildDropdownString(questId) === '' ? 'span' : 'a'}`;
+				let renderButtonStyle = `${H.buildDropdownString(questId) === '' ? styles.buttonDisabled : styles.button}`;
 				if (!quest || !quest.relationships || !Array.isArray(quest.relationships.conditions) || quest.relationships.conditions.length === 0) {
 					htmlOutput += `<br><table style="width:100%;">
 										<tr style="${styles.topBorder}">
@@ -3212,13 +3222,13 @@ var QuestTracker = QuestTracker || (function () {
 												<small>Add Relationship</small>
 											</td>
 											<td style="${styles.smallButtonContainer}">
-												<a href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+												<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
 											</td>
 										</tr>
 										<tr style="${styles.bottomBorder}">
 											<td colspan="3"><small>Add Relationship Group</small></td>
 											<td style="${styles.smallButtonContainer}">
-												<a href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+												<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
 											</td>
 										</tr>
 									</table>`;
@@ -3240,7 +3250,7 @@ var QuestTracker = QuestTracker || (function () {
 									<small>Add Relationship Group</small>
 								</td>
 								<td style="${styles.smallButtonContainer}">
-									<a href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+									<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
 								</td>
 							</tr>
 						</table>`;
@@ -3271,7 +3281,7 @@ var QuestTracker = QuestTracker || (function () {
 						<tr>
 							<td colspan="3"></td>
 							<td style="${styles.smallButtonContainer}">
-								<a href="!qt-questrelationship currentquest=${questId}|action=add|type=mutuallyexclusive|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${styles.button} ${styles.smallButton}">+</a>
+								<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=mutuallyexclusive|quest=?{Choose Quest|${H.buildDropdownString(questId)}}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
 							</td>
 						</tr>
 					</table>`;

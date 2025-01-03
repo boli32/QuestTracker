@@ -178,22 +178,25 @@ The QUEST Module is a core component of the Quest Tracker system for Roll20. It 
 ### Quest Management
 - Create, update, and delete quests using an intuitive graphical interface.
 - Track quest statuses:
-  - **Active:** The quest is currently in progress.
-  - **Completed:** The quest has been successfully finished.
+  - **Unknown:** The Quest is unknown at this point. it is worth noting rumours can exists for quests within this state.
+  - **Discovered:** The quest has been discovered but not necessarily active or accepted.
+  - **Started:** The quest is currently in progress, and has been accepted
+  - **Ongoing:** The quest is currently ongoing.
+  - **Completed:** The quest has been completed.
+  - **Completed by Someone Else:** Another band of adventurers perhaps?
   - **Failed:** The quest was not completed as intended.
-- Group quests into logical categories for better organization.
+  - **Time ran out:** The arbitary time has run out on the quest
+  - **Ignored:** The clues have not been followed or the PCs have clearly ignored this quest
+
+As you can see whilst these statuses are at this time hard coded ine, there is a lot of room to wiggle in how you define a quest's status.
+Depending on feedback I may allow these statuses to be user specific, although it is a fair amount of work.
 
 ### Prerequisites and Dependencies
 - Define quest prerequisites to unlock quests based on player actions or story progression.
 - Establish mutually exclusive relationships between quests to enforce narrative constraints.
-- Auto-advance quests based on time-sensitive conditions or in-game triggers.
+- Auto-advance quests based on time-sensitive conditions.
 
-### Visual Quest Trees
-- Display individual quest relationships as a tree diagram for clarity.
-- Build a full quest tree showing all relationships, prerequisites, and dependencies on a dedicated Roll20 map page.
-- Use quest tokens for easy visualization:
-  - Quest icons are placed on the GM layer to keep hidden quests secret.
-  - Planned integration with TokenMod for triggering quests directly from tokens.
+None of these quest relasionships rules are rigidly enforced within the code; but will allow you as the DM to follow a basic story logic, as well as offer a more visual way for the players to understand what is happening if they try to support one faction over another.
 
 ---
 
@@ -247,7 +250,7 @@ Quests are stored in a hierarchical JSON format, supporting complex relationship
     "level": 1,
     "group": "6"
   },
-  ""quest_11": {
+  "quest_11": {
     "name": "Another Quest?",
     "description": "Clearly this game has a lot of quests.",
     "relationships": {
@@ -266,10 +269,23 @@ Quests are stored in a hierarchical JSON format, supporting complex relationship
   }
 ```
 
+### Quest Features
 
+* **Name:** The name of the quest, defaults to 'New Quest' and it is does not need to be unique.
+* **Description:** A short description of the quest; it will be the tooltip on the Quest Tree page.
+* **Status:** The status of the quest, this is stored in a rollable table as a 'weight'.
+* **Hidden:** This quest is completely hidden from the Players when displayed on the page, the relasionships of this quest are also hidden. If you do not use the Quest Tree page there no difference betwene a hidden quest or a visible one (e.g. rumours from hidden quests are still shown), by default quests start out as hidden.
+* **Quest Group:** This is to help you organise your quests better, relasionships can only be formed by quests within their own quest group.
+* **AutoAdvance:** Simply add a Date (YYYY-MM-DD) into one of the status fields and when that date occurs the quest will autoadvance to that specific status; it will then clear this field. There are no checks to make sure things go in the correct order it is up to you to maintain your own quests.
+* **Icon:** (potentially a future UI implimentation) This is actually a hidden field as I have currently not built a UI for it, but on the rollable table you can upload an icon for the quest which will appear as a token on the Quest Tree Page. This is important as it will allow you to use tokenmod commands to trigger a quest change in state using the questID in the GM Notes field of said token.
 
+### Navigating the UI
 
+![A standard quest page](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/quest_page.png) ![An Extensive Quest](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/extensive_quest.png)
 
+* If the + buttons are shaded grey and cannot be selected it means there are no valid quests to add, quests need to be in the same quest group and not already be selected in a relasionship
+* Quest Relationships work on a AND and OR functionality and you can put them within relasionship groups in order to visualise the prerequisities; as you can see in the more complex quest tree; five quests are its prerequisites (under AND) but 4 of them are separated into two groups of OR functionality, the grouped quests are also mutually exclusive with each other (note the red line).
+* The Quest diagram is generated automatically and only works on a quest by quest basis (so no futher back); if you come across any failures within rendering please make sure you raise this as an issue. note: before you do this drag the chat window wider, as most issues are resolved with this.
 
 ## FAQ
 

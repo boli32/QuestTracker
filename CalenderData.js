@@ -66,10 +66,8 @@ on('ready', () => {
 				"northern temperate": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 15, "Spring": 5, "Summer": 2.5, "Autumn": 7.5 },
-						"wet": { "Winter": 10, "Spring": 7.5, "Summer": 5, "Autumn": 7.5 },
-						"dry": { "Winter": -5, "Spring": -2.5, "Summer": -7.5, "Autumn": -5 },
+						"temperature": { "Winter": -10, "Spring": 5, "Summer": 7.5, "Autumn": 2.5 },
+						"precipitation": { "Winter": 5, "Spring": 5, "Summer": -2.5, "Autumn": 2.5 },
 						"wind": { "Winter": 5, "Spring": 3, "Summer": 2, "Autumn": 3 },
 						"humid": { "Winter": 7.5, "Spring": 10, "Summer": 5, "Autumn": 7.5 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -80,10 +78,8 @@ on('ready', () => {
 				"southern temperate": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 2.5, "Autumn": 7.5, "Winter": 15, "Spring": 5 },
-						"wet": { "Summer": 7.5, "Autumn": 10, "Winter": 10, "Spring": 12.5 },
-						"dry": { "Summer": -5, "Autumn": -2.5, "Winter": -7.5, "Spring": -5 },
+						"temperature": { "Summer": 7.5, "Autumn": 2.5, "Winter": -10, "Spring": 5 },
+						"precipitation": { "Summer": 2.5, "Autumn": 7.5, "Winter": 2.5, "Spring": 7.5 },
 						"wind": { "Summer": 3, "Autumn": 5, "Winter": 7, "Spring": 5 },
 						"humid": { "Summer": 5, "Autumn": 7.5, "Winter": 7.5, "Spring": 10 },
 						"visibility": { "Summer": 5, "Autumn": 0, "Winter": -5, "Spring": 0 },
@@ -94,10 +90,8 @@ on('ready', () => {
 				"northern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 2.5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -108,10 +102,8 @@ on('ready', () => {
 				"southern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 3 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -122,10 +114,8 @@ on('ready', () => {
 				"northern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -136,10 +126,8 @@ on('ready', () => {
 				"southern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -150,10 +138,8 @@ on('ready', () => {
 				"northern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
 						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
@@ -164,10 +150,8 @@ on('ready', () => {
 				"northern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 20, "Dry": 10 },
-						"dry": { "Wet": 0, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": -2.5, "Dry": 5 },
@@ -178,10 +162,8 @@ on('ready', () => {
 				"northern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 10, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 10, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
 						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
 						"visibility": { "Summer": 5, "Winter": -2.5 },
@@ -192,10 +174,8 @@ on('ready', () => {
 				"northern mountain": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 25, "Spring": 15, "Summer": 5, "Autumn": 10 },
-						"wet": { "Winter": 15, "Spring": 20, "Summer": 15, "Autumn": 10 },
-						"dry": { "Winter": 5, "Spring": 5, "Summer": 10, "Autumn": 5 },
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
 						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
 						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -206,10 +186,8 @@ on('ready', () => {
 				"equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 7.5, "Dry": 5 },
+						"precipitation": { "Wet": 15, "Dry": -5 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 15, "Dry": 10 },
 						"visibility": { "Wet": -5, "Dry": 5 },
@@ -220,10 +198,8 @@ on('ready', () => {
 				"southern continental": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 15 },
-						"dry": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
+						"temperature": { "Summer": 10, "Autumn": 0, "Winter": -10, "Spring": 0 },
+						"precipitation": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 0 },
 						"wind": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
 						"humid": { "Summer": 10, "Autumn": 15, "Winter": 10, "Spring": 15 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
@@ -234,10 +210,8 @@ on('ready', () => {
 				"southern mediterranean": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 20, "Autumn": 15, "Winter": 5, "Spring": 15 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"dry": { "Summer": 20, "Autumn": 10, "Winter": 5, "Spring": 10 },
+						"temperature": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 5 },
+						"precipitation": { "Summer": -5, "Autumn": 5, "Winter": 7.5, "Spring": 5 },
 						"wind": { "Summer": 5, "Autumn": 10, "Winter": 15, "Spring": 10 },
 						"humid": { "Summer": 10, "Autumn": 20, "Winter": 25, "Spring": 20 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 10 },
@@ -248,27 +222,23 @@ on('ready', () => {
 				"southern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
-						"humid": { "Hot": 5, "Cool": 10 },
+						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
-						"cloudy": { "Hot": 5, "Cool": 10 }
+						"cloudy": { "Hot": -2.5, "Cool": 2.5 }
 					},
 					"seasonStart": { "Hot": 10, "Cool": 4 }
 				},
 				"southern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
-						"humid": { "Wet": 15, "Dry": 10 },
-						"visibility": { "Wet": -5, "Dry": 5 },
+						"humid": { "Wet": 10, "Dry": 5 },
+						"visibility": { "Wet": -2.5, "Dry": 5 },
 						"cloudy": { "Wet": 10, "Dry": 5 }
 					},
 					"seasonStart": { "Wet": 9, "Dry": 3 }
@@ -276,28 +246,24 @@ on('ready', () => {
 				"southern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 15, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
-						"wind": { "Summer": 10, "Winter": 20 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
+						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
-						"visibility": { "Summer": 5, "Winter": -5 },
-						"cloudy": { "Summer": 10, "Winter": 20 }
+						"visibility": { "Summer": 5, "Winter": -2.5 },
+						"cloudy": { "Summer": 5, "Winter": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Winter": 6 }
 				},
 				"southern mountain": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 15, "Winter": 25, "Spring": 15 },
-						"wet": { "Summer": 15, "Autumn": 20, "Winter": 15, "Spring": 20 },
-						"dry": { "Summer": 10, "Autumn": 5, "Winter": 5, "Spring": 10 },
-						"wind": { "Summer": 15, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"humid": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
-						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
-						"cloudy": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 }
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
+						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
+						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
+						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
+						"cloudy": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Autumn": 3, "Winter": 6, "Spring": 9 }
 				}
@@ -374,28 +340,24 @@ on('ready', () => {
 				"Icewind Dale": {
 					"seasons": ["Long Winter", "Brief Thaw"],
 					"modifiers": {
-						"heat": { "Long Winter": 0, "Brief Thaw": 10 },
-						"cold": { "Long Winter": 30, "Brief Thaw": 20 },
-						"wet": { "Long Winter": 5, "Brief Thaw": 15 },
-						"dry": { "Long Winter": 10, "Brief Thaw": 5 },
-						"wind": { "Long Winter": 25, "Brief Thaw": 15 },
-						"humid": { "Long Winter": 15, "Brief Thaw": 20 },
-						"visibility": { "Long Winter": 5, "Brief Thaw": 15 },
-						"cloudy": { "Long Winter": 25, "Brief Thaw": 20 }
+						"temperature": { "Long Winter": -20, "Brief Thaw": -10 },
+						"precipitation": { "Long Winter": -5, "Brief Thaw": 5 },
+						"wind": { "Long Winter": 20, "Brief Thaw": 12 },
+						"humid": { "Long Winter": 12, "Brief Thaw": 25 },
+						"visibility": { "Long Winter": 8, "Brief Thaw": 18 },
+						"cloudy": { "Long Winter": 30, "Brief Thaw": 22 }
 					},
-					"seasonStart": { "Long Winter": 1, "Brief Thaw": 7 },
+					"seasonStart": { "Long Winter": 1, "Brief Thaw": 7 }
 				},
 				"Moonshae Isles": {
 					"seasons": ["Wet Winter", "Stormy Spring", "Mild Summer", "Rainy Autumn"],
 					"modifiers": {
-						"heat": { "Wet Winter": 5, "Stormy Spring": 10, "Mild Summer": 15, "Rainy Autumn": 10 },
-						"cold": { "Wet Winter": 20, "Stormy Spring": 15, "Mild Summer": 5, "Rainy Autumn": 15 },
-						"wet": { "Wet Winter": 25, "Stormy Spring": 20, "Mild Summer": 15, "Rainy Autumn": 30 },
-						"dry": { "Wet Winter": 5, "Stormy Spring": 10, "Mild Summer": 10, "Rainy Autumn": 5 },
-						"wind": { "Wet Winter": 15, "Stormy Spring": 25, "Mild Summer": 10, "Rainy Autumn": 20 },
-						"humid": { "Wet Winter": 20, "Stormy Spring": 25, "Mild Summer": 20, "Rainy Autumn": 25 },
-						"visibility": { "Wet Winter": 10, "Stormy Spring": 15, "Mild Summer": 20, "Rainy Autumn": 15 },
-						"cloudy": { "Wet Winter": 30, "Stormy Spring": 25, "Mild Summer": 20, "Rainy Autumn": 30 }
+						"temperature": { "Wet Winter": -5, "Stormy Spring": -5, "Mild Summer": 5, "Rainy Autumn": 5 },
+						"precipitation": { "Wet Winter": 15, "Stormy Spring": 10, "Mild Summer": 5, "Rainy Autumn": 17.5 },
+						"wind": { "Wet Winter": 18, "Stormy Spring": 28, "Mild Summer": 12, "Rainy Autumn": 22 },
+						"humid": { "Wet Winter": 18, "Stormy Spring": 30, "Mild Summer": 28, "Rainy Autumn": 35 },
+						"visibility": { "Wet Winter": 8, "Stormy Spring": 18, "Mild Summer": 25, "Rainy Autumn": 12 },
+						"cloudy": { "Wet Winter": 35, "Stormy Spring": 30, "Mild Summer": 15, "Rainy Autumn": 32 }
 					},
 					"seasonStart": {
 						"Wet Winter": 1,
@@ -407,14 +369,12 @@ on('ready', () => {
 				"Waterdeep": {
 					"seasons": ["Mild Winter", "Breezy Spring", "Warm Summer", "Rainy Autumn"],
 					"modifiers": {
-						"heat": { "Mild Winter": 5, "Breezy Spring": 10, "Warm Summer": 20, "Rainy Autumn": 10 },
-						"cold": { "Mild Winter": 15, "Breezy Spring": 10, "Warm Summer": 5, "Rainy Autumn": 10 },
-						"wet": { "Mild Winter": 15, "Breezy Spring": 20, "Warm Summer": 10, "Rainy Autumn": 25 },
-						"dry": { "Mild Winter": 5, "Breezy Spring": 10, "Warm Summer": 10, "Rainy Autumn": 5 },
-						"wind": { "Mild Winter": 10, "Breezy Spring": 20, "Warm Summer": 10, "Rainy Autumn": 15 },
-						"humid": { "Mild Winter": 20, "Breezy Spring": 25, "Warm Summer": 20, "Rainy Autumn": 25 },
-						"visibility": { "Mild Winter": 15, "Breezy Spring": 20, "Warm Summer": 20, "Rainy Autumn": 15 },
-						"cloudy": { "Mild Winter": 25, "Breezy Spring": 20, "Warm Summer": 15, "Rainy Autumn": 25 }
+						"temperature": { "Mild Winter": -5, "Breezy Spring": 0, "Warm Summer": 10, "Rainy Autumn": 5 },
+						"precipitation": { "Mild Winter": 10, "Breezy Spring": 5, "Warm Summer": -5, "Rainy Autumn": 12.5 },
+						"wind": { "Mild Winter": 12, "Breezy Spring": 22, "Warm Summer": 8, "Rainy Autumn": 18 },
+						"humid": { "Mild Winter": 18, "Breezy Spring": 28, "Warm Summer": 30, "Rainy Autumn": 35 },
+						"visibility": { "Mild Winter": 12, "Breezy Spring": 25, "Warm Summer": 28, "Rainy Autumn": 18 },
+						"cloudy": { "Mild Winter": 30, "Breezy Spring": 25, "Warm Summer": 15, "Rainy Autumn": 28 }
 					},
 					"seasonStart": {
 						"Mild Winter": 1,
@@ -426,14 +386,12 @@ on('ready', () => {
 				"Baldur's Gate": {
 					"seasons": ["Cool Winter", "Rainy Spring", "Humid Summer", "Stormy Autumn"],
 					"modifiers": {
-						"heat": { "Cool Winter": 5, "Rainy Spring": 10, "Humid Summer": 20, "Stormy Autumn": 15 },
-						"cold": { "Cool Winter": 15, "Rainy Spring": 10, "Humid Summer": 5, "Stormy Autumn": 10 },
-						"wet": { "Cool Winter": 15, "Rainy Spring": 25, "Humid Summer": 20, "Stormy Autumn": 25 },
-						"dry": { "Cool Winter": 10, "Rainy Spring": 5, "Humid Summer": 10, "Stormy Autumn": 5 },
-						"wind": { "Cool Winter": 15, "Rainy Spring": 20, "Humid Summer": 10, "Stormy Autumn": 25 },
-						"humid": { "Cool Winter": 20, "Rainy Spring": 25, "Humid Summer": 30, "Stormy Autumn": 25 },
-						"visibility": { "Cool Winter": 20, "Rainy Spring": 15, "Humid Summer": 25, "Stormy Autumn": 15 },
-						"cloudy": { "Cool Winter": 25, "Rainy Spring": 30, "Humid Summer": 20, "Stormy Autumn": 30 }
+						"temperature": { "Cool Winter": -5, "Rainy Spring": 0, "Humid Summer": 10, "Stormy Autumn": 5 },
+						"precipitation": { "Cool Winter": 5, "Rainy Spring": 15, "Humid Summer": 5, "Stormy Autumn": 12.5 },
+						"wind": { "Cool Winter": 18, "Rainy Spring": 15, "Humid Summer": 12, "Stormy Autumn": 22 },
+						"humid": { "Cool Winter": 18, "Rainy Spring": 28, "Humid Summer": 35, "Stormy Autumn": 30 },
+						"visibility": { "Cool Winter": 12, "Rainy Spring": 18, "Humid Summer": 28, "Stormy Autumn": 14 },
+						"cloudy": { "Cool Winter": 30, "Rainy Spring": 35, "Humid Summer": 18, "Stormy Autumn": 32 }
 					},
 					"seasonStart": {
 						"Cool Winter": 1,
@@ -445,14 +403,12 @@ on('ready', () => {
 				"Neverwinter": {
 					"seasons": ["Cold Winter", "Wet Spring", "Warm Summer", "Breezy Autumn"],
 					"modifiers": {
-						"heat": { "Cold Winter": 5, "Wet Spring": 10, "Warm Summer": 20, "Breezy Autumn": 15 },
-						"cold": { "Cold Winter": 20, "Wet Spring": 15, "Warm Summer": 5, "Breezy Autumn": 10 },
-						"wet": { "Cold Winter": 15, "Wet Spring": 25, "Warm Summer": 15, "Breezy Autumn": 20 },
-						"dry": { "Cold Winter": 5, "Wet Spring": 5, "Warm Summer": 10, "Breezy Autumn": 5 },
-						"wind": { "Cold Winter": 15, "Wet Spring": 20, "Warm Summer": 10, "Breezy Autumn": 20 },
-						"humid": { "Cold Winter": 20, "Wet Spring": 25, "Warm Summer": 20, "Breezy Autumn": 15 },
-						"visibility": { "Cold Winter": 15, "Wet Spring": 20, "Warm Summer": 25, "Breezy Autumn": 20 },
-						"cloudy": { "Cold Winter": 25, "Wet Spring": 30, "Warm Summer": 20, "Breezy Autumn": 25 }
+						"temperature": { "Cold Winter": -5, "Wet Spring": 0, "Warm Summer": 7.5, "Breezy Autumn": 5 },
+						"precipitation": { "Cold Winter": 5, "Wet Spring": 15, "Warm Summer": 5, "Breezy Autumn": 0 },
+						"wind": { "Cold Winter": 18, "Wet Spring": 15, "Warm Summer": 8, "Breezy Autumn": 20 },
+						"humid": { "Cold Winter": 15, "Wet Spring": 30, "Warm Summer": 25, "Breezy Autumn": 20 },
+						"visibility": { "Cold Winter": 10, "Wet Spring": 22, "Warm Summer": 28, "Breezy Autumn": 18 },
+						"cloudy": { "Cold Winter": 30, "Wet Spring": 35, "Warm Summer": 15, "Breezy Autumn": 20 }
 					},
 					"seasonStart": {
 						"Cold Winter": 1,
@@ -464,14 +420,12 @@ on('ready', () => {
 				"Haranshire": {
 					"seasons": ["Harsh Winter", "Blooming Spring", "Hot Summer", "Crisp Autumn"],
 					"modifiers": {
-						"heat": { "Harsh Winter": 5, "Blooming Spring": 10, "Hot Summer": 20, "Crisp Autumn": 10 },
-						"cold": { "Harsh Winter": 25, "Blooming Spring": 15, "Hot Summer": 5, "Crisp Autumn": 15 },
-						"wet": { "Harsh Winter": 10, "Blooming Spring": 20, "Hot Summer": 15, "Crisp Autumn": 20 },
-						"dry": { "Harsh Winter": 5, "Blooming Spring": 5, "Hot Summer": 10, "Crisp Autumn": 5 },
-						"wind": { "Harsh Winter": 15, "Blooming Spring": 15, "Hot Summer": 10, "Crisp Autumn": 15 },
-						"humid": { "Harsh Winter": 20, "Blooming Spring": 25, "Hot Summer": 20, "Crisp Autumn": 25 },
-						"visibility": { "Harsh Winter": 15, "Blooming Spring": 20, "Hot Summer": 25, "Crisp Autumn": 20 },
-						"cloudy": { "Harsh Winter": 25, "Blooming Spring": 20, "Hot Summer": 15, "Crisp Autumn": 25 }
+						"temperature": { "Harsh Winter": -10, "Blooming Spring": 5, "Hot Summer": 15, "Crisp Autumn": 0 },
+						"precipitation": { "Harsh Winter": 10, "Blooming Spring": 15, "Hot Summer": -10, "Crisp Autumn": 7.5 },
+						"wind": { "Harsh Winter": 20, "Blooming Spring": 10, "Hot Summer": 8, "Crisp Autumn": 12 },
+						"humid": { "Harsh Winter": 15, "Blooming Spring": 30, "Hot Summer": 25, "Crisp Autumn": 20 },
+						"visibility": { "Harsh Winter": 10, "Blooming Spring": 18, "Hot Summer": 28, "Crisp Autumn": 15 },
+						"cloudy": { "Harsh Winter": 30, "Blooming Spring": 25, "Hot Summer": 10, "Crisp Autumn": 20 }
 					},
 					"seasonStart": {
 						"Harsh Winter": 1,
@@ -483,14 +437,12 @@ on('ready', () => {
 				"Spine of the World": {
 					"seasons": ["Perpetual Winter", "Short Thaw"],
 					"modifiers": {
-						"heat": { "Perpetual Winter": 5, "Short Thaw": 10 },
-						"cold": { "Perpetual Winter": 30, "Short Thaw": 25 },
-						"wet": { "Perpetual Winter": 10, "Short Thaw": 15 },
-						"dry": { "Perpetual Winter": 5, "Short Thaw": 5 },
-						"wind": { "Perpetual Winter": 25, "Short Thaw": 20 },
-						"humid": { "Perpetual Winter": 20, "Short Thaw": 25 },
-						"visibility": { "Perpetual Winter": 10, "Short Thaw": 15 },
-						"cloudy": { "Perpetual Winter": 30, "Short Thaw": 25 }
+						"temperature": { "Perpetual Winter": -20, "Short Thaw": -5 },
+						"precipitation": { "Perpetual Winter": -10, "Short Thaw": 10 },
+						"wind": { "Perpetual Winter": 20, "Short Thaw": 15 },
+						"humid": { "Perpetual Winter": 15, "Short Thaw": 30 },
+						"visibility": { "Perpetual Winter": 8, "Short Thaw": 18 },
+						"cloudy": { "Perpetual Winter": 35, "Short Thaw": 20 }
 					},
 					"seasonStart": {
 						"Perpetual Winter": 1,
@@ -500,14 +452,12 @@ on('ready', () => {
 				"Dales Region": {
 					"seasons": ["Harsh Winter", "Blooming Spring", "Hot Summer", "Rainy Autumn"],
 					"modifiers": {
-						"heat": { "Harsh Winter": 5, "Blooming Spring": 10, "Hot Summer": 20, "Rainy Autumn": 10 },
-						"cold": { "Harsh Winter": 25, "Blooming Spring": 15, "Hot Summer": 5, "Rainy Autumn": 15 },
-						"wet": { "Harsh Winter": 10, "Blooming Spring": 20, "Hot Summer": 15, "Rainy Autumn": 25 },
-						"dry": { "Harsh Winter": 5, "Blooming Spring": 5, "Hot Summer": 10, "Rainy Autumn": 5 },
-						"wind": { "Harsh Winter": 15, "Blooming Spring": 15, "Hot Summer": 10, "Rainy Autumn": 15 },
-						"humid": { "Harsh Winter": 20, "Blooming Spring": 25, "Hot Summer": 20, "Rainy Autumn": 25 },
-						"visibility": { "Harsh Winter": 10, "Blooming Spring": 15, "Hot Summer": 20, "Rainy Autumn": 15 },
-						"cloudy": { "Harsh Winter": 25, "Blooming Spring": 20, "Hot Summer": 15, "Rainy Autumn": 25 }
+						"temperature": { "Harsh Winter": -15, "Blooming Spring": 2, "Hot Summer": 10, "Rainy Autumn": 5 },
+						"precipitation": { "Harsh Winter": 10, "Blooming Spring": 15, "Hot Summer": -10, "Rainy Autumn": 20 },
+						"wind": { "Harsh Winter": 10, "Blooming Spring": 20, "Hot Summer": 8, "Rainy Autumn": 12 },
+						"humid": { "Harsh Winter": 25, "Blooming Spring": 30, "Hot Summer": 15, "Rainy Autumn": 35 },
+						"visibility": { "Harsh Winter": 8, "Blooming Spring": 18, "Hot Summer": 25, "Rainy Autumn": 12 },
+						"cloudy": { "Harsh Winter": 30, "Blooming Spring": 25, "Hot Summer": 10, "Rainy Autumn": 35 }
 					},
 					"seasonStart": {
 						"Harsh Winter": 1,
@@ -519,14 +469,12 @@ on('ready', () => {
 				"Candlekeep": {
 					"seasons": ["Mild Winter", "Windy Spring", "Warm Summer", "Foggy Autumn"],
 					"modifiers": {
-						"heat": { "Mild Winter": 10, "Windy Spring": 15, "Warm Summer": 20, "Foggy Autumn": 15 },
-						"cold": { "Mild Winter": 20, "Windy Spring": 10, "Warm Summer": 5, "Foggy Autumn": 10 },
-						"wet": { "Mild Winter": 20, "Windy Spring": 25, "Warm Summer": 15, "Foggy Autumn": 25 },
-						"dry": { "Mild Winter": 5, "Windy Spring": 10, "Warm Summer": 10, "Foggy Autumn": 5 },
-						"wind": { "Mild Winter": 15, "Windy Spring": 30, "Warm Summer": 10, "Foggy Autumn": 25 },
-						"humid": { "Mild Winter": 25, "Windy Spring": 30, "Warm Summer": 20, "Foggy Autumn": 35 },
-						"visibility": { "Mild Winter": 15, "Windy Spring": 25, "Warm Summer": 30, "Foggy Autumn": 10 },
-						"cloudy": { "Mild Winter": 30, "Windy Spring": 25, "Warm Summer": 20, "Foggy Autumn": 35 }
+						"temperature": { "Mild Winter": -10, "Windy Spring": 5, "Warm Summer": 12, "Foggy Autumn": 3 },
+						"precipitation": { "Mild Winter": 15, "Windy Spring": 10, "Warm Summer": -10, "Foggy Autumn": 0 },
+						"wind": { "Mild Winter": 10, "Windy Spring": 25, "Warm Summer": 8, "Foggy Autumn": 20 },
+						"humid": { "Mild Winter": 30, "Windy Spring": 25, "Warm Summer": 15, "Foggy Autumn": 35 },
+						"visibility": { "Mild Winter": 12, "Windy Spring": 20, "Warm Summer": 25, "Foggy Autumn": 8 },
+						"cloudy": { "Mild Winter": 35, "Windy Spring": 20, "Warm Summer": 15, "Foggy Autumn": 40 }
 					},
 					"seasonStart": {
 						"Mild Winter": 1,
@@ -538,14 +486,12 @@ on('ready', () => {
 				"Phandalin": {
 					"seasons": ["Chilly Winter", "Blooming Spring", "Warm Summer", "Cool Autumn"],
 					"modifiers": {
-						"heat": { "Chilly Winter": 0, "Blooming Spring": 5, "Warm Summer": 20, "Cool Autumn": 5 },
-						"cold": { "Chilly Winter": 20, "Blooming Spring": 0, "Warm Summer": 0, "Cool Autumn": 0 },
-						"wet": { "Chilly Winter": 5, "Blooming Spring": 15, "Warm Summer": 5, "Cool Autumn": 15 },
-						"dry": { "Chilly Winter": 0, "Blooming Spring": 0, "Warm Summer": 0, "Cool Autumn": 0 },
-						"wind": { "Chilly Winter": 20, "Blooming Spring": 20, "Warm Summer": 15, "Cool Autumn": 20 },
-						"humid": { "Chilly Winter": 20, "Blooming Spring": 30, "Warm Summer": 25, "Cool Autumn": 30 },
-						"visibility": { "Chilly Winter": 15, "Blooming Spring": 25, "Warm Summer": 30, "Cool Autumn": 20 },
-						"cloudy": { "Chilly Winter": 30, "Blooming Spring": 25, "Warm Summer": 20, "Cool Autumn": 30 }
+						"temperature": { "Chilly Winter": -10, "Blooming Spring": 5, "Warm Summer": 10, "Cool Autumn": 3 },
+						"precipitation": { "Chilly Winter": 10, "Blooming Spring": 15, "Warm Summer": -10, "Cool Autumn": -5 },
+						"wind": { "Chilly Winter": 15, "Blooming Spring": 10, "Warm Summer": 5, "Cool Autumn": 10 },
+						"humid": { "Chilly Winter": 25, "Blooming Spring": 35, "Warm Summer": 30, "Cool Autumn": 20 },
+						"visibility": { "Chilly Winter": 10, "Blooming Spring": 20, "Warm Summer": 25, "Cool Autumn": 15 },
+						"cloudy": { "Chilly Winter": 35, "Blooming Spring": 30, "Warm Summer": 15, "Cool Autumn": 25 }
 					},
 					"seasonStart": {
 						"Chilly Winter": 1,
@@ -557,14 +503,12 @@ on('ready', () => {
 				"Chult": {
 					"seasons": ["Wet Season", "Dry Season"],
 					"modifiers": {
-						"heat": { "Wet Season": 30, "Dry Season": 35 },
-						"cold": { "Wet Season": 5, "Dry Season": 5 },
-						"wet": { "Wet Season": 50, "Dry Season": 15 },
-						"dry": { "Wet Season": 5, "Dry Season": 30 },
-						"wind": { "Wet Season": 15, "Dry Season": 10 },
-						"humid": { "Wet Season": 70, "Dry Season": 65 },
-						"visibility": { "Wet Season": 15, "Dry Season": 25 },
-						"cloudy": { "Wet Season": 40, "Dry Season": 20 }
+						"temperature": { "Wet Season": 5, "Dry Season": 10 },
+						"precipitation": { "Wet Season": 25, "Dry Season": -15 },
+						"wind": { "Wet Season": 10, "Dry Season": 5 },
+						"humid": { "Wet Season": 75, "Dry Season": 50 },
+						"visibility": { "Wet Season": 10, "Dry Season": 20 },
+						"cloudy": { "Wet Season": 50, "Dry Season": 15 }
 					},
 					"seasonStart": {
 						"Wet Season": 5,
@@ -574,14 +518,12 @@ on('ready', () => {
 				"Thay": {
 					"seasons": ["Cold Winter", "Blooming Spring", "Hot Summer", "Dry Autumn"],
 					"modifiers": {
-						"heat": { "Cold Winter": 10, "Blooming Spring": 20, "Hot Summer": 30, "Dry Autumn": 25 },
-						"cold": { "Cold Winter": 30, "Blooming Spring": 10, "Hot Summer": 5, "Dry Autumn": 15 },
-						"wet": { "Cold Winter": 15, "Blooming Spring": 25, "Hot Summer": 10, "Dry Autumn": 10 },
-						"dry": { "Cold Winter": 10, "Blooming Spring": 10, "Hot Summer": 20, "Dry Autumn": 30 },
-						"wind": { "Cold Winter": 20, "Blooming Spring": 15, "Hot Summer": 10, "Dry Autumn": 20 },
-						"humid": { "Cold Winter": 25, "Blooming Spring": 30, "Hot Summer": 20, "Dry Autumn": 20 },
-						"visibility": { "Cold Winter": 15, "Blooming Spring": 20, "Hot Summer": 25, "Dry Autumn": 20 },
-						"cloudy": { "Cold Winter": 30, "Blooming Spring": 25, "Hot Summer": 15, "Dry Autumn": 20 }
+						"temperature": { "Cold Winter": -10, "Blooming Spring": 5, "Hot Summer": 15, "Dry Autumn": 0 },
+						"precipitation": { "Cold Winter": 5, "Blooming Spring": 10, "Hot Summer": -5, "Dry Autumn": -5 },
+						"wind": { "Cold Winter": 10, "Blooming Spring": 5, "Hot Summer": -5, "Dry Autumn": 10 },
+						"humid": { "Cold Winter": -5, "Blooming Spring": 10, "Hot Summer": 15, "Dry Autumn": 5 },
+						"visibility": { "Cold Winter": -10, "Blooming Spring": 5, "Hot Summer": 15, "Dry Autumn": 10 },
+						"cloudy": { "Cold Winter": 15, "Blooming Spring": 10, "Hot Summer": -5, "Dry Autumn": 5 }
 					},
 					"seasonStart": {
 						"Cold Winter": 1,
@@ -593,14 +535,12 @@ on('ready', () => {
 				"Stormwreck Isle": {
 					"seasons": ["Blustery Winter", "Tempestuous Spring", "Humid Summer", "Stormy Autumn"],
 					"modifiers": {
-						"heat": { "Blustery Winter": 10, "Tempestuous Spring": 15, "Humid Summer": 25, "Stormy Autumn": 20 },
-						"cold": { "Blustery Winter": 20, "Tempestuous Spring": 10, "Humid Summer": 5, "Stormy Autumn": 15 },
-						"wet": { "Blustery Winter": 20, "Tempestuous Spring": 30, "Humid Summer": 20, "Stormy Autumn": 30 },
-						"dry": { "Blustery Winter": 10, "Tempestuous Spring": 5, "Humid Summer": 10, "Stormy Autumn": 5 },
-						"wind": { "Blustery Winter": 25, "Tempestuous Spring": 30, "Humid Summer": 15, "Stormy Autumn": 25 },
-						"humid": { "Blustery Winter": 25, "Tempestuous Spring": 30, "Humid Summer": 35, "Stormy Autumn": 30 },
-						"visibility": { "Blustery Winter": 15, "Tempestuous Spring": 20, "Humid Summer": 25, "Stormy Autumn": 20 },
-						"cloudy": { "Blustery Winter": 30, "Tempestuous Spring": 35, "Humid Summer": 25, "Stormy Autumn": 30 }
+						"temperature": { "Blustery Winter": -10, "Tempestuous Spring": 5, "Humid Summer": 10, "Stormy Autumn": -5 },
+						"precipitation": { "Blustery Winter": 12.5, "Tempestuous Spring": 15, "Humid Summer": 5, "Stormy Autumn": 17.5 },
+						"wind": { "Blustery Winter": -8, "Tempestuous Spring": 12, "Humid Summer": 5, "Stormy Autumn": 8 },
+						"humid": { "Blustery Winter": -10, "Tempestuous Spring": 8, "Humid Summer": 15, "Stormy Autumn": 5 },
+						"visibility": { "Blustery Winter": -15, "Tempestuous Spring": 8, "Humid Summer": 10, "Stormy Autumn": 5 },
+						"cloudy": { "Blustery Winter": -8, "Tempestuous Spring": 15, "Humid Summer": 5, "Stormy Autumn": 8 }
 					},
 					"seasonStart": {
 						"Blustery Winter": 1,
@@ -661,14 +601,12 @@ on('ready', () => {
 				"barovian standard": {
 					"seasons": ["Cold", "Dreary"],
 					"modifiers": {
-						"heat": { "Cold": 0, "Dreary": 5 },
-						"cold": { "Cold": 25, "Dreary": 20 },
-						"wet": { "Cold": 15, "Dreary": 25 },
-						"dry": { "Cold": 5, "Dreary": 10 },
-						"wind": { "Cold": 10, "Dreary": 15 },
-						"humid": { "Cold": 20, "Dreary": 25 },
-						"visibility": { "Cold": -15, "Dreary": -30 },
-						"cloudy": { "Cold": 20, "Dreary": 30 }
+						"temperature": { "Cold": -10, "Dreary": -5 },
+						"precipitation": { "Cold": 10, "Dreary": 5 },
+						"wind": { "Cold": 7.5, "Dreary": 12.5 },
+						"humid": { "Cold": 12.5, "Dreary": 15 },
+						"visibility": { "Cold": -15, "Dreary": -20 },
+						"cloudy": { "Cold": 20, "Dreary": 20 }
 					},
 					"seasonStart": { "Cold": 1, "Dreary": 7 }
 				}
@@ -716,10 +654,8 @@ on('ready', () => {
 				"northern temperate": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 15, "Spring": 5, "Summer": 2.5, "Autumn": 7.5 },
-						"wet": { "Winter": 10, "Spring": 7.5, "Summer": 5, "Autumn": 7.5 },
-						"dry": { "Winter": -5, "Spring": -2.5, "Summer": -7.5, "Autumn": -5 },
+						"temperature": { "Winter": -10, "Spring": 5, "Summer": 7.5, "Autumn": 2.5 },
+						"precipitation": { "Winter": 5, "Spring": 5, "Summer": -2.5, "Autumn": 2.5 },
 						"wind": { "Winter": 5, "Spring": 3, "Summer": 2, "Autumn": 3 },
 						"humid": { "Winter": 7.5, "Spring": 10, "Summer": 5, "Autumn": 7.5 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -730,10 +666,8 @@ on('ready', () => {
 				"southern temperate": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 2.5, "Autumn": 7.5, "Winter": 15, "Spring": 5 },
-						"wet": { "Summer": 7.5, "Autumn": 10, "Winter": 10, "Spring": 12.5 },
-						"dry": { "Summer": -5, "Autumn": -2.5, "Winter": -7.5, "Spring": -5 },
+						"temperature": { "Summer": 7.5, "Autumn": 2.5, "Winter": -10, "Spring": 5 },
+						"precipitation": { "Summer": 2.5, "Autumn": 7.5, "Winter": 2.5, "Spring": 7.5 },
 						"wind": { "Summer": 3, "Autumn": 5, "Winter": 7, "Spring": 5 },
 						"humid": { "Summer": 5, "Autumn": 7.5, "Winter": 7.5, "Spring": 10 },
 						"visibility": { "Summer": 5, "Autumn": 0, "Winter": -5, "Spring": 0 },
@@ -744,10 +678,8 @@ on('ready', () => {
 				"northern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 2.5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -758,10 +690,8 @@ on('ready', () => {
 				"southern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 3 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -772,10 +702,8 @@ on('ready', () => {
 				"northern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -786,10 +714,8 @@ on('ready', () => {
 				"southern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -800,10 +726,8 @@ on('ready', () => {
 				"northern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
 						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
@@ -814,10 +738,8 @@ on('ready', () => {
 				"northern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 20, "Dry": 10 },
-						"dry": { "Wet": 0, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": -2.5, "Dry": 5 },
@@ -828,10 +750,8 @@ on('ready', () => {
 				"northern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 10, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 10, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
 						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
 						"visibility": { "Summer": 5, "Winter": -2.5 },
@@ -842,10 +762,8 @@ on('ready', () => {
 				"northern mountain": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 25, "Spring": 15, "Summer": 5, "Autumn": 10 },
-						"wet": { "Winter": 15, "Spring": 20, "Summer": 15, "Autumn": 10 },
-						"dry": { "Winter": 5, "Spring": 5, "Summer": 10, "Autumn": 5 },
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
 						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
 						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -856,10 +774,8 @@ on('ready', () => {
 				"equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 7.5, "Dry": 5 },
+						"precipitation": { "Wet": 15, "Dry": -5 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 15, "Dry": 10 },
 						"visibility": { "Wet": -5, "Dry": 5 },
@@ -870,10 +786,8 @@ on('ready', () => {
 				"southern continental": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 15 },
-						"dry": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
+						"temperature": { "Summer": 10, "Autumn": 0, "Winter": -10, "Spring": 0 },
+						"precipitation": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 0 },
 						"wind": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
 						"humid": { "Summer": 10, "Autumn": 15, "Winter": 10, "Spring": 15 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
@@ -884,10 +798,8 @@ on('ready', () => {
 				"southern mediterranean": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 20, "Autumn": 15, "Winter": 5, "Spring": 15 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"dry": { "Summer": 20, "Autumn": 10, "Winter": 5, "Spring": 10 },
+						"temperature": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 5 },
+						"precipitation": { "Summer": -5, "Autumn": 5, "Winter": 7.5, "Spring": 5 },
 						"wind": { "Summer": 5, "Autumn": 10, "Winter": 15, "Spring": 10 },
 						"humid": { "Summer": 10, "Autumn": 20, "Winter": 25, "Spring": 20 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 10 },
@@ -898,27 +810,23 @@ on('ready', () => {
 				"southern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
-						"humid": { "Hot": 5, "Cool": 10 },
+						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
-						"cloudy": { "Hot": 5, "Cool": 10 }
+						"cloudy": { "Hot": -2.5, "Cool": 2.5 }
 					},
 					"seasonStart": { "Hot": 10, "Cool": 4 }
 				},
 				"southern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
-						"humid": { "Wet": 15, "Dry": 10 },
-						"visibility": { "Wet": -5, "Dry": 5 },
+						"humid": { "Wet": 10, "Dry": 5 },
+						"visibility": { "Wet": -2.5, "Dry": 5 },
 						"cloudy": { "Wet": 10, "Dry": 5 }
 					},
 					"seasonStart": { "Wet": 9, "Dry": 3 }
@@ -926,28 +834,24 @@ on('ready', () => {
 				"southern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 15, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
-						"wind": { "Summer": 10, "Winter": 20 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
+						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
-						"visibility": { "Summer": 5, "Winter": -5 },
-						"cloudy": { "Summer": 10, "Winter": 20 }
+						"visibility": { "Summer": 5, "Winter": -2.5 },
+						"cloudy": { "Summer": 5, "Winter": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Winter": 6 }
 				},
 				"southern mountain": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 15, "Winter": 25, "Spring": 15 },
-						"wet": { "Summer": 15, "Autumn": 20, "Winter": 15, "Spring": 20 },
-						"dry": { "Summer": 10, "Autumn": 5, "Winter": 5, "Spring": 10 },
-						"wind": { "Summer": 15, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"humid": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
-						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
-						"cloudy": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 }
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
+						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
+						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
+						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
+						"cloudy": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Autumn": 3, "Winter": 6, "Spring": 9 }
 				}
@@ -1000,10 +904,8 @@ on('ready', () => {
 				"northern temperate": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 15, "Spring": 5, "Summer": 2.5, "Autumn": 7.5 },
-						"wet": { "Winter": 10, "Spring": 7.5, "Summer": 5, "Autumn": 7.5 },
-						"dry": { "Winter": -5, "Spring": -2.5, "Summer": -7.5, "Autumn": -5 },
+						"temperature": { "Winter": -10, "Spring": 5, "Summer": 7.5, "Autumn": 2.5 },
+						"precipitation": { "Winter": 5, "Spring": 5, "Summer": -2.5, "Autumn": 2.5 },
 						"wind": { "Winter": 5, "Spring": 3, "Summer": 2, "Autumn": 3 },
 						"humid": { "Winter": 7.5, "Spring": 10, "Summer": 5, "Autumn": 7.5 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -1014,10 +916,8 @@ on('ready', () => {
 				"southern temperate": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 2.5, "Autumn": 7.5, "Winter": 15, "Spring": 5 },
-						"wet": { "Summer": 7.5, "Autumn": 10, "Winter": 10, "Spring": 12.5 },
-						"dry": { "Summer": -5, "Autumn": -2.5, "Winter": -7.5, "Spring": -5 },
+						"temperature": { "Summer": 7.5, "Autumn": 2.5, "Winter": -10, "Spring": 5 },
+						"precipitation": { "Summer": 2.5, "Autumn": 7.5, "Winter": 2.5, "Spring": 7.5 },
 						"wind": { "Summer": 3, "Autumn": 5, "Winter": 7, "Spring": 5 },
 						"humid": { "Summer": 5, "Autumn": 7.5, "Winter": 7.5, "Spring": 10 },
 						"visibility": { "Summer": 5, "Autumn": 0, "Winter": -5, "Spring": 0 },
@@ -1028,10 +928,8 @@ on('ready', () => {
 				"northern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 2.5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -1042,10 +940,8 @@ on('ready', () => {
 				"southern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 3 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -1056,10 +952,8 @@ on('ready', () => {
 				"northern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -1070,10 +964,8 @@ on('ready', () => {
 				"southern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -1084,10 +976,8 @@ on('ready', () => {
 				"northern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
 						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
@@ -1098,10 +988,8 @@ on('ready', () => {
 				"northern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 20, "Dry": 10 },
-						"dry": { "Wet": 0, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": -2.5, "Dry": 5 },
@@ -1112,10 +1000,8 @@ on('ready', () => {
 				"northern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 10, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 10, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
 						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
 						"visibility": { "Summer": 5, "Winter": -2.5 },
@@ -1126,10 +1012,8 @@ on('ready', () => {
 				"northern mountain": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 25, "Spring": 15, "Summer": 5, "Autumn": 10 },
-						"wet": { "Winter": 15, "Spring": 20, "Summer": 15, "Autumn": 10 },
-						"dry": { "Winter": 5, "Spring": 5, "Summer": 10, "Autumn": 5 },
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
 						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
 						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -1140,10 +1024,8 @@ on('ready', () => {
 				"equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 7.5, "Dry": 5 },
+						"precipitation": { "Wet": 15, "Dry": -5 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 15, "Dry": 10 },
 						"visibility": { "Wet": -5, "Dry": 5 },
@@ -1154,10 +1036,8 @@ on('ready', () => {
 				"southern continental": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 15 },
-						"dry": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
+						"temperature": { "Summer": 10, "Autumn": 0, "Winter": -10, "Spring": 0 },
+						"precipitation": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 0 },
 						"wind": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
 						"humid": { "Summer": 10, "Autumn": 15, "Winter": 10, "Spring": 15 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
@@ -1168,10 +1048,8 @@ on('ready', () => {
 				"southern mediterranean": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 20, "Autumn": 15, "Winter": 5, "Spring": 15 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"dry": { "Summer": 20, "Autumn": 10, "Winter": 5, "Spring": 10 },
+						"temperature": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 5 },
+						"precipitation": { "Summer": -5, "Autumn": 5, "Winter": 7.5, "Spring": 5 },
 						"wind": { "Summer": 5, "Autumn": 10, "Winter": 15, "Spring": 10 },
 						"humid": { "Summer": 10, "Autumn": 20, "Winter": 25, "Spring": 20 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 10 },
@@ -1182,27 +1060,23 @@ on('ready', () => {
 				"southern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
-						"humid": { "Hot": 5, "Cool": 10 },
+						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
-						"cloudy": { "Hot": 5, "Cool": 10 }
+						"cloudy": { "Hot": -2.5, "Cool": 2.5 }
 					},
 					"seasonStart": { "Hot": 10, "Cool": 4 }
 				},
 				"southern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
-						"humid": { "Wet": 15, "Dry": 10 },
-						"visibility": { "Wet": -5, "Dry": 5 },
+						"humid": { "Wet": 10, "Dry": 5 },
+						"visibility": { "Wet": -2.5, "Dry": 5 },
 						"cloudy": { "Wet": 10, "Dry": 5 }
 					},
 					"seasonStart": { "Wet": 9, "Dry": 3 }
@@ -1210,28 +1084,24 @@ on('ready', () => {
 				"southern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 15, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
-						"wind": { "Summer": 10, "Winter": 20 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
+						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
-						"visibility": { "Summer": 5, "Winter": -5 },
-						"cloudy": { "Summer": 10, "Winter": 20 }
+						"visibility": { "Summer": 5, "Winter": -2.5 },
+						"cloudy": { "Summer": 5, "Winter": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Winter": 6 }
 				},
 				"southern mountain": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 15, "Winter": 25, "Spring": 15 },
-						"wet": { "Summer": 15, "Autumn": 20, "Winter": 15, "Spring": 20 },
-						"dry": { "Summer": 10, "Autumn": 5, "Winter": 5, "Spring": 10 },
-						"wind": { "Summer": 15, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"humid": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
-						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
-						"cloudy": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 }
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
+						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
+						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
+						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
+						"cloudy": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Autumn": 3, "Winter": 6, "Spring": 9 }
 				}
@@ -1279,10 +1149,8 @@ on('ready', () => {
 				"northern temperate": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 15, "Spring": 5, "Summer": 2.5, "Autumn": 7.5 },
-						"wet": { "Winter": 10, "Spring": 7.5, "Summer": 5, "Autumn": 7.5 },
-						"dry": { "Winter": -5, "Spring": -2.5, "Summer": -7.5, "Autumn": -5 },
+						"temperature": { "Winter": -10, "Spring": 5, "Summer": 7.5, "Autumn": 2.5 },
+						"precipitation": { "Winter": 5, "Spring": 5, "Summer": -2.5, "Autumn": 2.5 },
 						"wind": { "Winter": 5, "Spring": 3, "Summer": 2, "Autumn": 3 },
 						"humid": { "Winter": 7.5, "Spring": 10, "Summer": 5, "Autumn": 7.5 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -1293,10 +1161,8 @@ on('ready', () => {
 				"southern temperate": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 2.5, "Autumn": 7.5, "Winter": 15, "Spring": 5 },
-						"wet": { "Summer": 7.5, "Autumn": 10, "Winter": 10, "Spring": 12.5 },
-						"dry": { "Summer": -5, "Autumn": -2.5, "Winter": -7.5, "Spring": -5 },
+						"temperature": { "Summer": 7.5, "Autumn": 2.5, "Winter": -10, "Spring": 5 },
+						"precipitation": { "Summer": 2.5, "Autumn": 7.5, "Winter": 2.5, "Spring": 7.5 },
 						"wind": { "Summer": 3, "Autumn": 5, "Winter": 7, "Spring": 5 },
 						"humid": { "Summer": 5, "Autumn": 7.5, "Winter": 7.5, "Spring": 10 },
 						"visibility": { "Summer": 5, "Autumn": 0, "Winter": -5, "Spring": 0 },
@@ -1307,10 +1173,8 @@ on('ready', () => {
 				"northern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 2.5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -1321,10 +1185,8 @@ on('ready', () => {
 				"southern tropical": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 15, "Dry": 20 },
-						"cold": { "Wet": 2.5, "Dry": 5 },
-						"wet": { "Wet": 20, "Dry": 5 },
-						"dry": { "Wet": -5, "Dry": 20 },
+						"temperature": { "Wet": 2.5, "Dry": 5 },
+						"precipitation": { "Wet": 10, "Dry": -10 },
 						"wind": { "Wet": 5, "Dry": 3 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": 5, "Dry": 10 },
@@ -1335,10 +1197,8 @@ on('ready', () => {
 				"northern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -1349,10 +1209,8 @@ on('ready', () => {
 				"southern polar": {
 					"seasons": ["Polar Day", "Polar Night"],
 					"modifiers": {
-						"heat": { "Polar Day": 5, "Polar Night": 0 },
-						"cold": { "Polar Day": 15, "Polar Night": 25 },
-						"wet": { "Polar Day": 2.5, "Polar Night": 0 },
-						"dry": { "Polar Day": -5, "Polar Night": 0 },
+						"temperature": { "Polar Day": -15, "Polar Night": -20 },
+						"precipitation": { "Polar Day": -2.5, "Polar Night": 0 },
 						"wind": { "Polar Day": 10, "Polar Night": 15 },
 						"humid": { "Polar Day": 5, "Polar Night": 10 },
 						"visibility": { "Polar Day": 0, "Polar Night": 5 },
@@ -1363,10 +1221,8 @@ on('ready', () => {
 				"northern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
 						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
@@ -1377,10 +1233,8 @@ on('ready', () => {
 				"northern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 20, "Dry": 10 },
-						"dry": { "Wet": 0, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 10, "Dry": 5 },
 						"visibility": { "Wet": -2.5, "Dry": 5 },
@@ -1391,10 +1245,8 @@ on('ready', () => {
 				"northern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 10, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 10, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
 						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
 						"visibility": { "Summer": 5, "Winter": -2.5 },
@@ -1405,10 +1257,8 @@ on('ready', () => {
 				"northern mountain": {
 					"seasons": ["Winter", "Spring", "Summer", "Autumn"],
 					"modifiers": {
-						"heat": { "Winter": 5, "Spring": 10, "Summer": 15, "Autumn": 10 },
-						"cold": { "Winter": 25, "Spring": 15, "Summer": 5, "Autumn": 10 },
-						"wet": { "Winter": 15, "Spring": 20, "Summer": 15, "Autumn": 10 },
-						"dry": { "Winter": 5, "Spring": 5, "Summer": 10, "Autumn": 5 },
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
 						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
 						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
 						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
@@ -1419,10 +1269,8 @@ on('ready', () => {
 				"equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 7.5, "Dry": 5 },
+						"precipitation": { "Wet": 15, "Dry": -5 },
 						"wind": { "Wet": 5, "Dry": 5 },
 						"humid": { "Wet": 15, "Dry": 10 },
 						"visibility": { "Wet": -5, "Dry": 5 },
@@ -1433,10 +1281,8 @@ on('ready', () => {
 				"southern continental": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 15 },
-						"dry": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
+						"temperature": { "Summer": 10, "Autumn": 0, "Winter": -10, "Spring": 0 },
+						"precipitation": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 0 },
 						"wind": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
 						"humid": { "Summer": 10, "Autumn": 15, "Winter": 10, "Spring": 15 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
@@ -1447,10 +1293,8 @@ on('ready', () => {
 				"southern mediterranean": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 20, "Autumn": 15, "Winter": 5, "Spring": 15 },
-						"cold": { "Summer": 5, "Autumn": 10, "Winter": 20, "Spring": 10 },
-						"wet": { "Summer": 5, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"dry": { "Summer": 20, "Autumn": 10, "Winter": 5, "Spring": 10 },
+						"temperature": { "Summer": 10, "Autumn": 5, "Winter": -5, "Spring": 5 },
+						"precipitation": { "Summer": -5, "Autumn": 5, "Winter": 7.5, "Spring": 5 },
 						"wind": { "Summer": 5, "Autumn": 10, "Winter": 15, "Spring": 10 },
 						"humid": { "Summer": 10, "Autumn": 20, "Winter": 25, "Spring": 20 },
 						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 10, "Spring": 10 },
@@ -1461,27 +1305,23 @@ on('ready', () => {
 				"southern desert": {
 					"seasons": ["Hot", "Cool"],
 					"modifiers": {
-						"heat": { "Hot": 25, "Cool": 10 },
-						"cold": { "Hot": 2.5, "Cool": 10 },
-						"wet": { "Hot": 2.5, "Cool": 5 },
-						"dry": { "Hot": 25, "Cool": 15 },
+						"temperature": { "Hot": 20, "Cool": 10 },
+						"precipitation": { "Hot": -20, "Cool": -15 },
 						"wind": { "Hot": 10, "Cool": 15 },
-						"humid": { "Hot": 5, "Cool": 10 },
+						"humid": { "Hot": -5, "Cool": 0 },
 						"visibility": { "Hot": 0, "Cool": 5 },
-						"cloudy": { "Hot": 5, "Cool": 10 }
+						"cloudy": { "Hot": -2.5, "Cool": 2.5 }
 					},
 					"seasonStart": { "Hot": 10, "Cool": 4 }
 				},
 				"southern equatorial": {
 					"seasons": ["Wet", "Dry"],
 					"modifiers": {
-						"heat": { "Wet": 20, "Dry": 25 },
-						"cold": { "Wet": 2.5, "Dry": 2.5 },
-						"wet": { "Wet": 25, "Dry": 10 },
-						"dry": { "Wet": 5, "Dry": 20 },
+						"temperature": { "Wet": 10, "Dry": 17.5 },
+						"precipitation": { "Wet": 15, "Dry": 10 },
 						"wind": { "Wet": 5, "Dry": 5 },
-						"humid": { "Wet": 15, "Dry": 10 },
-						"visibility": { "Wet": -5, "Dry": 5 },
+						"humid": { "Wet": 10, "Dry": 5 },
+						"visibility": { "Wet": -2.5, "Dry": 5 },
 						"cloudy": { "Wet": 10, "Dry": 5 }
 					},
 					"seasonStart": { "Wet": 9, "Dry": 3 }
@@ -1489,28 +1329,24 @@ on('ready', () => {
 				"southern tundra": {
 					"seasons": ["Summer", "Winter"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Winter": 0 },
-						"cold": { "Summer": 5, "Winter": 25 },
-						"wet": { "Summer": 15, "Winter": 5 },
-						"dry": { "Summer": 5, "Winter": 10 },
-						"wind": { "Summer": 10, "Winter": 20 },
+						"temperature": { "Summer": -5, "Winter": -15 },
+						"precipitation": { "Summer": -5, "Winter": 5 },
+						"wind": { "Summer": 10, "Winter": 15 },
 						"humid": { "Summer": 10, "Winter": 5 },
-						"visibility": { "Summer": 5, "Winter": -5 },
-						"cloudy": { "Summer": 10, "Winter": 20 }
+						"visibility": { "Summer": 5, "Winter": -2.5 },
+						"cloudy": { "Summer": 5, "Winter": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Winter": 6 }
 				},
 				"southern mountain": {
 					"seasons": ["Summer", "Autumn", "Winter", "Spring"],
 					"modifiers": {
-						"heat": { "Summer": 15, "Autumn": 10, "Winter": 5, "Spring": 10 },
-						"cold": { "Summer": 5, "Autumn": 15, "Winter": 25, "Spring": 15 },
-						"wet": { "Summer": 15, "Autumn": 20, "Winter": 15, "Spring": 20 },
-						"dry": { "Summer": 10, "Autumn": 5, "Winter": 5, "Spring": 10 },
-						"wind": { "Summer": 15, "Autumn": 20, "Winter": 25, "Spring": 20 },
-						"humid": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 },
-						"visibility": { "Summer": 5, "Autumn": 10, "Winter": 0, "Spring": 5 },
-						"cloudy": { "Summer": 10, "Autumn": 15, "Winter": 20, "Spring": 15 }
+						"temperature": { "Winter": -15, "Spring": -5, "Summer": 5, "Autumn": 0 },
+						"precipitation": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 5 },
+						"wind": { "Winter": 20, "Spring": 15, "Summer": 10, "Autumn": 15 },
+						"humid": { "Winter": 10, "Spring": 15, "Summer": 10, "Autumn": 10 },
+						"visibility": { "Winter": -5, "Spring": 0, "Summer": 5, "Autumn": 0 },
+						"cloudy": { "Winter": 10, "Spring": 15, "Summer": 5, "Autumn": 10 }
 					},
 					"seasonStart": { "Summer": 12, "Autumn": 3, "Winter": 6, "Spring": 9 }
 				}
@@ -1525,7 +1361,6 @@ on('ready', () => {
 			}
 		}
 	};
-	// 
 	state.CalenderData.WEATHER = {
 		"weather": {
 			"Arctic Chill": {

@@ -40,25 +40,130 @@ Quest Tracker is a comprehensive tool for managing quests, rumors, and events in
    - Access all features through an intuitive graphical user interface.
    - Navigate through menus to manage quests, rumors, and events seamlessly.
 
-## Graphical Interface Highlights
+## Rumours Module
 
-- **Main Dashboard:**
-  Access the current game status, active quests, and weather updates at a glance.
+The rumours module provides a flexible framework for dynamically integrating narrative elements into your campaign. It connects directly to quests, locations, and events, allowing for automated storytelling and background interactions.
 
-- **Quest Management Panel:**
-  Easily view, edit, or remove quests. Group quests logically and track their progression visually.
+### Module Architecture
 
-- **Rumor Interface:**
-  Manage rumors tied to quests and locations. Generate rumors dynamically with a few clicks.
+#### Data Structures
 
-- **Event Scheduler:**
-  Set up events and specify recurrence patterns directly in the calendar view.
+Rumours are structured hierarchically by quest, status, and location. Example structure:
+```
+{
+  "quest_1": {
+    "unknown": {},
+    "discovered": {
+      "everywhere": {
+        "rumour_1": "This is a rumour text"
+      },
+      "general_store": {
+        "rumour_2": "Wonderings of goings on",
+        "rumour_4": "Gossip"
+      }
+    }
+  },
+  "quest_2": {
+    "unknown": {
+      "the_boathouse": {
+        "rumour_3": "Dave is skimming from the books"
+      }
+    }
+  }
+}
+```
+#### Hierarchy:
 
-- **Weather Visualization:**
-  See real-time weather effects and adjust them dynamically for immersive gameplay.
+* quest: The ID of the associated quest.
+* status: The state of the rumour (e.g., unknown, discovered).
+* location: The in-game location where the rumour is tied.
+* rumour_id: Unique identifier for the specific rumour.
+* description: The text of the rumour.
 
-- **Quest Tree View:**
-  Automatically generated quest tree displaying relationships, prerequisites, and statuses in a clear, visual format.
+#### Storage:
+
+Rumours are stored in handout files within Roll20.
+
+These files can be imported using Configuration > Refresh/Import JSON data from the module's graphical interface.
+
+The JSON data structure must follow the hierarchical format described above.
+
+#### Locations:
+
+Rumours tied to specific locations are triggered when players interact with those areas.
+
+### Core Functionalities
+
+**Adding and Editing Rumours**
+
+Rumours are managed directly through the graphical interface, providing an intuitive way to organize and modify them:
+
+**Show All Rumours:**
+
+Navigate to the "Show All Rumours" panel to view rumours linked to a specific quest.
+
+Select the relevant quest and choose the status (unknown, discovered, etc.) to which you want to add or edit rumours.
+
+**Location-Specific Actions:**
+
+Under each location, buttons allow for streamlined rumour management:
+
+* "+" Add a Rumour: Add a new rumour to the specified location and status.
+* "c" Change: Edit the existing rumour text.
+* "-" Remove: Delete the rumour from the selected location.
+
+**Viewing Full Rumour Text:**
+* Hover over the magnifying glass icon to see the full rumour text. The displayed text will truncate if it exceeds the visible area.
+
+**Formatting Tips:**
+* Use %NEWLINE% to insert line breaks within rumour text.
+* Use &quot; to include quotation marks in rumour descriptions.
+
+### Rumour Locations Management
+
+Navigate to "All Rumours > Rumour Locations" to manage locations associated with rumours.
+
+![Rumour Management Screen](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumourManagement.png)
+
+Buttons provide streamlined location management:
+
+* "+" Add a Location: Create a new location to associate with rumours.
+* "c" Change: Edit the name or properties of an existing location.
+* "-" Remove: Delete a location, with a confirmation prompt to ensure that all rumours under the location are not removed unintentionally.
+
+**Automated Updates**
+
+Rumours dynamically adapt to quest progression:
+
+**Quest Status Changes:**
+
+Different quest statuses trigger distinct sets of rumours.
+
+*Example: A quest in the discovered status may have rumours tied to general_store, while the same quest in the completed status has no active rumours.*
+
+**Location-Based Differentiation:**
+
+The same quest and status can yield different rumours depending on the location.
+
+*Example: In everywhere, a rumour might say "A strange light in the forest," while in general_store, it could suggest "A missing person was last seen here."*
+
+Updates are handled programmatically via the updateRumorState method, ensuring seamless transitions and consistency.
+
+## Developer Considerations
+
+### Error Handling:
+
+Ensure rumour_id fields are unique to prevent overwrites.
+Validate linked quest and location IDs to maintain data integrity.
+
+### Extensibility:
+
+Add new statuses or integration points as needed. Update corresponding logic in updateRumorState and UI components.
+
+
+
+
+
 
 ## FAQ
 

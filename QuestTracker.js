@@ -1533,23 +1533,53 @@ var QuestTracker = QuestTracker || (function () {
 				updateTrends: (rolls) => {
 					["heat", "cold", "wet", "dry", "wind", "visibility", "cloudy"].forEach((trendType) => {
 						const roll = rolls[`${trendType}Roll`];
-						if (["wind", "visibility", "cloudy"].includes(trendType) && roll < 60) {
+						if (["wind", "visibility", "cloudy"].includes(trendType) && roll < 75) {
 							QUEST_TRACKER_WEATHER_TRENDS[trendType] = 0;
-						} else if (roll > 80) {
+						} else if (roll > 75) {
 							QUEST_TRACKER_WEATHER_TRENDS[trendType] =
 								(QUEST_TRACKER_WEATHER_TRENDS[trendType] || 0) + 1;
 						} else if (QUEST_TRACKER_WEATHER_TRENDS[trendType]) {
 							QUEST_TRACKER_WEATHER_TRENDS[trendType] = 0;
 						}
 					});
-					if (rolls.precipitationRoll > 80) QUEST_TRACKER_WEATHER_TRENDS.dry = 0;
-					if (rolls.temperatureRoll > 80) QUEST_TRACKER_WEATHER_TRENDS.cold = 0;
-					if (rolls.temperatureRoll < 20) QUEST_TRACKER_WEATHER_TRENDS.heat = 0;
+					if (rolls.precipitationRoll > 75) QUEST_TRACKER_WEATHER_TRENDS.dry = 0;
+					if (rolls.temperatureRoll > 75) QUEST_TRACKER_WEATHER_TRENDS.cold = 0;
+					if (rolls.temperatureRoll < 25) QUEST_TRACKER_WEATHER_TRENDS.heat = 0;
 				},
 				generateBellCurveRoll: () => {
-					const roll = Math.random() + Math.random() + Math.random();
-					const scaled = (roll / 3) * 60 + 20;
-					return Math.round(scaled);
+					const randomGaussian = () => {
+						let u = 0, v = 0;
+						while (u === 0) u = Math.random(); // Avoid log(0)
+						while (v === 0) v = Math.random();
+						return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+					};
+					let roll = Math.random() * 30 + 35;
+					let bias = roll <= 50 
+						? Math.pow((roll - 35) / (50 - 35), 2)
+						: Math.pow((65 - roll) / (65 - 50), 2);
+					if (Math.random() < bias) {
+						return Math.round(roll * 100) / 100;
+					} else {
+						return W.generateBellCurveRoll();
+					}
+				},
+				adjustDailyFluctuation: (date, trendAdjustedRolls, suddenChangeProbability, seasonBoundary) => {
+					const previousWeather = QUEST_TRACKER_HISTORICAL_WEATHER[Object.keys(QUEST_TRACKER_HISTORICAL_WEATHER).reverse().find(d => d < date)];
+					if (!previousWeather) return trendAdjustedRolls;
+					const maxChange = suddenChangeProbability > 0.05 ? 10 : 5;
+					const maxBoundaryChange = suddenChangeProbability > 0.05 ? 20 : 10;
+					const adjustedRolls = { ...trendAdjustedRolls };
+					Object.keys(adjustedRolls).forEach((key) => {
+						const prevValue = previousWeather[key];
+						if (prevValue !== undefined) {
+							const boundaryLimit = seasonBoundary ? maxBoundaryChange : maxChange;
+							const change = adjustedRolls[key] - prevValue;
+							if (Math.abs(change) > boundaryLimit) {
+								adjustedRolls[key] = prevValue + Math.sign(change) * boundaryLimit;
+							}
+						}
+					});
+					return adjustedRolls;
 				}
 			};
 			const [year, month, day] = date.split("-").map(Number);
@@ -1569,33 +1599,27 @@ var QuestTracker = QuestTracker || (function () {
 			const forcedAdjustedRolls = W.applyForcedTrends(rolls);
 			const trendAdjustedRolls = W.applyTrends(forcedAdjustedRolls);
 			W.updateTrends(trendAdjustedRolls);
-			const climateModifiers = CALENDARS[QUEST_TRACKER_calenderType]?.climates[QUEST_TRACKER_Location.climateZone]?.modifiers;
+			const climateModifiers = CALENDARS[QUEST_TRACKER_calenderType]?.climates[QUEST_TRACKER_Location]?.modifiers;
 			trendAdjustedRolls.temperatureRoll += climateModifiers?.temperature?.[season] || 0;
 			trendAdjustedRolls.precipitationRoll += climateModifiers?.precipitation?.[season] || 0;
 			trendAdjustedRolls.windRoll += climateModifiers?.wind?.[season] || 0;
 			trendAdjustedRolls.humidityRoll += climateModifiers?.humid?.[season] || 0;
 			trendAdjustedRolls.visibilityRoll += climateModifiers?.visibility?.[season] || 0;
-			if (Math.random() < suddenChangeProbability) {
-				const nextSeasonIndex = (boundaries.findIndex((b) => b.season === season) + 1) % boundaries.length;
-				const nextSeason = boundaries[nextSeasonIndex].season;
-				const currentModifiers = climateModifiers?.[season] || {};
-				const nextModifiers = climateModifiers?.[nextSeason] || {};
-				trendAdjustedRolls.temperatureRoll += (nextModifiers.heat || 0) - (currentModifiers.heat || 0);
-				trendAdjustedRolls.precipitationRoll += (nextModifiers.wet || 0) - (currentModifiers.wet || 0);
-				trendAdjustedRolls.windRoll += (nextModifiers.wind || 0) - (currentModifiers.wind || 0);
-				trendAdjustedRolls.humidityRoll += (nextModifiers.humid || 0) - (currentModifiers.humid || 0);
-				trendAdjustedRolls.visibilityRoll += (nextModifiers.visibility || 0) - (currentModifiers.visibility || 0);
-			}
-			Object.keys(trendAdjustedRolls).forEach((key) => {
-				trendAdjustedRolls[key] = Math.max(1, Math.min(100, trendAdjustedRolls[key]));
+			const nearBoundary = suddenChangeProbability > 0.05;
+			const isBoundaryDay = boundaries.some(({ startDayOfYear, endDayOfYear }) =>
+				Math.abs(dayOfYear - startDayOfYear) <= 1 || Math.abs(dayOfYear - endDayOfYear) <= 1
+			);
+			const finalAdjustedRolls = W.adjustDailyFluctuation(date, trendAdjustedRolls, suddenChangeProbability, isBoundaryDay);
+			Object.keys(finalAdjustedRolls).forEach((key) => {
+				finalAdjustedRolls[key] = Math.max(1, Math.min(100, finalAdjustedRolls[key]));
 			});
 			const weather = {
 				date,
 				season,
-				...trendAdjustedRolls,
+				...finalAdjustedRolls,
 				trends: { ...QUEST_TRACKER_WEATHER_TRENDS },
 				forcedTrends: { ...QUEST_TRACKER_FORCED_WEATHER_TRENDS },
-				nearBoundary: suddenChangeProbability > 0.05,
+				nearBoundary,
 			};
 			QUEST_TRACKER_HISTORICAL_WEATHER[date] = weather;
 			saveQuestTrackerData();
@@ -4287,6 +4311,7 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			return acc;
 		}, {});
+		loadQuestTrackerData();
 		if (errorCheck(47, 'exists', command,'command')) return;
 		if (command === '!qt-quest') {
 			const { action, field, current, old = '', new: newItem = '', id, confirmation } = params;

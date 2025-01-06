@@ -302,6 +302,8 @@ Mutually exclusive quests are visually highlighted and organized in the quest tr
 
 ## Updates
 
+#### 2025-01-06
+* **v0.9.1.3** Fixed Climate modifiers and adjusted bellcurve
 #### 2025-01-03
 * **v0.9.1.2** Disabled Quest Relationship buttons when no quests available.
 * **v0.9.1.1** Fixed Quest Group Dropdown Menu

@@ -15632,22 +15632,22 @@ on('ready', () => {
 					"description": "No measurable rain, air feels dry."
 				},
 				"15": {
-					"description": "Occasional drizzle or mist, barely noticeable."
+					"description": "No rainfall, completely dry conditions."
 				},
 				"20": {
-					"description": "Light drizzle, a few drops but no accumulation."
+					"description": "No rain, clouds present but dry."
 				},
 				"25": {
-					"description": "Intermittent light rain, barely noticeable."
+					"description": "No rain, air is dry with no mist."
 				},
 				"30": {
-					"description": "Steady light rain, dampening surfaces slightly."
+					"description": "No rainfall, dry and clear."
 				},
 				"35": {
-					"description": "Gentle rain, minimal impact."
+					"description": "Dry conditions, no mist or precipitation."
 				},
 				"40": {
-					"description": "Occasional light rain, minimal accumulation."
+					"description": "Dry, overcast but no rain."
 				},
 				"45": {
 					"description": "Light rain, enough to dampen the ground."

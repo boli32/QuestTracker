@@ -206,14 +206,17 @@ var QuestTracker = QuestTracker || (function () {
 				}
 			};
 			if (!findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTS })[0]) {
-				createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_QUESTS });
+				const tableQuests = createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_QUESTS });
+				tableQuests.set('showplayers', false); // Hide table from players
 			}
 			if (!findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0]) {
-				createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS });
+				const tableQuestGroups = createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS });
+				tableQuestGroups.set('showplayers', false); // Hide table from players
 			}
 			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
 			if (!locationTable) {
 				locationTable = createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS });
+				locationTable.set('showplayers', false); // Hide table from players
 				createObj('tableitem', {
 					_rollabletableid: locationTable.id,
 					name: 'Everywhere',

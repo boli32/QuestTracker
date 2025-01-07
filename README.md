@@ -451,6 +451,12 @@ Quests that are marked as hidden are not shown on the quest tree, although it ca
 
 Quests are organised into quest groups on the Quest Tree page, they are ordered in their creation order, this order is seen in the UI.
 
+### Quest Images
+
+Quest can have images which are tokens. These are set manually using the rollable table, they have the questID in the GM Notes so can be used with tokenMod in order to trigger quest action, such as changing it's status.
+
+I will develop a macro for this use and include it soon.
+
 ## FAQ
 
 ### How do I access the quest tracker interface?

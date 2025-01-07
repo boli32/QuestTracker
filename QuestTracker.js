@@ -2597,32 +2597,14 @@ var QuestTracker = QuestTracker || (function () {
 				let pathData = [];
 				const w = width;
 				const h = height;
-				if (QUEST_TRACKER_jumpGate) {
-					pathData = [
-						['M', -w / 2, -h / 2],
-						['L', w / 2, -h / 2],
-						['L', w / 2, h / 2],
-						['L', -w / 2, h / 2],
-						['L', -w / 2, -h / 2],
-						['Z']
-					];
-				}
-				else {
-					radius = Math.min(radius, width / 2, height / 2);
-					const r = radius;
-					pathData = [
-						['M', -w / 2 + r, -h / 2],
-						['L', w / 2 - r, -h / 2],
-						['Q', w / 2, -h / 2, w / 2, -h / 2 + r],
-						['L', w / 2, h / 2 - r],
-						['Q', w / 2, h / 2, w / 2 - r, h / 2],
-						['L', -w / 2 + r, h / 2],
-						['Q', -w / 2, h / 2, -w / 2, h / 2 - r],
-						['L', -w / 2, -h / 2 + r],
-						['Q', -w / 2, -h / 2, -w / 2 + r, -h / 2],
-						['Z']
-					];
-				}
+				pathData = [
+					['M', -w / 2, -h / 2],
+					['L', w / 2, -h / 2],
+					['L', w / 2, h / 2],
+					['L', -w / 2, h / 2],
+					['L', -w / 2, -h / 2],
+					['Z']
+				];
 				const rectObj = createObj('path', {
 					_pageid: pageId,
 					layer: layer,
@@ -2636,7 +2618,6 @@ var QuestTracker = QuestTracker || (function () {
 					width: width,
 					height: height
 				});
-
 				if (rectObj) {
 					H.storeQuestRef(questId, 'rectangle', rectObj.id);
 				}
@@ -4115,7 +4096,7 @@ var QuestTracker = QuestTracker || (function () {
 			const calenderDropdown = H.buildCalenderDropdown();
 			const climateDropdown = H.buildClimateDropdown();
 			menu += `<br><h4>Settings</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=togglereadableJSON|value=${QUEST_TRACKER_readableJSON === true ? 'false' : 'true'}">Toggle Readable JSON (${QUEST_TRACKER_readableJSON === true ? 'on' : 'off'})</a>`;
-			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=togglejumpgate|value=${QUEST_TRACKER_jumpGate === true ? 'false' : 'true'}">Toggle JumpGate (${QUEST_TRACKER_jumpGate === true ? 'on' : 'off'})</a>`;
+			// menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=togglejumpgate|value=${QUEST_TRACKER_jumpGate === true ? 'false' : 'true'}">Toggle JumpGate (${QUEST_TRACKER_jumpGate === true ? 'on' : 'off'})</a>`;
 			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleVerboseErrors|value=${QUEST_TRACKER_verboseErrorLogging === true ? 'false' : 'true'}">Toggle Verbose Errors (${QUEST_TRACKER_verboseErrorLogging === true ? 'on' : 'off'})</a>`;
 			menu += `<br clear=all><h4>Data</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-import">${RefreshImport} JSON Data</a>`;
 			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=reset|confirmation=?{Are you sure? This will also clear all historical weather data. Type CONFIRM to continue|}">Reset to Defaults</a>`;

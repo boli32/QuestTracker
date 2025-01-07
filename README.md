@@ -30,14 +30,10 @@ Quest Tracker is a comprehensive tool for managing quests, rumors, and events in
 ## Getting Started
 
 1. **Installation:**
-   Download and add `QuestTracker.js` to your Roll20 game.
-
-2. **Setup:**
-   - Initialize the Quest Tracker to get started.
-   - Import quests, rumors, and events using handouts or create them manually.
+   Install CalanderData first, once you see this in the log: "CalenderData initialized in state.CalenderData.CALENDARS & state.CalenderData.WEATHER" you know QuestTracker is ready to be installed it and load into the game it will initialise.
 
 3. **Usage:**
-   - Access all features through an intuitive graphical user interface.
+   - Access all features through an intuitive graphical user interface. simply type **!qt** into chat.
    - Navigate through menus to manage quests, rumors, and events seamlessly.
 
 ## Rumours Module
@@ -401,6 +397,8 @@ Technically, yes you can, by editing the JSON files direct and setting the date 
 
 ## Updates
 
+#### 2025-01-07
+* **v0.9.1.4** Fixed Allias Date Advance to show cut down description.
 #### 2025-01-06
 * **v0.9.1.3** Fixed Climate modifiers and adjusted bellcurve
 #### 2025-01-03

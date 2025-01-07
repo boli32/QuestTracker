@@ -4077,7 +4077,7 @@ var QuestTracker = QuestTracker || (function () {
 								<span style="${styles.floatLeft}">${groupName}<br><small>${questCount} Quest${plural}</small></span>
 								<span style="${styles.floatRight}">`;
 						menu += `<a style="${styles.button} ${styles.smallButton}" href="!qt-questgroup action=update|groupid=${groupId}|old=${groupName}|new=?{Update Group Name|${groupName}}">c</a>
-								 <a style="${styles.button} ${styles.smallButton}" href="!qt-questgroup action=remove|groupid=${groupId}|confirmation=?{Type DELETE to confirm removal of this group|}">-</a>`;
+								 <a style="${styles.button} ${styles.smallButton}" href="!qt-questgroup action=remove|groupid=${groupId}|confirmation=?{Type CONFIRM to confirm removal of this group|}">-</a>`;
 						menu += `</span></li>`;
 					}
 				});

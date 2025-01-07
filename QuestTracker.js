@@ -435,6 +435,10 @@ var QuestTracker = QuestTracker || (function () {
 			QUEST_TRACKER_verboseErrorLogging = (value === 'true');
 			saveQuestTrackerData();
 		};
+		const toggleImperial = (type, value) => {
+			QUEST_TRACKER_imperialMeasurements[type] = (value === 'true');
+			saveQuestTrackerData();
+		};
 		const sanitizeString = (input) => {
 			if (typeof input !== 'string') {
 				Utils.sendGMMessage('Error: Expected a string input.');
@@ -463,6 +467,7 @@ var QuestTracker = QuestTracker || (function () {
 			toggleWeather,
 			toggleJumpGate,
 			toggleVerboseError,
+			toggleImperial,
 			sanitizeString,
 			inputAlias
 		};
@@ -3067,7 +3072,7 @@ var QuestTracker = QuestTracker || (function () {
 									</span>
 								</li>`;
 							} else {
-								errorCheck(147, 'msg', handout,'Quest data for "${quest.id}" is missing or incomplete.')
+								errorCheck(149, 'msg', handout,'Quest data for "${quest.id}" is missing or incomplete.')
 							}
 						}
 					});
@@ -4116,7 +4121,7 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br clear=all><h4>Weather</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleWeather|value=${QUEST_TRACKER_WEATHER === true ? 'false' : 'true'}">Toggle Weather (${QUEST_TRACKER_WEATHER === true ? 'on' : 'off'})</a>`;
 			if (QUEST_TRACKER_WEATHER) {
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=setclimate|new=?{Choose Calender${climateDropdown}}">Climate: ${QUEST_TRACKER_Location}</a>`;
-				menu += `<br clear=all><h4>Weather Trends</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=dry|new=?{Set Trend}">Dry: ${QUEST_TRACKER_WEATHER_TRENDS['dry'] || 0}</a>`;
+				menu += `<br clear=all><h4>Weather Trends</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=dry|new=?{Set Trend}">Dry: ${QUEST_TRACKER_WEATHER_TRENDS['dry'] || 0}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=wet|new=?{Set Trend}">Wet: ${QUEST_TRACKER_WEATHER_TRENDS['wet'] || 0}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=heat|new=?{Set Trend}">Heat: ${QUEST_TRACKER_WEATHER_TRENDS['heat'] || 0}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=cold|new=?{Set Trend}">Cold: ${QUEST_TRACKER_WEATHER_TRENDS['cold'] || 0}</a>`;
@@ -4124,7 +4129,7 @@ var QuestTracker = QuestTracker || (function () {
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=humid|new=?{Set Trend}">Humidity: ${QUEST_TRACKER_WEATHER_TRENDS['humid'] || 0}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=visibility|new=?{Set Trend}">Fog: ${QUEST_TRACKER_WEATHER_TRENDS['visibility'] || 0}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=cloudy|new=?{Set Trend}">Cloud Cover: ${QUEST_TRACKER_WEATHER_TRENDS['cloudy'] || 0}</a>`;
-				menu += `<br clear=all><h4>Forced Weather Trends</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=dry">Dry: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['dry'] || 'False'}</a>`;
+				menu += `<br clear=all><h4>Forced Weather Trends</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=dry">Dry: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['dry'] || 'False'}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=wet">Wet: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['wet'] || 'False'}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=heat">Heat: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['heat'] || 'False'}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=cold">Cold: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cold'] || 'False'}</a>`;
@@ -4132,6 +4137,10 @@ var QuestTracker = QuestTracker || (function () {
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=humid">Humidity: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['humid'] || 'False'}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=visibility">Visibility: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['visibility'] || 'False'}</a>`;
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=cloudy">Cloud Cover: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cloudy'] || 'False'}</a>`;
+				menu += `<br clear=all><h4>Imperial Measurements</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=temperature|value=${QUEST_TRACKER_imperialMeasurements['temperature'] === true ? 'false' : 'true'}">Temperature: ${QUEST_TRACKER_imperialMeasurements['temperature'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=precipitation|value=${QUEST_TRACKER_imperialMeasurements['precipitation'] === true ? 'false' : 'true'}">Precipitation: ${QUEST_TRACKER_imperialMeasurements['precipitation'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=wind|value=${QUEST_TRACKER_imperialMeasurements['wind'] === true ? 'false' : 'true'}">Wind: ${QUEST_TRACKER_imperialMeasurements['wind'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=visibility|value=${QUEST_TRACKER_imperialMeasurements['visibility'] === true ? 'false' : 'true'}">Visibility: ${QUEST_TRACKER_imperialMeasurements['visibility'] || 'False'}</a>`;
 			}
 			menu += `<br clear=all><hr><a style="${styles.button} ${styles.floatClearRight}" href="!qt-menu action=main">Back to Main Menu</a>`;
 			menu += `</div>`;
@@ -4766,7 +4775,7 @@ var QuestTracker = QuestTracker || (function () {
 		} else if (command === '!qt-import') {
 			Import.fullImportProcess();
 		} else if (command === '!qt-config') {
-			const { action, value, confirmation } = params;
+			const { action, value, confirmation, type } = params;
 			if (action === 'togglereadableJSON'){
 				if (errorCheck(137, 'exists', value, 'value')) return;
 				Utils.togglereadableJSON(value);
@@ -4788,6 +4797,13 @@ var QuestTracker = QuestTracker || (function () {
 			} else if (action === 'toggleVerboseErrors'){
 				if (errorCheck(140, 'exists', value, 'value')) return;
 				Utils.toggleVerboseError(value);
+				setTimeout(() => {
+					Menu.adminMenu();
+				}, 500);
+			} else if (action === 'toggleimperial'){
+				if (errorCheck(150, 'exists', value, 'value')) return;
+				if (errorCheck(151, 'exists', type, 'type')) return;
+				Utils.toggleImperial(type,value);
 				setTimeout(() => {
 					Menu.adminMenu();
 				}, 500);

@@ -4753,6 +4753,11 @@ var QuestTracker = QuestTracker || (function () {
 							Menu.generateGMMenu();
 						}, 500);
 					}
+					else {
+						setTimeout(() => {
+							Menu.buildWeather();
+						}, 500);
+					}
 					break;
 				default:
 					errorCheck(136, 'msg', null,`Unknown date command: ${params.action}`);

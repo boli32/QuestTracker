@@ -398,6 +398,7 @@ Technically, yes you can, by editing the JSON files direct and setting the date 
 ## Updates
 
 #### 2025-01-07
+* **v0.9.1.6** If a rollable table needs to be created, it is now hidden from players.
 * **v0.9.1.5** Added Switches to toggle between Imperial or Metric Weather Measurements.
 * **v0.9.1.4** Fixed Allias Date Advance to show cut down description.
 #### 2025-01-06

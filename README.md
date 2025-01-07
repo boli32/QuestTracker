@@ -377,7 +377,8 @@ Each day, weather conditions are matched to predefined scenarios. For example:
         "cloudCover": { "gte": 60 },
         "visibility": { "lte": 50 }
     }
-}```
+}
+```
 
 Each scenario is linked to over **11,000 unique descriptions** for potential player locations, such as plains, farms, or forests. These descriptions create immersive and varied environmental narratives.
 

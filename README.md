@@ -287,6 +287,100 @@ Quests are stored in a hierarchical JSON format, supporting complex relationship
 * Quest Relationships work on a AND and OR functionality and you can put them within relasionship groups in order to visualise the prerequisities; as you can see in the more complex quest tree; five quests are its prerequisites (under AND) but 4 of them are separated into two groups of OR functionality, the grouped quests are also mutually exclusive with each other (note the red line).
 * The Quest diagram is generated automatically and only works on a quest by quest basis (so no futher back); if you come across any failures within rendering please make sure you raise this as an issue. note: before you do this drag the chat window wider, as most issues are resolved with this.
 
+
+
+
+
+## Weather Module
+
+### Overview
+
+The Weather Module is designed to simulate dynamic weather conditions, taking into account environmental trends, forced modifiers, and randomness. This module supports graphical visualizations for key weather parameters and provides an intuitive interface for adjusting and interpreting weather trends.
+
+### Key Weather Parameters
+
+Weather is determined by six key values; each value is rated on a scale of 0 to 100, with 50 representing the average condition. A random number is generated daily to define the weather, following a restricted bell curve distribution centered at 50 (see Bell Curve Graph).
+
+#### Temperature Distribution
+
+![Temperature Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/temp.png)
+
+#### Precipitation Distribution
+
+![Precipitation Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rain.png)
+
+#### Wind Speed Distribution
+
+![Wind Speed Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/wind.png) 
+
+#### Humidity Distribution
+
+![Humidity Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/humid.png)
+
+#### Cloud Cover Distribution
+
+![Cloud Cover Graph ](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/cloud.png)
+ 
+#### Visibility Distribution
+
+![Visibility Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/visibility.png)
+
+#### Bell Curve Graph
+
+![Bellcurve Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/bellcurve.png)
+
+
+### Climate Configuration
+
+Users can select a specific climate configuration, which adjusts weather values based on predefined modifiers. These modifiers vary between -20 to +20 and are season-dependent, linked to the Calendar Module. For instance:
+
+*Icewind Dale (Forgotten Realms): During the "Long Winter" season, the temperature adjustment is -20, the maximum possible adjustment.*
+
+### Daily Adjustments
+
+Weather values change by a maximum of +/- 5 points per day. Near seasonal boundaries (e.g., winter transitioning to spring), this limit increases to +/- 10 points. There is a small chance, especially near seasonal boundaries, that these adjustments can double to +/- 10 or +/- 20 points, resulting in massive weather shifts.
+
+### Forced Trends
+
+A Forced Trend feature can be toggled on or off. When activated, this applies a fixed +/- 20-point difference to simulate significant weather deviations, overriding standard adjustments, this option can be can be found underneath configutation
+
+### How to Use the Module
+
+![Weather GUI](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/weather.png)
+
+#### Initialize the Weather System:
+
+The weather system can be enabled or disabled in the configuration menu. It is enabled by default.
+
+#### Select a Climate Zone:
+In the configuration menu, choose the climate zone your players are in (e.g., Northern Temperate or Equatorial). Climate zones are specific to the selected calendar. For instance, the Harptos climates are based on common adventure areas rather than a general climate type like temperate.
+
+#### Change Player Location:
+You can change the location the players are in under the 'Adjust Date' menu. Examples include selecting Plains, Swamp, or other terrain types.
+
+### Weather Descriptions
+
+The module provides detailed descriptions of weather conditions based on the player's location and daily weather parameters. When weather is enabled, the description is shown to players as a /desc message whenever the day advances.
+
+![Weather Description](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/weatherdescription.png)
+
+#### Weather Condition Matching
+
+Each day, weather conditions are matched to predefined scenarios. For example:
+
+```"Persistent Downpour": {
+    "conditions": {
+        "temperature": { "gte": 50, "lte": 70 },
+        "precipitation": { "gte": 60 },
+        "wind": { "lte": 50 },
+        "humidity": { "gte": 60 },
+        "cloudCover": { "gte": 60 },
+        "visibility": { "lte": 50 }
+    }
+}```
+
+Each scenario is linked to over **11,000 unique descriptions** for potential player locations, such as plains, farms, or forests. These descriptions create immersive and varied environmental narratives.
+
 ## FAQ
 
 ### How do I access the quest tracker interface?
@@ -297,6 +391,10 @@ Yes, the graphical interface allows you to adjust weather trends, add forced con
 
 ### How are mutually exclusive quests displayed?
 Mutually exclusive quests are visually highlighted and organized in the quest tree to prevent conflicts.
+
+### Can I adjust weather effects manually
+Technically, yes you can, by editing the JSON files direct and setting the date to before these changes took place. It is advisable to use the inbuilt tools and make sure the weather runs for a couple of months bfore you start the campaign to even out any extreme fluctuations. Look to forcing weather trends if you wanted to have a drought or cold snap effect the world outside of the seasonal changes.
+
 
 ---
 

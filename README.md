@@ -22,7 +22,11 @@ Quest Tracker is a comprehensive tool for managing quests, rumors, and events in
 - **Weather and Climate Integration:**
   - Dynamic weather generation based on in-game conditions.
   - Detailed descriptions of current weather conditions.
-
+ 
+- **Calender Integration:**
+  - Track Leap years
+  - Different Calander types, e.g. Harpto, Gregorian etc.
+    
 - **Visual Quest Tree:**
   - Display quests and relationships as a tree diagram.
   - Automatically handle mutually exclusive relationships.
@@ -360,7 +364,8 @@ The module provides detailed descriptions of weather conditions based on the pla
 
 Each day, weather conditions are matched to predefined scenarios. For example:
 
-```"Persistent Downpour": {
+```
+"Persistent Downpour": {
     "conditions": {
         "temperature": { "gte": 50, "lte": 70 },
         "precipitation": { "gte": 60 },
@@ -374,6 +379,91 @@ Each day, weather conditions are matched to predefined scenarios. For example:
 
 Each scenario is linked to over **11,000 unique descriptions** for potential player locations, such as plains, farms, or forests. These descriptions create immersive and varied environmental narratives.
 
+
+## Calendar Module
+
+### Overview
+
+The Calendar Module is a comprehensive system designed to manage and integrate various calendar types into your campaign. It supports custom events, lunar cycles, leap years, and dynamic seasonal markers.
+
+### Supported Calendars
+
+The module includes several pre-configured calendars:
+
+* **Gregorian**
+* **Harptos (Forgotten Realms)**
+* **Barovian (Curse of Strahd)**
+* **Golarion (Pathfinder)** - A Pathfinder-specific calendar with varying month lengths and leap year logic.
+* **Greyhawk (Original and 2024 Default setting)**
+* **Exandria (Critical Role)**
+
+I can add additional Calendars into the module if you were to provide the details and JSON object.
+
+### Features
+
+#### Lunar Cycles
+
+Each calendar includes options for tracking lunar phases. The lunar cycle will display key phases, such as the below and are setting specific. There are no current plans to incorporate multiple moons at this time for settings such as Dragonlance.
+
+* New Moon
+* Waxing Crescent
+* First Quarter
+* Full Moon
+* Waning Crescent
+
+#### Leap Years
+
+Calendars with leap year logic will account for additional days. for example:
+
+* Gregorian: Leap years occur every 4 years, except for years divisible by 100 but not by 400.
+* Harptos: Leap days occur every 4 years as "Shieldmeet."
+
+#### Seasonal Events
+
+The module supports predefined seasonal and celestial events, such as:
+
+* Spring Equinox
+* Summer Solstice
+* Autumn Equinox
+* Winter Solstice
+
+These events are always shown to your players.
+
+### Custom Events
+
+Users can add custom events tied to specific dates. These can include festivals, holidays, or recurring milestones within your campaign world.
+
+### Usage Instructions
+
+#### Initializing the Calendar
+
+Select a calendar type from the configuration menu. The system will automatically set the date to the default starting date for the selected calendar.
+
+***Warning: Changing the calendar type resets the current date to the default date for the chosen calendar.***
+
+### Setting Events
+
+Navigate to the "Events" section in the configuration menu. Add, edit, or remove events as needed. Assign dates for recurring or one-time events.
+
+![Upcoming Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/upcoming_events.png)
+![All Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/allevents.png)
+![Modify Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/event_modify.png)
+
+
+### Adjusting Dates
+
+You can set or move the date using the "Adjust Date" menu.
+
+![Adjust Date Menu](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/datechangesUI.png)
+
+There are also quick commands available for date adjustments. These commands provide a streamlined interface, bypassing the full GUI, and include a cut-down weather display with key information for players:
+
+* **!qt-date advance** Increases the date by 1.
+* **!qt-date retreat** Decreases the date by 1.
+
+![Cut Down Weather](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/calander_cut.png)
+
+
 ## Quest Tree Page Module
 
 The Quest Tree Page provides a visual representation of quests and their relationships.
@@ -381,8 +471,6 @@ The Quest Tree Page provides a visual representation of quests and their relatio
 ### How to Create the Quest Tree Page:
 
 Make sure the page **Quest Tree Page** is created, this script will not create this page automatically. Once this is done, navigate to the configuration menu. Press the "Generate Quest Tree Page" button
-
-
 
 ### Automated Updates
 

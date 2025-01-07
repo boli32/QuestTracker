@@ -1,9 +1,7 @@
 # Quest Tracker
-
 Quest Tracker is a comprehensive tool for managing quests, rumors, and events in a tabletop RPG setting. It integrates seamlessly with Roll20 to provide detailed tracking and visualization of game elements, making it ideal for GMs and players who want to streamline their campaigns.
 
-
-## Features
+### Features
 
 - **Quest Management:**
   - Create, edit, and remove quests.
@@ -31,7 +29,7 @@ Quest Tracker is a comprehensive tool for managing quests, rumors, and events in
   - Display quests and relationships as a tree diagram.
   - Automatically handle mutually exclusive relationships.
 
-## Getting Started
+### Getting Started
 
 1. **Installation:**
    Install CalanderData first, once you see this in the log: "CalenderData initialized in state.CalenderData.CALENDARS & state.CalenderData.WEATHER" you know QuestTracker is ready to be installed it and load into the game it will initialise.
@@ -41,7 +39,6 @@ Quest Tracker is a comprehensive tool for managing quests, rumors, and events in
    - Navigate through menus to manage quests, rumors, and events seamlessly.
 
 ## Rumours Module
-
 The rumours module provides a flexible framework for dynamically integrating narrative elements into your campaign. It connects directly to quests, locations, and events, allowing for automated storytelling and background interactions.
 
 ### Module Architecture
@@ -94,17 +91,15 @@ Rumours tied to specific locations are triggered when players interact with thos
 
 ### Core Functionalities
 
-**Adding and Editing Rumours**
+#### Adding and Editing Rumours
 
 Rumours are managed directly through the graphical interface, providing an intuitive way to organize and modify them:
 
-**Show All Rumours:**
+#### Show All Rumours
 
-Navigate to the "Show All Rumours" panel to view rumours linked to a specific quest.
+Navigate to the "Show All Rumours" panel to view rumours linked to a specific quest. Select the relevant quest and choose the status (unknown, discovered, etc.) to which you want to add or edit rumours.
 
-Select the relevant quest and choose the status (unknown, discovered, etc.) to which you want to add or edit rumours.
-
-**Location-Specific Actions:**
+#### Location-Specific Actions
 
 ![Rumour Screen](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumours.png)
 
@@ -114,10 +109,10 @@ Under each location, buttons allow for streamlined rumour management:
 * "c" Change: Edit the existing rumour text.
 * "-" Remove: Delete the rumour from the selected location.
 
-**Viewing Full Rumour Text:**
+##### Viewing Full Rumour Text
 * Hover over the magnifying glass icon to see the full rumour text. The displayed text will truncate if it exceeds the visible area.
 
-**Formatting Tips:**
+#### Formatting Tips
 * Use %NEWLINE% to insert line breaks within rumour text.
 * Use &quot; to include quotation marks in rumour descriptions.
 
@@ -128,30 +123,23 @@ Navigate to "All Rumours > Rumour Locations" to manage locations associated with
 ![Rumour Management Screen](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumourManagement.png)
 
 Buttons provide streamlined location management:
-
 * "+" Add a Location: Create a new location to associate with rumours.
 * "c" Change: Edit the name or properties of an existing location.
 * "-" Remove: Delete a location, with a confirmation prompt to ensure that all rumours under the location are not removed unintentionally.
 
-**Automated Updates**
-
-Rumours dynamically adapt to quest progression:
-
-**Quest Status Changes:**
+#### Quest Status Changes
 
 Different quest statuses trigger distinct sets of rumours.
 
 *Example: A quest in the discovered status may have rumours tied to general_store, while the same quest in the completed status has no active rumours.*
 
-**Location-Based Differentiation:**
+#### Location-Based Differentiation
 
 The same quest and status can yield different rumours depending on the location.
 
 *Example: In everywhere, a rumour might say "A strange light in the forest," while in general_store, it could suggest "A missing person was last seen here."*
 
-Updates are handled programmatically via the updateRumorState method, ensuring seamless transitions and consistency.
-
-**How to Show?**
+### How to Show?
 
 This is stright-forward; simply choose the location the players are in, and select how many (random) rumours will be shown in chat. 'Eeverywhere' is a global location and rumours will be chosen from either the selected location OR everywhere.
 
@@ -159,21 +147,14 @@ This is stright-forward; simply choose the location the players are in, and sele
 
 ![Rumour Display](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumour_display.png)
 
-## Developer Considerations
-
 ### Error Handling:
 
 Ensure rumour_id fields are unique to prevent overwrites.
 Validate linked quest and location IDs to maintain data integrity.
 
-
-# QUEST Module
+## QUEST Module
 
 The QUEST Module is a core component of the Quest Tracker system for Roll20. It provides robust quest management features, allowing game masters to dynamically control quest progression, relationships, and status changes, all integrated seamlessly into sandbox-style RPG campaigns.
-
----
-
-## Features
 
 ### Quest Management
 - Create, update, and delete quests using an intuitive graphical interface.
@@ -198,9 +179,7 @@ Depending on feedback I may allow these statuses to be user specific, although i
 
 None of these quest relasionships rules are rigidly enforced within the code; but will allow you as the DM to follow a basic story logic, as well as offer a more visual way for the players to understand what is happening if they try to support one faction over another.
 
----
-
-## Data Structure
+### Data Structure
 
 Quests are stored in a hierarchical JSON format, supporting complex relationships. Example:
 
@@ -297,33 +276,11 @@ The Weather Module is designed to simulate dynamic weather conditions, taking in
 
 Weather is determined by six key values; each value is rated on a scale of 0 to 100, with 50 representing the average condition. A random number is generated daily to define the weather, following a restricted bell curve distribution centered at 50 (see Bell Curve Graph).
 
-#### Temperature Distribution
-
-![Temperature Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/temp.png)
-
-#### Precipitation Distribution
-
-![Precipitation Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rain.png)
-
-#### Wind Speed Distribution
-
-![Wind Speed Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/wind.png) 
-
-#### Humidity Distribution
-
-![Humidity Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/humid.png)
-
-#### Cloud Cover Distribution
-
-![Cloud Cover Graph ](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/cloud.png)
- 
-#### Visibility Distribution
-
-![Visibility Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/visibility.png)
-
-#### Bell Curve Graph
-
-![Bellcurve Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/bellcurve.png)
+||||
+|:-------------------------:|:-------------------------:|:-------------------------:|
+|![Temperature Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/temp.png) **Temperature Distribution**|![Precipitation Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rain.png) **Precipitation Distribution**|![Wind Speed Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/wind.png) **Wind Speed Distribution**|
+|![Humidity Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/humid.png) **Humidity Distribution**|![Cloud Cover Graph ](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/cloud.png) **Cloud Cover Distribution**|![Visibility Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/visibility.png) **Visibility Distribution**|
+||![Bellcurve Graph](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/bellcurve.png) **Bell Curve Graph**||
 
 
 ### Climate Configuration
@@ -379,7 +336,6 @@ Each day, weather conditions are matched to predefined scenarios. For example:
 
 Each scenario is linked to over **11,000 unique descriptions** for potential player locations, such as plains, farms, or forests. These descriptions create immersive and varied environmental narratives.
 
-
 ## Calendar Module
 
 ### Overview
@@ -398,8 +354,6 @@ The module includes several pre-configured calendars:
 * **Exandria (Critical Role)**
 
 I can add additional Calendars into the module if you were to provide the details and JSON object.
-
-### Features
 
 #### Lunar Cycles
 
@@ -433,9 +387,7 @@ These events are always shown to your players.
 
 Users can add custom events tied to specific dates. These can include festivals, holidays, or recurring milestones within your campaign world.
 
-### Usage Instructions
-
-#### Initializing the Calendar
+### Initializing the Calendar
 
 Select a calendar type from the configuration menu. The system will automatically set the date to the default starting date for the selected calendar.
 
@@ -445,9 +397,9 @@ Select a calendar type from the configuration menu. The system will automaticall
 
 Navigate to the "Events" section in the configuration menu. Add, edit, or remove events as needed. Assign dates for recurring or one-time events.
 
-![Upcoming Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/upcoming_events.png)
-![All Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/allevents.png)
-![Modify Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/event_modify.png)
+| | | |
+|:-------------------------:|:-------------------------:|:-------------------------:|
+|![Upcoming Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/upcoming_events.png)|![All Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/allevents.png)|![Modify Events](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/event_modify.png)|
 
 
 ### Adjusting Dates
@@ -463,8 +415,9 @@ There are also quick commands available for date adjustments. These commands pro
 
 ![Cut Down Weather](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/calander_cut.png)
 
-
 ## Quest Tree Page Module
+
+### Overview
 
 The Quest Tree Page provides a visual representation of quests and their relationships.
 
@@ -488,7 +441,7 @@ The Quest Tree Page will be updated sporadically but often you may need to refre
 * Changes to relasionship data
 * adding or deleting new quests
 
-This is intentional as the calculations to create such a page can get increasingly complex so where the changes can be made quickly, they are done so.
+This is intentional as the calculations to create such a page can get increasingly complex, and recalculating new quests and relationship is something which needs to be done irregually. Also, I cannot see a need for this to be updated on the fly.
   
 ### Quest Visibility
 
@@ -518,9 +471,6 @@ Yes, you can carefully edit the qt-quest-groups rollable table, although this is
 ### I've noticed you can create quest relationships and then move them into separate quest groups, this results in weirdness on the Quest Tree Page
 Yes, that is a workaround to having relationships between quest groups and it *can* result in a very pretty Quest Tree Page, but without a lot of trial and error the Quest Tree Page is not designed to work with this in mind. I left this in as the only other option would be to wipe all relasionships when you add a quest to a quest group which would cause more frustration.
 
-
----
-
 ## Updates
 
 #### 2025-01-07
@@ -540,14 +490,11 @@ Yes, that is a workaround to having relationships between quest groups and it *c
 #### 2024-12-19
 * **v0.9** Initial Upload
 
-
 ## Contributing
 
 Contributions are welcome! Please submit pull requests or report issues on the GitHub repository:
 
 [GitHub Repository](https://github.com/boli32/QuestTracker)
-
----
 
 ## Credits
 

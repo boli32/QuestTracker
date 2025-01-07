@@ -283,10 +283,6 @@ Quests are stored in a hierarchical JSON format, supporting complex relationship
 * Quest Relationships work on a AND and OR functionality and you can put them within relasionship groups in order to visualise the prerequisities; as you can see in the more complex quest tree; five quests are its prerequisites (under AND) but 4 of them are separated into two groups of OR functionality, the grouped quests are also mutually exclusive with each other (note the red line).
 * The Quest diagram is generated automatically and only works on a quest by quest basis (so no futher back); if you come across any failures within rendering please make sure you raise this as an issue. note: before you do this drag the chat window wider, as most issues are resolved with this.
 
-
-
-
-
 ## Weather Module
 
 ### Overview
@@ -378,6 +374,42 @@ Each day, weather conditions are matched to predefined scenarios. For example:
 
 Each scenario is linked to over **11,000 unique descriptions** for potential player locations, such as plains, farms, or forests. These descriptions create immersive and varied environmental narratives.
 
+## Quest Tree Page Module
+
+The Quest Tree Page provides a visual representation of quests and their relationships.
+
+### How to Create the Quest Tree Page:
+
+Make sure the page **Quest Tree Page** is created, this script will not create this page automatically. Once this is done, navigate to the configuration menu. Press the "Generate Quest Tree Page" button
+
+
+
+### Automated Updates
+
+The Quest Tree Page will be updated sporadically but often you may need to refresh the page by pressing the button again.
+
+#### When it is updated automatically
+
+* Quest Visibility
+* Quest Status
+* Quest Name: 
+* Quest Description: 
+
+#### When it is *not* updated automatically
+
+* Changes to relasionship data
+* adding or deleting new quests
+
+This is intentional as the calculations to create such a page can get increasingly complex so where the changes can be made quickly, they are done so.
+  
+### Quest Visibility
+
+Quests that are marked as hidden are not shown on the quest tree, although it can become obvious if entire sections are missing or ther is a 'quest shaped gap' in the viible tree. When a quest is hidden all of their connections are also hidden, this can result in edge cases where there is no obvious connection between quests as the interveneing quests are hidden. You need to keep this in mind when designing Quest Trees.
+
+### Quest Groups
+
+Quests are organised into quest groups on the Quest Tree page, they are ordered in their creation order, this order is seen in the UI.
+
 ## FAQ
 
 ### How do I access the quest tracker interface?
@@ -392,12 +424,19 @@ Mutually exclusive quests are visually highlighted and organized in the quest tr
 ### Can I adjust weather effects manually
 Technically, yes you can, by editing the JSON files direct and setting the date to before these changes took place. It is advisable to use the inbuilt tools and make sure the weather runs for a couple of months bfore you start the campaign to even out any extreme fluctuations. Look to forcing weather trends if you wanted to have a drought or cold snap effect the world outside of the seasonal changes.
 
+### Can I change the order of Quest Groups to have them display in a different order on the Quest Tree Page
+Yes, you can carefully edit the qt-quest-groups rollable table, although this is not an ideal solution and I may add a reordering functionality later should there be call for it.
+
+### I've noticed you can create quest relationships and then move them into separate quest groups, this results in weirdness on the Quest Tree Page
+Yes, that is a workaround to having relationships between quest groups and it *can* result in a very pretty Quest Tree Page, but without a lot of trial and error the Quest Tree Page is not designed to work with this in mind. I left this in as the only other option would be to wipe all relasionships when you add a quest to a quest group which would cause more frustration.
+
 
 ---
 
 ## Updates
 
 #### 2025-01-07
+* **v0.9.1.7.1** Swapped DELETE for CONFIRM in a popup
 * **v0.9.1.7** Removed JumpGate Toggle and where it was used (paths fixed now), kept variable in case it is needed later.
 * **v0.9.1.6** If a rollable table needs to be created, it is now hidden from players.
 * **v0.9.1.5** Added Switches to toggle between Imperial or Metric Weather Measurements.

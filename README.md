@@ -480,6 +480,7 @@ Yes, that is a workaround to having relationships between quest groups and it *c
 ## Updates
 
 #### 2025-01-08
+* **v0.9.2** Fixed quest dropdown to deal with single quests without a dropdown. Also an ungrouped quest which get assigned a relasionship to a quest within a quest group automatically now gets assigned to that quest group.
 * **v0.9.1.7.2** Adjusted font and rectangle size on quest tree page
 #### 2025-01-07
 * **v0.9.1.7.1** Swapped DELETE for CONFIRM in a popup

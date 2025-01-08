@@ -479,6 +479,8 @@ Yes, that is a workaround to having relationships between quest groups and it *c
 
 ## Updates
 
+#### 2025-01-08
+* **v0.9.1.7.2** Adjusted font and rectangle size on quest tree page
 #### 2025-01-07
 * **v0.9.1.7.1** Swapped DELETE for CONFIRM in a popup
 * **v0.9.1.7** Removed JumpGate Toggle and where it was used (paths fixed now), kept variable in case it is needed later.

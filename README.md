@@ -357,7 +357,7 @@ I can add additional Calendars into the module if you were to provide the detail
 
 #### Lunar Cycles
 
-Each calendar includes options for tracking lunar phases. The lunar cycle will display key phases, such as the below and are setting specific. There are no current plans to incorporate multiple moons at this time for settings such as Dragonlance.
+Each calendar includes options for tracking lunar phases. The lunar cycle will display key phases, such as the below and are setting specific. Each Calander can have multiple moons and their lunar cycle including their custom phases is displayed along with the weather.
 
 * New Moon
 * Waxing Crescent
@@ -453,9 +453,11 @@ Quests are organised into quest groups on the Quest Tree page, they are ordered 
 
 ### Quest Images
 
-Quest can have images which are tokens. These are set manually using the rollable table, they have the questID in the GM Notes so can be used with tokenMod in order to trigger quest action, such as changing it's status.
+Quest can have images which are tokens. These are set manually using the rollable table; they will not how unles it is directly pulled from your own roll20 library (no external or using premium assets)
 
-I will develop a macro for this use and include it soon.
+### Compatability with Supernotes
+
+Simply use the command **!gmnote** (create it as a token macro) when selecting a quest token and it will open up an small menu with quick functionality with the main interface. actioning any of these commands will open up the full quest interface afterwards. I highly recomend using **!gmnote --config** to toggle off the footer buttons when you set it up.
 
 ## FAQ
 
@@ -479,6 +481,12 @@ Yes, that is a workaround to having relationships between quest groups and it *c
 
 ## Updates
 
+#### 2025-01-13
+* **v1.0.2** Added Krynn (Dragonlance) and Galifar (Eberon) Calanders. also expanded to allow for multiple moons and different cycles. Added the smaller and secondary moons to both Exandria and Grekhawk calander.
+#### 2025-01-10
+* **v1.0.1** Various small fixes. Made Compatable with Supernotes Mod
+#### 2025-01-09
+* **v1.0** Official Release
 #### 2025-01-08
 * **v0.9.2** Fixed quest dropdown to deal with single quests without a dropdown. Also an ungrouped quest which get assigned a relasionship to a quest within a quest group automatically now gets assigned to that quest group.
 * **v0.9.1.7.2** Adjusted font and rectangle size on quest tree page

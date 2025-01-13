@@ -162,7 +162,8 @@ var QuestTracker = QuestTracker || (function () {
 		state.QUEST_TRACKER.historicalWeather = QUEST_TRACKER_HISTORICAL_WEATHER;
 		state.QUEST_TRACKER.weatherDescription = QUEST_TRACKER_WEATHER_DESCRIPTION;
 		state.QUEST_TRACKER.weather = QUEST_TRACKER_WEATHER;
-		state.QUEST_TRACKER.imperialMeasurements = QUEST_TRACKER_imperialMeasurements
+		state.QUEST_TRACKER.imperialMeasurements = QUEST_TRACKER_imperialMeasurements;
+		state.QUEST_TRACKER.TreeObjRef = QUEST_TRACKER_TreeObjRef;
 	};
 	const initializeQuestTrackerState = (forced = false) => {
 		if (!state.QUEST_TRACKER || Object.keys(state.QUEST_TRACKER).length === 0 || forced) {
@@ -175,7 +176,7 @@ var QuestTracker = QuestTracker || (function () {
 				rumoursByLocation: {},
 				generations: {},
 				readableJSON: true,
-				QUEST_TRACKER_TreeObjRef: {},
+				TreeObjRef: {},
 				jumpGate: true,
 				events: {},
 				calenderType: 'gregorian',
@@ -1907,20 +1908,21 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			saveQuestTrackerData();
 		};
-		const getLunarPhase = (date) => {
+		const getLunarPhase = (date, moonId) => {
 			const calendar = CALENDARS[QUEST_TRACKER_calenderType];
-			if (!calendar.lunarCycle) return null;
-			const lunarCycle = calendar.lunarCycle;
-			const baselineDate = new Date(lunarCycle.baselineNewMoon);
+			if (errorCheck(153, 'exists', calendar.lunarCycle, `calendar.lunarCycle`)) return;
+			if (errorCheck(154, 'exists', calendar.lunarCycle[moonId], `calendar.lunarCycle[${moonId}]`)) return;
+			const { baselineNewMoon, cycleLength, phases, name } = calendar.lunarCycle[moonId];
+			const baselineDate = new Date(baselineNewMoon);
 			const currentDate = new Date(date);
 			const daysSinceBaseline = (currentDate - baselineDate) / (1000 * 60 * 60 * 24);
-			const phase = (daysSinceBaseline % lunarCycle.cycleLength + lunarCycle.cycleLength) % lunarCycle.cycleLength;
-			for (const { name, start, end } of lunarCycle.phases) {
+			const phase = (daysSinceBaseline % cycleLength + cycleLength) % cycleLength;
+			for (const { name: phaseName, start, end } of phases) {
 				if (phase >= start && phase < end) {
-					return name;
+					return `${name}: ${phaseName}`;
 				}
 			}
-			return "Unknown Phase";
+			return `${name}: Unknown Phase`;
 		};
 		const describeWeather = () => {
 			const L = {
@@ -2055,6 +2057,7 @@ var QuestTracker = QuestTracker || (function () {
 		const adjustLocation = (location) => {
 			if (WEATHER.enviroments.hasOwnProperty(location)) {
 				QUEST_TRACKER_WeatherLocation = location;
+				saveQuestTrackerData();
 			} else return;
 		};
 		return {
@@ -2076,11 +2079,11 @@ var QuestTracker = QuestTracker || (function () {
 		const vars = {
 			DEFAULT_PAGE_UNIT: 70,
 			AVATAR_SIZE: 70,
-			TEXT_FONT_SIZE: 10,
+			TEXT_FONT_SIZE: 14,
 			PAGE_HEADER_WIDTH: 700,
 			PAGE_HEADER_HEIGHT: 150,
-			ROUNDED_RECT_WIDTH: 320,
-			ROUNDED_RECT_HEIGHT: 80,
+			ROUNDED_RECT_WIDTH: 280,
+			ROUNDED_RECT_HEIGHT: 60,
 			ROUNDED_RECT_CORNER_RADIUS: 10,
 			VERTICAL_SPACING: 100,
 			HORIZONTAL_SPACING: 160,
@@ -2142,6 +2145,7 @@ var QuestTracker = QuestTracker || (function () {
 				} else {
 					QUEST_TRACKER_TreeObjRef[questId][type] = objRef;
 				}
+				saveQuestTrackerData();
 			},
 			replaceImageSize: (imgsrc) => {
 				return imgsrc.replace(/\/(med|original|max|min)\.(gif|jpg|jpeg|bmp|webp|png)(\?.*)?$/i, '/thumb.$2$3');
@@ -2595,7 +2599,13 @@ var QuestTracker = QuestTracker || (function () {
 					layer: layer,
 					imgsrc: imgsrc,
 					tooltip: trimmedText,
-					controlledby: ''
+					controlledby: '',
+					gmnotes: `
+						[Open Quest](!qt-menu action=quest|id=${questId})
+						[Toggle Visibilty](!qt-quest action=update|field=hidden|current=${questId}|old=${questData.hidden}|new=${questData.hidden ? 'false ' : 'true'})
+						[Change Status](!qt-quest action=update|field=status|current=${questId}|new=?{Change Status|Unknown,1|Discovered,2|Started,3|Ongoing,4|Completed,5|Completed By Someone Else,6|Failed,7|Time ran out,8|Ignored,9})
+					`,
+					name: `${questData.name || 'No description available.'}`
 				});
 				if (avatarObj) {
 					H.storeQuestRef(questId, 'avatar', avatarObj.id);
@@ -2636,9 +2646,13 @@ var QuestTracker = QuestTracker || (function () {
 				const pageId = pageObj.id;
 				if (!QUEST_TRACKER_TreeObjRef[questId] || !QUEST_TRACKER_TreeObjRef[questId].text) return;
 				const textObjId = QUEST_TRACKER_TreeObjRef[questId].text;
-				const textObj = getObj('text', textObjId);
+				const textObj = getObj('text', textObjId);				
 				if (textObj) {
 					const questData = QUEST_TRACKER_globalQuestData[questId];
+					if (!questData) {
+						errorCheck(152, 'msg', null,`Quest data for "${questId}" is missing.`);
+						return;
+					}
 					const isHidden = questData.hidden || false;
 					const textLayer = isHidden ? 'gmlayer' : 'objects';
 					const x = textObj.get('left');
@@ -2698,8 +2712,6 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const updateQuestVisibility = (questId, makeHidden) => {
 			if (!QUEST_TRACKER_TreeObjRef[questId]) return;
-			const questData = QUEST_TRACKER_globalQuestData[questId];
-			if (!questData) return;
 			const pageId = findObjs({ type: 'page', name: QUEST_TRACKER_pageName })[0].id;
 			if (typeof makeHidden === 'string') makeHidden = makeHidden.toLowerCase() === 'true';
 			const targetLayer = makeHidden ? 'gmlayer' : 'map';
@@ -3391,6 +3403,11 @@ var QuestTracker = QuestTracker || (function () {
 					.join('');
 				return dropdownString;
 			},
+			returnCurrentLocation: (key) => {
+				const { WEATHER } = getCalendarAndWeatherData();
+				if (WEATHER.enviroments && WEATHER.enviroments[key]) return WEATHER.enviroments[key].name;
+				else return "Unknown Location";
+			},
 			buildCalenderDropdown: () => {
 				const dropdownString = Object.entries(CALENDARS)
 					.map(([key, value]) => `|${value.name},${key}`)
@@ -3403,7 +3420,24 @@ var QuestTracker = QuestTracker || (function () {
 					.map((climate) => `|${climate.charAt(0).toUpperCase() + climate.slice(1)},${climate}`)
 					.join("");
 				return dropdownString;
-			} 
+			},
+			hasMultipleMoons: (l) => {
+				if (Object.keys(l).length > 1) return true;
+				else return false;
+			},
+			lunarPhases: () => {
+				const calendar = CALENDARS[QUEST_TRACKER_calenderType];
+				if (errorCheck(155, 'exists', calendar.lunarCycle, `calendar.lunarCycle`)) return;
+				const currentDate = QUEST_TRACKER_currentDate;
+				let output = `<tr><td colspan=2><strong>Lunar Phase${H.hasMultipleMoons(calendar.lunarCycle) ? 's' : ''}</strong></td></tr>`;
+				for (const moonId in calendar.lunarCycle) {
+					if (calendar.lunarCycle.hasOwnProperty(moonId)) {
+						const phase = Calendar.getLunarPhase(currentDate, moonId);
+						output += `<tr><td colspan=2><small>${phase}</small></td></tr>`;
+					}
+				}
+				return output;
+			}
 		};
 		const buildWeather = (isMenu = false, isHome = false) => {
 			const FromValue = {
@@ -3479,16 +3513,16 @@ var QuestTracker = QuestTracker || (function () {
 			const cloudCoverDisplay = QUEST_TRACKER_CURRENT_WEATHER['rolls']['cloudCover'];
 			const visibilityDisplay = QUEST_TRACKER_imperialMeasurements['wind'] ? visibilityValue['imperial']['distance']  + visibilityValue['metric']['unit'] : visibilityValue['metric']['unit'] + visibilityValue['imperial']['unit'];
 			const locationDropdown = H.buildLocationDropdown();
+			const LunarPhaseDisplay = H.lunarPhases();
 			const returnto = isMenu ? "menu=true|" : isHome ? "home=true|" : "";
 			let menu = `
 				<table style="width:100%;">
 					<tr><td>&nbsp;</td><td>&nbsp;</td></tr>
+					${LunarPhaseDisplay}
 					<tr><td colspan=2><strong>Weather</strong></td></tr>
 					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['weatherType']}</small></td></tr>
-					<tr><td colspan=2><strong>Lunar Phase</strong></td></tr>
-					<tr><td colspan=2><small>${Calendar.getLunarPhase(QUEST_TRACKER_currentDate)}</small></td></tr>
 					<tr><td colspan=2><strong>Location</strong></td></tr>
-					<tr><td><small>${QUEST_TRACKER_WeatherLocation}</small></td><td><a style="${styles.button}" href="!qt-date action=adjustlocation|${returnto}new=?{Change Location{${locationDropdown}}">Change</a></td></tr>
+					<tr><td><small>${H.returnCurrentLocation(QUEST_TRACKER_WeatherLocation)}</small></td><td><a style="${styles.button}" href="!qt-date action=adjustlocation|${returnto}new=?{Change Location{${locationDropdown}}">Change</a></td></tr>
 					<tr><td><strong>Temperature</strong></td><td>${temperatureDisplay}</td></tr>
 					<tr><td colspan=2><small>${QUEST_TRACKER_CURRENT_WEATHER['scaleDescriptions']['temperature']}</small></td></tr>
 					<tr><td><strong>Precipitation</strong></td><td>${precipitationDisplay}</td></tr>
@@ -3741,7 +3775,7 @@ var QuestTracker = QuestTracker || (function () {
 			}
 		};
 		const generateGMMenu = () => {
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Calendar</h3>`;
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Calendarr</h3>`;
 			menu += `<br>${Calendar.formatDateFull()}<br>( ${QUEST_TRACKER_currentDate} )`;
 			if (QUEST_TRACKER_WEATHER && QUEST_TRACKER_CURRENT_WEATHER !== null) {
 				menu += buildWeather({ isMenu: true });
@@ -4268,7 +4302,7 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=day|new=-1">Day</a>
 					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=week|new=-1">Week</a>
 					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=month|new=-1">Month</a>
-					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|unit=year|new=-1">Year</a>
+					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=year|new=-1">Year</a>
 					<br><strong>Custom</strong>
 					<br><a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=day|new=-?{Enter number of Days}">Day</a>
 					&nbsp;<a style="${styles.button}" href="!qt-date action=modify|menu=true|unit=week|new=-?{Enter number of Weeks}">Week</a>

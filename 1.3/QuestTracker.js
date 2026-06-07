@@ -4728,6 +4728,17 @@ var QuestTracker = QuestTracker || (function () {
 					|| findObjs({ type: 'handout', id: quest.handout })[0]
 					|| null;
 			},
+			linkedQuestHandoutMarker: () => '<hr><h1>QuestTracker</h1>',
+			findLinkedQuestHandoutMarker: (content = '') => {
+				return `${content}`.match(/<hr\s*\/?>\s*<h1>\s*(?:quest\s*tracker|questracker)\s*<\/h1>/i);
+			},
+			buildLinkedQuestHandoutContent: (existingContent = '', generatedContent = '') => {
+				const content = `${existingContent || ''}`;
+				const markerMatch = H.findLinkedQuestHandoutMarker(content);
+				const preservedContent = markerMatch ? content.slice(0, markerMatch.index) : content;
+				const spacer = !markerMatch && preservedContent && !/\s$/.test(preservedContent) ? '\n\n' : '';
+				return `${preservedContent}${spacer}${H.linkedQuestHandoutMarker()}\n${generatedContent}`;
+			},
 			getLocationMapping: () => {
 				const locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
 				if (!locationTable) return [];
@@ -5006,7 +5017,10 @@ var QuestTracker = QuestTracker || (function () {
 				const handout = H.getLinkedQuestHandout(questId);
 				if (!handout) return false;
 				const html = H.buildLinkedQuestHandoutHtml(questId);
-				handout.set('gmnotes', html);
+				handout.get('gmnotes', (notes) => {
+					const updatedContent = H.buildLinkedQuestHandoutContent(notes || '', html);
+					handout.set('gmnotes', updatedContent);
+				});
 				return true;
 			},
 			updateAllLinkedQuestHandouts: () => {

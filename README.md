@@ -50,6 +50,53 @@ Quest Tracker is a comprehensive tool for managing quests, rumours, and events i
   - Use the interface to manage quests, rumours, events, and weather.
   - Navigate through intuitive menus to update quest statuses, schedule events, and track campaign progress.
 
+### Interface Routing in v1.3
+
+Quest Tracker v1.3 is moving the main GM interface away from large chat menus and toward handout-based review screens where practical. Chat remains the command entry point and the place for short DM feedback.
+
+#### Handout UI
+
+The general review and management layer is written to the **QuestTracker Review** handout. After a review screen is updated, chat receives a short GM whisper with a link to open that handout.
+
+The review handout is currently used for:
+
+* Main menu.
+* All quests.
+* All rumours.
+* Rumour details and rumour locations.
+* Quest groups.
+* Quest statuses.
+* Campaign flags and flag statuses.
+* Configuration.
+* Events and event details.
+* Date adjustment.
+* Weather review.
+* Triggers and trigger details.
+
+Linked quest handouts are used for full quest-specific output once a quest has a handout link. The linked quest handout is updated with the QuestTracker marker section and includes relevant quest details, rumours, and triggers.
+
+#### Chat UI
+
+Chat is still used for:
+
+* Basic commands such as `!qt`.
+* Short GM feedback and "open handout" notices.
+* Numbered errors.
+* Import and initialization messages.
+* Failed prerequisite warnings.
+* Public/in-world output such as shown rumours, event announcements, date changes, and weather descriptions.
+
+Until a quest has a linked quest handout, the individual quest details view falls back to chat UI. This keeps quest editing available while leaving room for a later default-handout flow.
+
+#### Default Handout Options Under Consideration
+
+Possible next steps for avoiding quest-detail chat fallback:
+
+* Auto-create one quest handout whenever a quest is created or imported.
+* Lazy-create a quest handout the first time a quest is inspected.
+* Add a bulk command to create missing quest handouts.
+* Keep the review handout as a temporary fallback but add a clear "Create Quest Handout" control.
+
 
 ## Quest Module
 

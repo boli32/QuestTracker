@@ -35,7 +35,8 @@ var QuestTracker = QuestTracker || (function () {
 		TriggerConversion: false,
 		RumourConversion: false,
 		EventConversion: false,
-		EffectConversion: false
+		EffectConversion: false,
+		RumourLocationConversion: false
 	}
 	let QUEST_TRACKER_QuestHandoutName = "QuestTracker Quests";
 	let QUEST_TRACKER_RumourHandoutName = "QuestTracker Rumours";
@@ -44,6 +45,9 @@ var QuestTracker = QuestTracker || (function () {
 	let QUEST_TRACKER_CalendarHandoutName = "QuestTracker Calendar";
 	let QUEST_TRACKER_TriggersHandoutName = "QuestTracker Triggers";
 	let QUEST_TRACKER_ReviewHandoutName = "QuestTracker Review";
+	let QUEST_TRACKER_AllQuestsHandoutName = "QuestTracker All Quests";
+	let QUEST_TRACKER_AllTriggersHandoutName = "QuestTracker All Triggers";
+	let QUEST_TRACKER_FlagsHandoutName = "QuestTracker Flags";
 	let QUEST_TRACKER_rumoursByLocation = {};
 	let QUEST_TRACKER_readableJSON = true;
 	let QUEST_TRACKER_pageName = "Quest Tree Page";
@@ -203,6 +207,7 @@ var QuestTracker = QuestTracker || (function () {
 			const id = getNextId();
 			QUEST_TRACKER_QuestStatuses[id] = { name, color, active: false };
 			saveQuestTrackerData();
+			Menu.refreshAllQuestsHandout(false);
 			return id;
 		};
 		const updateStatus = (id, field, value) => {
@@ -211,6 +216,7 @@ var QuestTracker = QuestTracker || (function () {
 			if (field === 'color') QUEST_TRACKER_QuestStatuses[id].color = value || '#CCCCCC';
 			if (field === 'active') QUEST_TRACKER_QuestStatuses[id].active = value === true || value === 'true';
 			saveQuestTrackerData();
+			Menu.refreshAllQuestsHandout(false);
 			return true;
 		};
 		const removeStatus = (id) => {
@@ -226,11 +232,13 @@ var QuestTracker = QuestTracker || (function () {
 				});
 			}
 			saveQuestTrackerData();
+			Menu.refreshAllQuestsHandout(false);
 			return true;
 		};
 		const resetStatuses = () => {
 			QUEST_TRACKER_QuestStatuses = normalize();
 			saveQuestTrackerData();
+			Menu.refreshAllQuestsHandout(false);
 		};
 		return {
 			normalize,
@@ -268,8 +276,10 @@ var QuestTracker = QuestTracker || (function () {
 			TriggerConversion: false,
 			RumourConversion: false,
 			EventConversion: false,
-			EffectConversion: false
+			EffectConversion: false,
+			RumourLocationConversion: false
 		}
+		if (QUEST_TRACKER_versionChecking.RumourLocationConversion === undefined) QUEST_TRACKER_versionChecking.RumourLocationConversion = false;
 		QUEST_TRACKER_calenderType = state.QUEST_TRACKER.calenderType || 'gregorian';
 		QUEST_TRACKER_currentDate = state.QUEST_TRACKER.currentDate || CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate
 		QUEST_TRACKER_defaultDate = state.QUEST_TRACKER.defaultDate || CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate
@@ -319,6 +329,7 @@ var QuestTracker = QuestTracker || (function () {
 	const checkVersion = () => {
 		if (!QUEST_TRACKER_versionChecking.TriggerConversion) Triggers.convertAutoAdvanceToTriggers();
 		if (!QUEST_TRACKER_versionChecking.RumourConversion) Rumours.convertRumoursToNewFormat();
+		if (!QUEST_TRACKER_versionChecking.RumourLocationConversion) Rumours.convertRumoursToQuestLocations();
 		if (!QUEST_TRACKER_versionChecking.EventConversion) Calendar.convertEventsToNewFormat();
 		if (!QUEST_TRACKER_versionChecking.EffectConversion) Triggers.convertEffectsToNewFormat();
 	};
@@ -378,7 +389,8 @@ var QuestTracker = QuestTracker || (function () {
 					TriggerConversion: false,
 					RumourConversion: false,
 					EventConversion: false,
-					EffectConversion: false
+					EffectConversion: false,
+					RumourLocationConversion: false
 				},
 				calenderType: 'gregorian',
 				currentDate: CALENDARS[QUEST_TRACKER_calenderType]?.defaultDate,
@@ -422,16 +434,6 @@ var QuestTracker = QuestTracker || (function () {
 				const tableQuestGroups = createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS });
 				tableQuestGroups.set('showplayers', false);
 			}
-			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
-			if (!locationTable) {
-				locationTable = createObj('rollabletable', { name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS });
-				locationTable.set('showplayers', false);
-				createObj('tableitem', {
-					_rollabletableid: locationTable.id,
-					name: 'Everywhere',
-					weight: 1
-				});
-			}
 			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_QuestHandoutName })[0]) {
 				createObj('handout', { name: QUEST_TRACKER_QuestHandoutName });
 			}
@@ -450,9 +452,16 @@ var QuestTracker = QuestTracker || (function () {
 			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_TriggersHandoutName })[0]) {
 				createObj('handout', { name: QUEST_TRACKER_TriggersHandoutName });
 			}
-			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_ReviewHandoutName })[0]) {
-				createObj('handout', { name: QUEST_TRACKER_ReviewHandoutName });
+			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_AllQuestsHandoutName })[0]) {
+				createObj('handout', { name: QUEST_TRACKER_AllQuestsHandoutName });
 			}
+			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_AllTriggersHandoutName })[0]) {
+				createObj('handout', { name: QUEST_TRACKER_AllTriggersHandoutName });
+			}
+			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_FlagsHandoutName })[0]) {
+				createObj('handout', { name: QUEST_TRACKER_FlagsHandoutName });
+			}
+			if (typeof Menu !== 'undefined' && Menu.refreshAllQuestsHandout) Menu.refreshAllQuestsHandout(false);
 			Utils.sendGMMessage("QuestTracker has been initialized.");
 		}
 	};
@@ -511,6 +520,34 @@ var QuestTracker = QuestTracker || (function () {
 			`.replace(/[\r\n]/g, '');
 			handout.set('gmnotes', updatedContent);
 			return handout;
+		};
+		const updateMenuHandout = (handoutName, title, content) => {
+			const handout = getOrCreateHandout(handoutName);
+			if (!handout) {
+				errorCheck(343, 'msg', null, `Could not create or find "${handoutName}".`);
+				return null;
+			}
+			const updatedContent = `
+				<h1>${title || handoutName}</h1>
+				<p><small>Updated: ${new Date().toISOString()}</small></p>
+				${content || ''}
+			`.replace(/[\r\n]/g, '');
+			handout.set('gmnotes', updatedContent);
+			return handout;
+		};
+		const sendHandoutNotice = (title, handout, label = 'Open Handout') => {
+			const handoutLink = getHandoutLink(handout);
+			const linkHtml = handoutLink ? `<a href="${handoutLink}">${label}</a>` : 'Handout unavailable';
+			sendGMMessage(linkHtml);
+		};
+		const sendMenuToHandout = (handoutName, title, content) => {
+			const handout = updateMenuHandout(handoutName, title, content);
+			sendHandoutNotice(title, handout, `Open ${title || 'Handout'}`);
+			return handout;
+		};
+		const updateMenuHandoutQuiet = (handoutName, title, content) => updateMenuHandout(handoutName, title, content);
+		const sendMenuToChat = (title, content) => {
+			sendGMMessage(`<div style="background-color:#fff; border:1px solid #000; padding:5px; border-radius:5px;"><strong>${title || 'QuestTracker'}</strong><br>${content || ''}</div>`);
 		};
 		const sendReviewNotice = (title, handout) => {
 			const handoutLink = getHandoutLink(handout);
@@ -734,8 +771,13 @@ var QuestTracker = QuestTracker || (function () {
 			getOrCreateHandout,
 			getHandoutLink,
 			updateReviewHandout,
+			updateMenuHandout,
 			sendReviewNotice,
 			sendReview,
+			sendHandoutNotice,
+			sendMenuToHandout,
+			updateMenuHandoutQuiet,
+			sendMenuToChat,
 			normalizeKeys,
 			stripJSONContent,
 			roll20MacroSanitize,
@@ -751,6 +793,60 @@ var QuestTracker = QuestTracker || (function () {
 			getNestedProperty
 		};
 	})(); 
+	const QuestLocations = (() => {
+		const EVERYWHERE = 'everywhere';
+		const sanitizeKey = (value = '') => `${value}`.trim().toLowerCase().replace(/[^a-z0-9_ ]/g, '_');
+		const addLocationDefinition = (locations, key, name) => {
+			const normalizedKey = sanitizeKey(key || name);
+			if (!normalizedKey || locations.some(location => location.key === normalizedKey)) return;
+			locations.push({ key: normalizedKey, name: name || key || normalizedKey });
+		};
+		const getAll = () => {
+			const locations = [{ key: EVERYWHERE, name: 'Everywhere' }];
+			const currentCalendar = CALENDARS[QUEST_TRACKER_calenderType] || {};
+			Object.entries(currentCalendar.climates || {}).forEach(([key, value]) => {
+				addLocationDefinition(locations, key, value?.name || value?.label || key);
+			});
+			return locations;
+		};
+		const normalize = (location, fallback = EVERYWHERE) => {
+			const normalizedLocation = sanitizeKey(location);
+			const keys = getAll().map(item => item.key);
+			if (keys.includes(normalizedLocation)) return normalizedLocation;
+			const normalizedFallback = sanitizeKey(fallback);
+			if (keys.includes(normalizedFallback)) return normalizedFallback;
+			return EVERYWHERE;
+		};
+		const getDefault = () => normalize(QUEST_TRACKER_Location, EVERYWHERE);
+		const getCurrent = () => normalize(QUEST_TRACKER_Location, getDefault());
+		const isValid = (location) => getAll().some(item => item.key === sanitizeKey(location));
+		const getName = (location) => {
+			const normalizedLocation = normalize(location);
+			return getAll().find(item => item.key === normalizedLocation)?.name || 'Everywhere';
+		};
+		const ensureQuestLocation = (quest, fallback = getDefault()) => {
+			if (!quest) return EVERYWHERE;
+			quest.location = normalize(quest.location, fallback);
+			return quest.location;
+		};
+		const buildDropdown = () => {
+			const dropdownString = getAll()
+				.map(location => `|${Utils.roll20MacroSanitize(location.name)},${location.key}`)
+				.join('');
+			return `?{Quest Location${dropdownString}}`;
+		};
+		return {
+			EVERYWHERE,
+			getAll,
+			normalize,
+			getDefault,
+			getCurrent,
+			isValid,
+			getName,
+			ensureQuestLocation,
+			buildDropdown
+		};
+	})();
 	const Import = (() => {
 		const H = {
 			getQuestTableStatusWeights: () => {
@@ -797,26 +893,17 @@ var QuestTracker = QuestTracker || (function () {
 							Object.keys(parsedData).forEach((questId) => {
 								const quest = parsedData[questId];
 								quest.relationships = quest.relationships || { logic: 'AND', conditions: [] };
+								QuestLocations.ensureQuestLocation(quest);
 								QUEST_TRACKER_globalQuestArray.push({
 									id: questId,
 									weight: H.getImportedQuestWeight(questId, quest, existingStatusWeights)
 								});
 							});
 							QUEST_TRACKER_globalQuestData = parsedData;
+							Menu.refreshAllQuestsHandout(false);
 						} else if (dataType === 'Rumour') {
 							parsedData = Utils.normalizeKeys(parsedData);
-							Object.keys(parsedData).forEach((questId) => {
-								Object.keys(parsedData[questId]).forEach((status) => {
-									Object.keys(parsedData[questId][status]).forEach((location) => {
-										let rumours = parsedData[questId][status][location];
-										if (typeof rumours === 'object' && !Array.isArray(rumours)) {
-											parsedData[questId][status][location] = rumours;
-										} else {
-											parsedData[questId][status][location] = {};
-										}
-									});
-								});
-							});
+							parsedData = Rumours.normalizeRumourData(parsedData, true);
 							QUEST_TRACKER_globalRumours = parsedData;
 							Rumours.calculateRumoursByLocation();
 						} else if (dataType === 'Events') {
@@ -2148,6 +2235,7 @@ var QuestTracker = QuestTracker || (function () {
 			questData.relationships = updatedRelationships;
 			Utils.updateHandoutField('quest')
 			QUEST_TRACKER_refreshLinkedQuestHandouts(questId);
+			Menu.refreshAllQuestsHandout(false);
 		};
 		const getValidQuestsForDropdown = (questId) => {
 			const exclusions = H.getExclusions(questId);
@@ -2166,6 +2254,7 @@ var QuestTracker = QuestTracker || (function () {
 				name: 'New Quest',
 				description: 'Description',
 				relationships: {},
+				location: QuestLocations.getDefault(),
 				hidden: true,
 				disabled: false
 			};
@@ -2180,6 +2269,7 @@ var QuestTracker = QuestTracker || (function () {
 				});
 			}
 			Utils.updateHandoutField('quest')
+			Menu.refreshAllQuestsHandout(false);
 		};
 		const removeQuest = (questId) => {
 			H.removeQuestReferences(questId);
@@ -2189,6 +2279,7 @@ var QuestTracker = QuestTracker || (function () {
 			delete QUEST_TRACKER_globalQuestData[questId];
 			QUEST_TRACKER_globalQuestArray = QUEST_TRACKER_globalQuestArray.filter(quest => quest.id !== questId);
 			Utils.updateHandoutField('quest');
+			Menu.refreshAllQuestsHandout(false);
 		};
 		const cleanUpLooseEnds = () => {
 			const processedPairs = new Set();
@@ -2279,6 +2370,15 @@ var QuestTracker = QuestTracker || (function () {
 						delete quest.group;
 					}
 					break;
+				case 'location':
+					if (action === 'add' || action === 'update') {
+						quest.location = QuestLocations.normalize(newItem, QuestLocations.getDefault());
+						Rumours.calculateRumoursByLocation();
+					} else if (action === 'remove') {
+						quest.location = QuestLocations.EVERYWHERE;
+						Rumours.calculateRumoursByLocation();
+					}
+					break;
 				default:
 					errorCheck(11, 'msg', null,`Unsupported action for type ( ${field} )`);
 					break;
@@ -2286,6 +2386,7 @@ var QuestTracker = QuestTracker || (function () {
 			Triggers.checkTriggers('quest',current);
 			Utils.updateHandoutField('quest');
 			QUEST_TRACKER_refreshLinkedQuestHandouts(current);
+			Menu.refreshAllQuestsHandout(false);
 		};
 		const manageGroups = (action, newItem = null, groupId = null) => {
 			let groupTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_QUESTGROUPS })[0];
@@ -2320,6 +2421,7 @@ var QuestTracker = QuestTracker || (function () {
 					}
 					break;
 			}
+			Menu.refreshAllQuestsHandout(false);
 		};
 		const findDirectlyLinkedQuests = (startingQuestId) => {
 			const linkedQuests = [];
@@ -2376,6 +2478,7 @@ var QuestTracker = QuestTracker || (function () {
 			else quest.handout = key;
 			Utils.updateHandoutField('quest');
 			QUEST_TRACKER_refreshLinkedQuestHandouts(questId);
+			Menu.refreshAllQuestsHandout(false);
 		};
 		const removeHandout = (questId) => {
 			const quest = QUEST_TRACKER_globalQuestData[questId];
@@ -2384,6 +2487,7 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			Utils.updateHandoutField('quest');
 			QUEST_TRACKER_refreshLinkedQuestHandouts(questId);
+			Menu.refreshAllQuestsHandout(false);
 		};
 		return {
 			getStatusNameByQuestId,
@@ -4312,20 +4416,17 @@ var QuestTracker = QuestTracker || (function () {
 		const H = {
 			getNewRumourId: () => {
 				const existingRumourIds = [];
-				Object.values(QUEST_TRACKER_globalRumours).forEach(quest => {
-					Object.values(quest).forEach(status => {
-						Object.values(status).forEach(location => {
-							Object.keys(location).forEach(rumourId => {
-								if (location[rumourId] && typeof location[rumourId] === "object") {
-									const match = rumourId.match(/^rumour_(\d+)$/);
-									if (match) {
-										existingRumourIds.push(parseInt(match[1], 10));
-									}
-								}
-							});
-						});
+				const collectRumourIds = (obj) => {
+					if (!obj || typeof obj !== 'object') return;
+					Object.entries(obj).forEach(([key, value]) => {
+						const match = key.match(/^rumour_(\d+)$/);
+						if (match && value && typeof value === "object") {
+							existingRumourIds.push(parseInt(match[1], 10));
+						}
+						collectRumourIds(value);
 					});
-				});
+				};
+				collectRumourIds(QUEST_TRACKER_globalRumours);
 				const highestRumourNumber = existingRumourIds.length > 0 ? Math.max(...existingRumourIds) : 0;
 				return `rumour_${highestRumourNumber + 1}`;
 			},
@@ -4364,28 +4465,14 @@ var QuestTracker = QuestTracker || (function () {
 				Utils.updateHandoutField('rumours');
 			},
 			findRumourLocation: (rumourId) => {
-				const locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
-				if (!locationTable) {
-					log("Error 312: Locations table not found.");
-					return null;
-				}
-				const locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
-				let locationMapping = locationItems.reduce((acc, location) => {
-					acc[Utils.sanitizeString(location.get('name').toLowerCase())] = location.get('weight');
-					return acc;
-				}, {});
 				for (const [questId, questRumours] of Object.entries(QUEST_TRACKER_globalRumours)) {
 					for (const [status, statusRumours] of Object.entries(questRumours)) {
-						for (const [location, locationRumours] of Object.entries(statusRumours)) {
-							if (locationRumours[rumourId]) {
-								const locationId = locationMapping[location] || null;
-								return {
-									questId,
-									status,
-									locationId,
-									once: locationRumours[rumourId].once || false
-								};
-							}
+						if (statusRumours[rumourId]) {
+							return {
+								questId,
+								status,
+								once: statusRumours[rumourId].once || false
+							};
 						}
 					}
 				}
@@ -4397,20 +4484,93 @@ var QuestTracker = QuestTracker || (function () {
 			let rumoursConverted = false;
 			for (const [questId, questData] of Object.entries(QUEST_TRACKER_globalRumours)) {
 				for (const [status, locations] of Object.entries(questData)) {
-					for (const [location, rumours] of Object.entries(locations)) {
-						for (const [rumourId, rumourText] of Object.entries(rumours)) {
-							QUEST_TRACKER_globalRumours[questId][status][location][rumourId] = {
-								text: rumourText,
-								type: "background",
-								once: false
-							};
-							rumoursConverted = true;
+					if (Object.keys(locations || {}).some(key => key.match(/^rumour_\d+$/))) {
+						for (const [rumourId, rumourData] of Object.entries(locations)) {
+							if (!rumourData || typeof rumourData !== 'object') {
+								QUEST_TRACKER_globalRumours[questId][status][rumourId] = normalizeRumourObject(rumourData);
+								rumoursConverted = true;
+							}
+						}
+					} else {
+						for (const [location, rumours] of Object.entries(locations)) {
+							for (const [rumourId, rumourText] of Object.entries(rumours)) {
+								if (!rumourText || typeof rumourText !== 'object') {
+									QUEST_TRACKER_globalRumours[questId][status][location][rumourId] = {
+										text: rumourText,
+										type: "background",
+										once: false
+									};
+									rumoursConverted = true;
+								}
+							}
 						}
 					}
 				}
 			}
 			QUEST_TRACKER_versionChecking.RumourConversion = true;
 			if (rumoursConverted) errorCheck(225, 'msg', null, `Rumours converted to new format (v1.2 update).`);
+			H.saveData();
+		};
+		const normalizeRumourObject = (rumourData) => {
+			if (rumourData && typeof rumourData === 'object' && !Array.isArray(rumourData)) {
+				return {
+					text: rumourData.text || '',
+					type: rumourData.type || 'background',
+					once: rumourData.once || false
+				};
+			}
+			return {
+				text: `${rumourData || ''}`,
+				type: 'background',
+				once: false
+			};
+		};
+		const flattenStatusRumours = (statusRumours = {}) => {
+			const flattened = {};
+			const legacyLocations = [];
+			Object.entries(statusRumours || {}).forEach(([key, value]) => {
+				if (key.match(/^rumour_\d+$/)) {
+					flattened[key] = normalizeRumourObject(value);
+				} else if (value && typeof value === 'object' && !Array.isArray(value)) {
+					legacyLocations.push(key);
+					Object.entries(value).forEach(([rumourId, rumourData]) => {
+						if (rumourId.match(/^rumour_\d+$/)) {
+							flattened[rumourId] = normalizeRumourObject(rumourData);
+						}
+					});
+				}
+			});
+			return { flattened, legacyLocations };
+		};
+		const normalizeRumourData = (rumourData = {}, updateQuestLocations = false) => {
+			const normalizedData = {};
+			Object.entries(rumourData || {}).forEach(([questId, questRumours]) => {
+				normalizedData[questId] = {};
+				const questLegacyLocations = new Set();
+				Object.entries(questRumours || {}).forEach(([status, statusRumours]) => {
+					const { flattened, legacyLocations } = flattenStatusRumours(statusRumours);
+					normalizedData[questId][status] = flattened;
+					legacyLocations.forEach(location => questLegacyLocations.add(location));
+				});
+				if (updateQuestLocations && QUEST_TRACKER_globalQuestData[questId] && !QUEST_TRACKER_globalQuestData[questId].location) {
+					const validLegacyLocations = [...questLegacyLocations]
+						.map(location => QuestLocations.normalize(location, null))
+						.filter(location => location && location !== QuestLocations.EVERYWHERE && QuestLocations.isValid(location));
+					const uniqueLocations = [...new Set(validLegacyLocations)];
+					QUEST_TRACKER_globalQuestData[questId].location = uniqueLocations.length === 1 ? uniqueLocations[0] : QuestLocations.EVERYWHERE;
+				}
+			});
+			return normalizedData;
+		};
+		const convertRumoursToQuestLocations = () => {
+			if (QUEST_TRACKER_versionChecking.RumourLocationConversion) return;
+			QUEST_TRACKER_globalRumours = normalizeRumourData(QUEST_TRACKER_globalRumours, true);
+			Object.values(QUEST_TRACKER_globalQuestData).forEach(quest => {
+				QuestLocations.ensureQuestLocation(quest, QuestLocations.EVERYWHERE);
+			});
+			QUEST_TRACKER_versionChecking.RumourLocationConversion = true;
+			errorCheck(340, 'msg', null, `Rumours converted to quest location tags (v1.3 update).`);
+			Utils.updateHandoutField('quest');
 			H.saveData();
 		};
 		const calculateRumoursByLocation = () => {
@@ -4425,32 +4585,29 @@ var QuestTracker = QuestTracker || (function () {
 				let relevantStatus = Statuses.getName(relevantItem.get('weight').toString()).toLowerCase();
 				let questRumours = QUEST_TRACKER_globalRumours[questId] || {};
 				if (questRumours[relevantStatus]) {
-					Object.keys(questRumours[relevantStatus] || {}).forEach(location => {
-						let locationRumours = questRumours[relevantStatus][location] || {};
-						if (!rumoursByLocation[location]) rumoursByLocation[location] = {};
-						Object.keys(locationRumours).forEach(rumourKey => {
-							const rumourObject = locationRumours[rumourKey];
-							if (rumourObject && typeof rumourObject === "object") {
-								const rumourType = rumourObject.type || 'background';
-								if (!rumoursByLocation[location][rumourType]) {
-									rumoursByLocation[location][rumourType] = {};
-								}
-								rumoursByLocation[location][rumourType][rumourKey] = rumourObject.text;
+					const questLocation = QuestLocations.ensureQuestLocation(QUEST_TRACKER_globalQuestData[questId], QuestLocations.EVERYWHERE);
+					if (!rumoursByLocation[questLocation]) rumoursByLocation[questLocation] = {};
+					Object.keys(questRumours[relevantStatus] || {}).forEach(rumourKey => {
+						const rumourObject = questRumours[relevantStatus][rumourKey];
+						if (rumourObject && typeof rumourObject === "object") {
+							const rumourType = rumourObject.type || 'background';
+							if (!rumoursByLocation[questLocation][rumourType]) {
+								rumoursByLocation[questLocation][rumourType] = {};
 							}
-						});
+							rumoursByLocation[questLocation][rumourType][rumourKey] = rumourObject.text;
+						}
 					});
 				}
 			});
 			QUEST_TRACKER_rumoursByLocation = rumoursByLocation;
 			saveQuestTrackerData();
 		};
-		const sendRumours = (locationId, numberOfRumours) => {
-			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
-			if (errorCheck(41, 'exists', locationTable, `locationTable`)) return;
-			let locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
-			let location = locationItems.find(loc => loc.get('weight').toString() === locationId.toString());
-			if (errorCheck(42, 'exists', location, `location`)) return;
-			const normalizedLocationId = Utils.sanitizeString(location.get('name')).toLowerCase();
+		const sendRumours = (locationId, numberOfRumours = null) => {
+			if (numberOfRumours === null) {
+				numberOfRumours = locationId;
+				locationId = QuestLocations.getCurrent();
+			}
+			const normalizedLocationId = QuestLocations.normalize(locationId, QuestLocations.getCurrent());
 			const locationRumours = QUEST_TRACKER_rumoursByLocation[normalizedLocationId] || { background: {}, priority: {} };
 			const everywhereRumours = QUEST_TRACKER_rumoursByLocation['everywhere'] || { background: {}, priority: {} };
 			let priorityList = [
@@ -4485,7 +4642,6 @@ var QuestTracker = QuestTracker || (function () {
 						questId: rumourDetails.questId,
 						newItem: '',
 						status: rumourDetails.status,
-						location: parseInt(rumourDetails.locationId, 10),
 						rumourId: rumourId
 					});
 				}
@@ -4501,31 +4657,7 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		const removeAllRumoursForQuest = (questId) => {
 			if (!QUEST_TRACKER_globalRumours[questId]) return;
-			Object.keys(QUEST_TRACKER_globalRumours[questId]).forEach(status => {
-				const statusRumours = QUEST_TRACKER_globalRumours[questId][status] || {};
-				Object.keys(statusRumours).forEach(location => {
-					const locationRumours = statusRumours[location];
-					if (locationRumours && typeof locationRumours === 'object') {
-						Object.keys(locationRumours).forEach(rumourType => {
-							if (locationRumours[rumourType] && typeof locationRumours[rumourType] === 'object') {
-								Object.keys(locationRumours[rumourType]).forEach(rumourKey => {
-									delete locationRumours[rumourType][rumourKey];
-								});
-							}
-						});
-					}
-					if (Object.keys(locationRumours.background || {}).length === 0 &&
-						Object.keys(locationRumours.priority || {}).length === 0) {
-						delete statusRumours[location];
-					}
-				});
-				if (Object.keys(statusRumours).length === 0) {
-					delete QUEST_TRACKER_globalRumours[questId][status];
-				}
-			});
-			if (Object.keys(QUEST_TRACKER_globalRumours[questId]).length === 0) {
-				delete QUEST_TRACKER_globalRumours[questId];
-			}
+			delete QUEST_TRACKER_globalRumours[questId];
 			Utils.updateHandoutField('rumour');
 			calculateRumoursByLocation();
 			QUEST_TRACKER_refreshLinkedQuestHandouts(questId);
@@ -4566,20 +4698,15 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 			}
 		};
-		const manageRumourObject = ({ action, questId, newItem = '', status, location, rumourId = '', type = 'background' }) => {
-			let locationString = getLocationNameById(location);
-			const sanitizedLocation = locationString ? Utils.sanitizeString(locationString.toLowerCase()) : '';
+		const manageRumourObject = ({ action, questId, newItem = '', status, rumourId = '', type = 'background' }) => {
 			if (!QUEST_TRACKER_globalRumours[questId]) QUEST_TRACKER_globalRumours[questId] = {};
 			if (!QUEST_TRACKER_globalRumours[questId][status]) QUEST_TRACKER_globalRumours[questId][status] = {};
 			const questRumours = QUEST_TRACKER_globalRumours[questId];
 			const statusRumours = questRumours[status];
-			if (!statusRumours[sanitizedLocation]) {
-				statusRumours[sanitizedLocation] = {};
-			}
 			switch (action) {
 				case 'add': {
 					const newRumourKey = rumourId === '' ? H.getNewRumourId() : rumourId;
-					statusRumours[sanitizedLocation][newRumourKey] = {
+					statusRumours[newRumourKey] = {
 						text: newItem,
 						type: type,
 						once: false
@@ -4587,23 +4714,20 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				}
 				case 'remove': {
-					if (statusRumours[sanitizedLocation][rumourId]) {
-						delete statusRumours[sanitizedLocation][rumourId];
-						if (Object.keys(statusRumours[sanitizedLocation]).length === 0) {
-							delete statusRumours[sanitizedLocation];
-						}
+					if (statusRumours[rumourId]) {
+						delete statusRumours[rumourId];
 					}
 					break;
 				}
 				case 'changeType': {
-					const rumourObj = statusRumours[sanitizedLocation][rumourId];
+					const rumourObj = statusRumours[rumourId];
 					if (rumourObj) {
 						rumourObj.type = rumourObj.type === 'priority' ? 'background' : 'priority';
 					}
 					break;
 				}
 				case 'toggleOnce': {
-					const rumourObj = statusRumours[sanitizedLocation][rumourId];
+					const rumourObj = statusRumours[rumourId];
 					if (rumourObj) {
 						rumourObj.once = !rumourObj.once;
 					}
@@ -4623,7 +4747,9 @@ var QuestTracker = QuestTracker || (function () {
 			removeAllRumoursForQuest,
 			getAllLocations,
 			manageRumourObject,
-			convertRumoursToNewFormat
+			convertRumoursToNewFormat,
+			convertRumoursToQuestLocations,
+			normalizeRumourData
 		};
 	})();
 	const Menu = (() => {
@@ -4665,8 +4791,14 @@ var QuestTracker = QuestTracker || (function () {
 			centreImage: 'display: block; margin: auto; text-align: center;'
 		};
 		const H = {
-			showReview: (title, menu) => {
-				Utils.sendReview(title, `${menu || ''}`.replace(/[\r\n]/g, ''));
+			getMenuHandoutLink: (handoutName) => Utils.getHandoutLink(Utils.getOrCreateHandout(handoutName)),
+			showReview: (title, menu, options = {}) => {
+				const cleanMenu = `${menu || ''}`.replace(/[\r\n]/g, '');
+				if (options.handoutName) {
+					Utils.sendMenuToHandout(options.handoutName, title, cleanMenu);
+				} else {
+					Utils.sendMenuToChat(title, cleanMenu);
+				}
 			},
 			showActiveQuests: () => {
 				let AQMenu = "";
@@ -4701,32 +4833,42 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			showActiveRumours: () => {
 				let menu = `<ul style="${styles.list}">`;
-				let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
-				if (locationTable) {
-					let locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
-					locationItems.sort((a, b) => a.get('weight') - b.get('weight')).forEach(location => {
-						let locationName = location.get('name');
-						let locationKey = Utils.sanitizeString(locationName).toLowerCase();
-						let locationWeight = location.get('weight');
-						let locationRumours = QUEST_TRACKER_rumoursByLocation[locationKey] || {};
-						let rumourCount = Object.keys(locationRumours).length;
-						let everywhereRumours = QUEST_TRACKER_rumoursByLocation['everywhere'] || {};
-						let everywhereRumourCount = Object.keys(everywhereRumours).length;
-						let displayRumourCount = locationKey !== 'everywhere' && everywhereRumourCount > 0
-							? `${rumourCount} (+${everywhereRumourCount})`
-							: `${rumourCount}`;
-						let totalRumourCount = locationKey === 'everywhere' ? rumourCount : rumourCount + everywhereRumourCount;
-						if (rumourCount > 0 || locationKey === 'everywhere') {
-							menu += `
-							<li style="${styles.column}">
-								<span style="${styles.floatLeft}">${locationName}<br><small>${displayRumourCount} Rumours</small></span>
-								<span style="${styles.floatRight}">
-									<a style="${styles.button}" href="!qt-rumours action=send|location=${locationWeight}|number=?{How Many Rumours? (Max: ${totalRumourCount})|1}">Show</a>
-								</span>
-							</li>`;
-						}
-					});
+				const locationKey = QuestLocations.getCurrent();
+				const locationName = QuestLocations.getName(locationKey);
+				const countRumours = (rumours = {}) => Object.values(rumours).reduce((count, typedRumours) => count + Object.keys(typedRumours || {}).length, 0);
+				const rumourCount = countRumours(QUEST_TRACKER_rumoursByLocation[locationKey] || {});
+				const everywhereRumourCount = locationKey === QuestLocations.EVERYWHERE ? 0 : countRumours(QUEST_TRACKER_rumoursByLocation[QuestLocations.EVERYWHERE] || {});
+				const totalRumourCount = rumourCount + everywhereRumourCount;
+				const displayRumourCount = everywhereRumourCount > 0 ? `${rumourCount} (+${everywhereRumourCount})` : `${rumourCount}`;
+				menu += `
+					<li style="${styles.column}">
+						<span style="${styles.floatLeft}">${locationName}<br><small>${displayRumourCount} Rumours</small></span>
+						<span style="${styles.floatRight}">
+							<a style="${styles.button}" href="!qt-rumours action=send|number=?{How Many Rumours? (Max: ${totalRumourCount})|1}">Show</a>
+						</span>
+					</li>`;
+				menu += `</ul>`;
+				return menu;
+			},
+			showCampaignFlagsSummary: () => {
+				const flagEntries = Object.entries(QUEST_TRACKER_Flags).sort((a, b) => {
+					return (a[1].name || a[0]).localeCompare(b[1].name || b[0]);
+				});
+				if (flagEntries.length === 0) {
+					return `<ul><li style="${styles.overflow}"><span style="${styles.floatLeft}"><small>No campaign flags set</small></span></li></ul>`;
 				}
+				let menu = `<ul style="${styles.list}">`;
+				flagEntries.forEach(([key, flagData]) => {
+					const statusName = Flags.getStatusName(flagData.status);
+					const statusColor = Flags.getStatusColor(flagData.status);
+					menu += `
+						<li style="${styles.overflow}">
+							<span style="${styles.floatLeft}"><small>${flagData.name || key}</small></span>
+							<span style="${styles.floatRight}">
+								<a style="${styles.button}" href="!qt-flag action=setstatus|key=${key}|status=?{Flag Status${Flags.buildStatusDropdown()}}"><span style="color:${statusColor};">${statusName}</span></a>
+							</span>
+						</li>`;
+				});
 				menu += `</ul>`;
 				return menu;
 			},
@@ -4768,34 +4910,14 @@ var QuestTracker = QuestTracker || (function () {
 				const spacer = !markerMatch && preservedContent && !/\s$/.test(preservedContent) ? '\n\n' : '';
 				return `${preservedContent}${spacer}${H.linkedQuestHandoutMarker()}\n${generatedContent}`;
 			},
-			getLocationMapping: () => {
-				const locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
-				if (!locationTable) return [];
-				return findObjs({ type: 'tableitem', rollabletableid: locationTable.id })
-					.map(location => ({
-						originalName: location.get('name'),
-						sanitizedName: Utils.sanitizeString(location.get('name').toLowerCase()),
-						weight: location.get('weight')
-					}))
-					.sort((a, b) => {
-						if (a.sanitizedName === 'everywhere') return -1;
-						if (b.sanitizedName === 'everywhere') return 1;
-						return a.originalName.localeCompare(b.originalName);
-					});
-			},
-			buildRumourLocationDropdown: () => {
-				const locations = H.getLocationMapping();
-				if (locations.length === 0) return '';
-				if (locations.length === 1) return locations[0].weight;
-				return `?{Location|${locations.map(location => `${Utils.roll20MacroSanitize(location.originalName)},${location.weight}`).join('|')}}`;
-			},
 			escapeMacroText: (text = '') => {
 				return `${text}`.replace(/"/g, '&quot;').replace(/<br\s*\/?>/g, '%NEWLINE%').replace(/[\r\n]/g, '%NEWLINE%');
 			},
 			buildQuestDetailsHtml: (questId, options = {}) => {
 				let quest = QUEST_TRACKER_globalQuestData[questId];
-				if (!quest) return `<div style="${styles.menu}"><p>Error 313: Quest "${questId}" not found.</p></div>`;
-				const { includeHandoutControl = true, includeNavigation = true, includeToken = true } = options;
+				if (!quest) return `<div><p>Error 313: Quest "${questId}" not found.</p></div>`;
+				const { includeHandoutControl = true, includeNavigation = true, includeToken = true, framed = true } = options;
+				const frameStyle = framed ? ` style="${styles.menu}"` : '';
 				const normalizedQuest = Utils.normalizeKeys(quest);
 				const statusName = Quest.getStatusNameByQuestId(questId, QUEST_TRACKER_globalQuestArray);
 				const hiddenStatus = normalizedQuest.hidden ? 'Yes' : 'No';
@@ -4806,10 +4928,13 @@ var QuestTracker = QuestTracker || (function () {
 				const disabledStatusTorF = (normalizedQuest.disabled ?? false) ? 'true' : 'false';
 				const disabledStatusTorFReverse = (normalizedQuest.disabled ?? false) ? 'false' : 'true';
 				const validQuestGrouping = H.getValidQuestGroups(questId);
+				const questLocation = QuestLocations.ensureQuestLocation(quest);
+				const questLocationName = QuestLocations.getName(questLocation);
+				const questLocationDropdown = QuestLocations.buildDropdown();
 				const relationshipsHtml = displayQuestRelationships(questId);
 				const relationshipMenuHtml = H.relationshipMenu(questId);
 				return `
-					<div style="${styles.menu}">
+					<div${frameStyle}>
 						<h3 style="margin-bottom: 10px;">${normalizedQuest.name || 'Unnamed Quest'}</h3>
 						${includeToken ? H.displayQuestToken(questId) : ''}
 						<p>${normalizedQuest.description || 'No description available.'}</p>
@@ -4844,64 +4969,59 @@ var QuestTracker = QuestTracker || (function () {
 						<span style="${styles.floatRight}">
 							<a style="${styles.button}" href="!qt-quest action=update|field=group|current=${questId}|new=${validQuestGrouping}">Adjust</a>
 						</span>
+						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Location</h4>
+						<span>${questLocationName}</span>
+						<span style="${styles.floatRight}">
+							<a style="${styles.button}" href="!qt-quest action=update|field=location|current=${questId}|new=${questLocationDropdown}">Change</a>
+						</span>
 						${includeNavigation ? `<br><hr>
 						<a style="${styles.button}" href="!qt-menu action=triggers">Triggers</a>
-						&nbsp;<a style="${styles.button}" href="!qt-menu action=allquests">All Quests</a>
+						&nbsp;<a style="${styles.button}" href="${H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName)}">All Quests</a>
 						&nbsp;<a style="${styles.button}" href="!qt-menu action=main">Main Menu</a>` : ''}
 					</div>`;
 			},
 			buildQuestRumoursHtml: (questId) => {
 				const questRumours = QUEST_TRACKER_globalRumours[questId] || {};
-				const locations = H.getLocationMapping();
-				const locationDropdown = H.buildRumourLocationDropdown();
-				let html = `<div style="${styles.menu}"><h3>Rumours</h3>`;
-				if (locations.length === 0) {
-					html += `<p>No rumour locations are available.</p></div>`;
-					return html;
-				}
+				let html = `<div><h3>Rumours</h3>`;
 				Object.entries(Statuses.getAll()).forEach(([statusId, status]) => {
 					const statusKey = status.name.toLowerCase();
-					const rumoursByLocation = questRumours[statusKey] || {};
-					const rumourCount = Object.values(rumoursByLocation).reduce((sum, locationRumours) => sum + Object.keys(locationRumours || {}).length, 0);
+					const rumoursByStatus = questRumours[statusKey] || {};
+					const rumourCount = Object.keys(rumoursByStatus).length;
 					html += `<h4 style="${styles.bottomBorder}">${status.name} <small>${rumourCount} rumour${rumourCount === 1 ? '' : 's'}</small></h4>`;
 					html += `<table style="width:100%;">`;
 					if (rumourCount === 0) {
 						html += `<tr><td colspan="7"><small>No rumours</small></td></tr>`;
 					}
-					locations.forEach(location => {
-						const locationRumours = rumoursByLocation[location.sanitizedName] || {};
-						Object.entries(locationRumours).forEach(([rumourId, rumourData]) => {
-							const cleanRumour = rumourId.replace(/^rumour_(\d+)$/, 'Rumour #$1');
-							const rumourText = H.escapeMacroText(rumourData.text || '');
-							const rumourType = rumourData.type || 'background';
-							html += `
-								<tr>
-									<td><small>${location.originalName}</small></td>
-									<td><small>${cleanRumour}</small></td>
-									<td><small>${(rumourData.text || '').replace(/%NEWLINE%|<br>/g, ' | ')}</small></td>
-									<td style="${styles.smallButtonContainer}">
-										<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=update|questid=${questId}|status=${statusKey}|location=${location.weight}|rumourid=${rumourId}|new=?{Update Rumour|${rumourText}}">c</a>
-									</td>
-									<td style="${styles.smallButtonContainer}">
-										<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=remove|questid=${questId}|status=${statusKey}|location=${location.weight}|rumourid=${rumourId}">-</a>
-									</td>
-									<td style="${styles.smallButtonContainer}">
-										<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=changeType|questid=${questId}|status=${statusKey}|location=${location.weight}|rumourid=${rumourId}">${rumourType === 'priority' ? 'p' : 'b'}</a>
-									</td>
-									<td style="${styles.smallButtonContainer}">
-										<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=toggleOnce|questid=${questId}|status=${statusKey}|location=${location.weight}|rumourid=${rumourId}">${rumourData.once ? '1' : 'many'}</a>
-									</td>
-									<td style="${styles.smallButtonContainer}">
-										<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=addrumour|rumourid=${rumourId}">T</a>
-									</td>
-								</tr>`;
-						});
+					Object.entries(rumoursByStatus).forEach(([rumourId, rumourData]) => {
+						const cleanRumour = rumourId.replace(/^rumour_(\d+)$/, 'Rumour #$1');
+						const rumourText = H.escapeMacroText(rumourData.text || '');
+						const rumourType = rumourData.type || 'background';
+						html += `
+							<tr>
+								<td><small>${cleanRumour}</small></td>
+								<td><small>${(rumourData.text || '').replace(/%NEWLINE%|<br>/g, ' | ')}</small></td>
+								<td style="${styles.smallButtonContainer}">
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=update|questid=${questId}|status=${statusKey}|rumourid=${rumourId}|new=?{Update Rumour|${rumourText}}">c</a>
+								</td>
+								<td style="${styles.smallButtonContainer}">
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=remove|questid=${questId}|status=${statusKey}|rumourid=${rumourId}">-</a>
+								</td>
+								<td style="${styles.smallButtonContainer}">
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=changeType|questid=${questId}|status=${statusKey}|rumourid=${rumourId}">${rumourType === 'priority' ? 'p' : 'b'}</a>
+								</td>
+								<td style="${styles.smallButtonContainer}">
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=toggleOnce|questid=${questId}|status=${statusKey}|rumourid=${rumourId}">${rumourData.once ? '1' : 'many'}</a>
+								</td>
+								<td style="${styles.smallButtonContainer}">
+									<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=addrumour|rumourid=${rumourId}">T</a>
+								</td>
+							</tr>`;
 					});
 					html += `
 						<tr style="${styles.topBorder}">
-							<td colspan="7"><small>Add Rumour</small></td>
+							<td colspan="6"><small>Add Rumour</small></td>
 							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=add|questid=${questId}|status=${statusKey}|location=${locationDropdown}|new=?{Enter New Rumour}">+</a>
+								<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=add|questid=${questId}|status=${statusKey}|new=?{Enter New Rumour}">+</a>
 							</td>
 						</tr>
 					</table>`;
@@ -4912,9 +5032,7 @@ var QuestTracker = QuestTracker || (function () {
 			getQuestRumourIds: (questId) => {
 				const rumourIds = new Set();
 				Object.values(QUEST_TRACKER_globalRumours[questId] || {}).forEach(statusRumours => {
-					Object.values(statusRumours || {}).forEach(locationRumours => {
-						Object.keys(locationRumours || {}).forEach(rumourId => rumourIds.add(rumourId));
-					});
+					Object.keys(statusRumours || {}).forEach(rumourId => rumourIds.add(rumourId));
 				});
 				return rumourIds;
 			},
@@ -4986,7 +5104,7 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			buildQuestTriggersHtml: (questId) => {
 				const triggerEntries = H.collectQuestTriggers(questId);
-				let html = `<div style="${styles.menu}"><h3>Triggers</h3>
+				let html = `<div><h3>Triggers</h3>
 					<a style="${styles.button}" href="!qt-trigger action=addquest|questid=${questId}">Add Quest Trigger</a>`;
 				if (triggerEntries.length === 0) {
 					html += `<p>No relevant triggers.</p></div>`;
@@ -5027,17 +5145,17 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			buildLinkedQuestHandoutHtml: (questId) => {
 				const quest = QUEST_TRACKER_globalQuestData[questId];
-				if (!quest) return `<div style="${styles.menu}"><p>Quest not found.</p></div>`;
+				if (!quest) return `<div><p>Quest not found.</p></div>`;
 				return `
-					${H.buildQuestDetailsHtml(questId, { includeHandoutControl: false, includeNavigation: false, includeToken: false })}
+					${H.buildQuestDetailsHtml(questId, { includeHandoutControl: false, includeNavigation: false, includeToken: false, framed: false })}
 					<br>
 					${H.buildQuestRumoursHtml(questId)}
 					<br>
 					${H.buildQuestTriggersHtml(questId)}
 					<br>
-					<div style="${styles.menu}">
+					<div>
 						<a style="${styles.button}" href="!qt-menu action=quest|id=${questId}">Refresh Quest Handout</a>
-						&nbsp;<a style="${styles.button}" href="!qt-menu action=allquests">All Quests</a>
+						&nbsp;<a style="${styles.button}" href="${H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName)}">All Quests</a>
 						&nbsp;<a style="${styles.button}" href="!qt-menu action=main">Main Menu</a>
 					</div>
 				`.replace(/[\r\n]/g, '');
@@ -5116,7 +5234,7 @@ var QuestTracker = QuestTracker || (function () {
 						return `
 							<tr>
 								${indent ? `<td>&nbsp;</td><td>` : `<td colspan="2">`}
-									<a style="${styles.questlink}" href="!qt-menu action=quest|id=${condition}">${H.getQuestName(condition)}</a>
+										${H.getQuestAnchor(condition)}
 								</td>
 								<td style="${styles.smallButtonContainer}">
 									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|oldquest=${condition}|action=update|type=${indent ? `group|groupnum=${currentGroupNum}` : `single`}|quest=${H.buildDropdownString(questId, condition)}">c</a>
@@ -5211,6 +5329,11 @@ var QuestTracker = QuestTracker || (function () {
 			getQuestName: (questId) => {
 				return QUEST_TRACKER_globalQuestData[questId]?.name.replace(/[{}|&?]/g, '') || 'Unnamed Quest';
 			},
+			getQuestLink: (questId) => {
+				const quest = QUEST_TRACKER_globalQuestData[questId];
+				return quest?.handout ? `http://journal.roll20.net/handout/${quest.handout}` : `!qt-menu action=quest|id=${questId}`;
+			},
+			getQuestAnchor: (questId) => `<a style="${styles.questlink}" href="${H.getQuestLink(questId)}">${H.getQuestName(questId)}</a>`,
 			getEventName: (eventId) => {
 				return QUEST_TRACKER_Events[eventId]?.name.replace(/[{}|&?]/g, '') || 'Unnamed Event';
 			},
@@ -5272,7 +5395,7 @@ var QuestTracker = QuestTracker || (function () {
 					mutuallyExclusiveHtml += quest.relationships.mutually_exclusive.map(exclusive => `
 						<tr>
 							<td colspan="2">
-								<a style="${styles.questlink}" href="!qt-menu action=quest|id=${exclusive}">${H.getQuestName(exclusive)}</a>
+								${H.getQuestAnchor(exclusive)}
 							</td>
 							<td style="${styles.smallButtonContainer}">
 								<a href="!qt-questrelationship currentquest=${questId}|action=update|type=mutuallyexclusive|oldquest=${exclusive}|quest=${H.buildDropdownString(questId)}" style="${styles.button} ${styles.smallButton}">c</a>
@@ -5510,11 +5633,15 @@ var QuestTracker = QuestTracker || (function () {
 					if (type === 'quest') {
 						menu += '<ul>';
 						sortedQuests.forEach(quest => {
+							const questHandoutLink = quest.handout ? `http://journal.roll20.net/handout/${quest.handout}` : null;
+							const inspectControl = questHandoutLink
+								? `<a style="${styles.button}" href="${questHandoutLink}">Open</a>`
+								: `<a style="${styles.button}" href="!qt-menu action=quest|id=${quest.id}">Link</a>`;
 							menu += `
 								<li style="${styles.overflow}">
 									<span style="${styles.floatLeft}"><small>${quest.name || 'Unnamed Quest'}</small></span>
 									<span style="${styles.floatRight}">
-										<a style="${styles.button}" href="!qt-menu action=quest|id=${quest.id}">Inspect</a>
+										${inspectControl}
 										<a style="${styles.button} ${styles.smallButton}" href="!qt-quest action=removequest|id=${quest.id}|confirmation=?{Type DELETE into this field to confirm deletion of this quest|}">-</a>
 									</span>
 								</li>`;
@@ -6229,6 +6356,10 @@ var QuestTracker = QuestTracker || (function () {
 			}
 		};
 		const generateGMMenu = () => {
+			refreshAllQuestsHandout(false);
+			const allQuestsLink = H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName);
+			const flagsLink = H.getMenuHandoutLink(QUEST_TRACKER_FlagsHandoutName);
+			const triggersLink = H.getMenuHandoutLink(QUEST_TRACKER_AllTriggersHandoutName);
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Calendar</h3>`;
 			menu += `<br>${Calendar.formatDateFull()}<br>( ${QUEST_TRACKER_currentDate} )`;
 			if (QUEST_TRACKER_WEATHER && QUEST_TRACKER_CURRENT_WEATHER !== null) {
@@ -6237,14 +6368,16 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><br><a style="${styles.button}" href="!qt-menu action=adjustdate">Adjust Date</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Active Quests</h3>`;
 			menu += H.showActiveQuests();
-			menu += `<br><a style="${styles.button}" href="!qt-menu action=allquests">Show All Quests</a>`;
-			menu += `<br><a style="${styles.button}" href="!qt-menu action=flags">Campaign Flags</a>`;
+			menu += `<br><a style="${styles.button}" href="${allQuestsLink}">Show All Quests</a>`;
+			menu += `<br><hr><h3 style="margin-bottom: 10px;">Campaign Flags</h3>`;
+			menu += H.showCampaignFlagsSummary();
+			menu += `<br><a style="${styles.button}" href="${flagsLink}">Show All Flags</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Active Rumours</h3>`;
 			menu += H.showActiveRumours();
 			menu += `<br><a style="${styles.button}" href="!qt-menu action=allrumours">Show All Rumours</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Automation</h3>`;
 			menu += H.showTriggers();
-			menu += `<br><a style="${styles.button}" href="!qt-menu action=triggers">Show All Triggers</a>`;
+			menu += `<br><a style="${styles.button}" href="${triggersLink}">Show All Triggers</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Upcoming Events</h3>`;
 			menu += H.showUpcomingEvents();
 			menu += `<br><a style="${styles.button}" href="!qt-menu action=allevents">Show All Events</a>`;
@@ -6253,47 +6386,62 @@ var QuestTracker = QuestTracker || (function () {
 			menu = menu.replace(/[\r\n]/g, ''); 
 			H.showReview('Main Menu', menu);
 		};
-		const showAllQuests = () => {
-			QUEST_TRACKER_FILTER.filter = QUEST_TRACKER_FILTER.filter || {};
-			QUEST_TRACKER_FILTER.groupBy = QUEST_TRACKER_FILTER.groupBy || null;
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">All Quests</h3>`;
-			menu += H.showFilterMenu('quest') + "<br>";
+		const buildAllQuestsHtml = () => {
+			let menu = `<p style="text-align:right; margin:0;"><a href="!qt-quest action=addquest">Add Quest</a></p>`;
 			if (Object.keys(QUEST_TRACKER_globalQuestData).length === 0) {
 				menu += `
 					<p>There doesn't seem to be any Quests. You need to create a quest or Import from the Handouts.</p>
 				`;
 			} else {
-				const filteredQuests = QUEST_TRACKER_globalQuestArray
+				const groupedQuests = QUEST_TRACKER_globalQuestArray
 					.map(quest => {
 						const questData = QUEST_TRACKER_globalQuestData[quest.id];
-						if (questData) {
-							const normalizedData = Object.keys(questData).reduce((acc, key) => {
-								acc[key.toLowerCase()] = questData[key];
-								return acc;
-							}, {});
-							return H.applyFilter(QUEST_TRACKER_FILTER.filter, normalizedData)
-								? { ...quest, ...normalizedData }
-								: null;
-						}
-						return null;
+						if (!questData) return null;
+						const groupName = H.getQuestGroupNameByWeight(questData.group) || 'No Assigned Group';
+						const statusName = Statuses.getName(Quest.getQuestStatus(quest.id));
+						const questName = questData.name || quest.id;
+						const questLink = questData.handout
+							? `http://journal.roll20.net/handout/${questData.handout}`
+							: `!qt-menu action=quest|id=${quest.id}`;
+						const linkHandoutLink = questData.handout
+							? ''
+							: `!qt-quest action=linkhandout|current=${quest.id}|key=?{How to Link|Auto Link,AUTO|Manual Link,?{Key&#125;`;
+						return { id: quest.id, name: questName, groupName, statusName, questLink, linkHandoutLink };
 					})
-					.filter(Boolean);
-				menu += H.renderQuestList(filteredQuests, QUEST_TRACKER_FILTER.groupBy);
+					.filter(Boolean)
+					.reduce((groups, quest) => {
+						if (!groups[quest.groupName]) groups[quest.groupName] = {};
+						if (!groups[quest.groupName][quest.statusName]) groups[quest.groupName][quest.statusName] = [];
+						groups[quest.groupName][quest.statusName].push(quest);
+						return groups;
+					}, {});
+				Object.keys(groupedQuests).sort((a, b) => a.localeCompare(b)).forEach(groupName => {
+					menu += `<h4>${groupName}</h4><ul>`;
+					Object.keys(groupedQuests[groupName]).sort((a, b) => a.localeCompare(b)).forEach(statusName => {
+						menu += `<li>${statusName}<ul>`;
+						groupedQuests[groupName][statusName]
+							.sort((a, b) => a.name.localeCompare(b.name))
+							.forEach(quest => {
+								const linkHandoutControl = quest.linkHandoutLink
+									? ` [ <a href="${quest.linkHandoutLink}">Link Handout</a> ]`
+									: '';
+								menu += `<li><a href="${quest.questLink}">${quest.name}</a>${linkHandoutControl}</li>`;
+							});
+						menu += `</ul></li>`;
+					});
+					menu += `</ul>`;
+				});
 			}
-			menu += `
-				<br><hr>
-				<span style="${styles.floatRight}">
-					<a style="${styles.button}" href="!qt-menu action=triggers">Triggers</a>
-					&nbsp;
-					<a style="${styles.button}" href="!qt-menu action=manageQuestGroups">Groups</a>
-					&nbsp;
-					<a style="${styles.button}" href="!qt-quest action=addquest">Add New</a>
-				</span>
-				<br><hr>
-				<a style="${styles.button}" href="!qt-menu action=main">Back to Main Menu</a>
-			</div>`;
-			menu = menu.replace(/[\r\n]/g, '');
-			H.showReview('All Quests', menu);
+			return menu.replace(/[\r\n]/g, '');
+		};
+		const refreshAllQuestsHandout = (notify = false) => {
+			const menu = buildAllQuestsHtml();
+			if (notify) H.showReview('All Quests', menu, { handoutName: QUEST_TRACKER_AllQuestsHandoutName });
+			else Utils.updateMenuHandoutQuiet(QUEST_TRACKER_AllQuestsHandoutName, 'All Quests', menu);
+		};
+		const showAllQuests = () => {
+			const menu = buildAllQuestsHtml();
+			H.showReview('All Quests', menu, { handoutName: QUEST_TRACKER_AllQuestsHandoutName });
 		};
 		const showAllRumours = () => {
 			QUEST_TRACKER_RUMOUR_FILTER.filter = QUEST_TRACKER_RUMOUR_FILTER.filter || {};
@@ -6314,11 +6462,7 @@ var QuestTracker = QuestTracker || (function () {
 						if (!H.applyFilter(QUEST_TRACKER_RUMOUR_FILTER.filter, normalizedData)) return null;
 						const questRumours = QUEST_TRACKER_globalRumours[questId] || {};
 						let rumourCount = Object.values(questRumours)
-							.reduce((sum, statusRumours) => 
-								sum + Object.values(statusRumours)
-									.reduce((locSum, locationRumours) =>
-										locSum + Object.keys(locationRumours).length,
-									0), 0);
+							.reduce((sum, statusRumours) => sum + Object.keys(statusRumours || {}).length, 0);
 						return {
 							id: questId,
 							name: questData.name || `Quest: ${questId}`,
@@ -6332,8 +6476,6 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `
 				<br><hr>
 				<span style="${styles.floatRight}">
-					<a style="${styles.button}" href="!qt-menu action=manageRumourLocations">Manage Locations</a>
-					&nbsp;
 					<a style="${styles.button}" href="!qt-menu action=main">Back to Main</a>
 				</span>
 			</div>`;
@@ -6350,10 +6492,8 @@ var QuestTracker = QuestTracker || (function () {
 			if (allStatuses.length > 0) {
 				menu += `<br><hr><table style="width:100%;">`;
 				allStatuses.forEach(status => {
-					const rumoursByLocation = questRumours[status.toLowerCase()] || {};
-					const rumourCount = Object.values(rumoursByLocation).reduce((count, locationRumours) => {
-						return count + Object.keys(locationRumours).length;
-					}, 0);
+					const rumoursByStatus = questRumours[status.toLowerCase()] || {};
+					const rumourCount = Object.keys(rumoursByStatus).length;
 					menu += `
 					<tr>
 						<td>${status}<br><small>${rumourCount} rumour${rumourCount === 1 ? '' : 's'}</small></td>
@@ -6366,8 +6506,6 @@ var QuestTracker = QuestTracker || (function () {
 			} else {
 				menu += `
 					<p>There are no rumours available; either refresh the data, or start adding manually.</p>
-					<br><hr>
-					<a style="${styles.button}" href="!qt-menu action=locations">Location Management</a>
 					<br><hr>
 					<a style="${styles.button}" href="!qt-import">Import Quest and Rumour Data</a>
 				`;
@@ -6390,75 +6528,49 @@ var QuestTracker = QuestTracker || (function () {
 			const statusName = Statuses.getName(statusId) || statusId;
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Rumours for ${questDisplayName}</h3><h3>Status: ${statusName}</h3>`;
 			menu += `<p>This menu displays all the rumours currently associated with ${questDisplayName} under the status "${statusName}". Use the options below to update, add, or remove rumours.</p><p>To add new lines into the rumours use &#37;NEWLINE&#37;. To add in quotation marks you need to use &amp;quot;.</p><ul><li>Hover over 👁 to view full rumour Text<li>b = background rumour, toggle to a priority rumour.<li>∞ measn this can be shown multiple times, '1' means it is deleted after being shown only once.<li>T - add a trigger to this rumour event.</ul><br><hr>`;
-			const locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
-			if (!locationTable) {
-				menu += `
-					<p>Error 315: Locations table not found. Please check if the table exists in the game.</p>
-					<br><hr>
-					<a style="${styles.button}" href="!qt-menu action=locations">Location Management</a>
-					<br><hr>
-					<a style="${styles.button}" href="!qt-import">Import Quest and Rumour Data</a>
-				</div>`;
-				H.showReview(`Rumours for ${questDisplayName}`, menu);
-				return;
-			}
-			const locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
-			let locationMapping = locationItems.map(location => ({
-				originalName: location.get('name'),
-				sanitizedName: Utils.sanitizeString(location.get('name').toLowerCase()),
-				weight: location.get('weight')
-			}));
-			locationMapping.sort((a, b) => {
-				if (a.sanitizedName === 'everywhere') return -1;
-				if (b.sanitizedName === 'everywhere') return 1;
-				return a.originalName.localeCompare(b.originalName);
-			});
 			const questRumours = QUEST_TRACKER_globalRumours[questId] || {};
 			const rumoursByStatus = questRumours[statusId.toLowerCase()] || {};
-			locationMapping.forEach(({ originalName, sanitizedName, weight }) => {
-				const locationRumours = rumoursByStatus[sanitizedName] || {};
-				menu += `<h4>${originalName}</h4><table style="width:100%;">`;
-				if (Object.keys(locationRumours).length > 0) {
-					Object.entries(locationRumours).forEach(([rumourId, rumourData]) => {
-						const cleanRumour = rumourId.replace(/^rumour_(\d+)$/, 'Rumour #$1');
-						const rumourTextSanitized = rumourData.text.replace(/"/g, '&quot;').replace(/%NEWLINE%|<br>/g, ' | ');
-						const rumourInputSanitized = rumourData.text.replace(/"/g, '&quot;').replace(/<br>/g, '%NEWLINE%');
-						const rumourType = rumourData.type || "background"; 
-						menu += `
-						<tr>
-							<td><small style="${styles.rumour}">${cleanRumour}</small></td>
-							<td style="${styles.smallButtonContainer}">
-								<span class=icon style="${styles.button} ${styles.smallButton}" width="12px" height="12px" title="${rumourTextSanitized}">👁</span>
-							</td>
-							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=update|questid=${questId}|status=${statusId.toLowerCase()}|location=${weight}|rumourid=${rumourId}|new=?{Update Rumour|${rumourInputSanitized}}">c</a>
-							</td>
-							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=remove|questid=${questId}|status=${statusId.toLowerCase()}|location=${weight}|rumourid=${rumourId}">-</a>
-							</td>
-							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=changeType|questid=${questId}|status=${statusId.toLowerCase()}|location=${weight}|rumourid=${rumourId}">${rumourType === 'priority' ? 'p' : 'b'}</a>
-							</td>
-							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=toggleOnce|questid=${questId}|status=${statusId.toLowerCase()}|location=${weight}|rumourid=${rumourId}">${rumourData.once ? '1' : '∞'}</a>
-							</td>
-							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=addrumour|rumourid=${rumourId}">T</a>
-							</td>
-						</tr>`;
-					});
-				} else {
-					menu += `<tr><td colspan="6"><small>No rumours</small></td></tr>`;
-				}
-				menu += `
+			menu += `<table style="width:100%;">`;
+			if (Object.keys(rumoursByStatus).length > 0) {
+				Object.entries(rumoursByStatus).forEach(([rumourId, rumourData]) => {
+					const cleanRumour = rumourId.replace(/^rumour_(\d+)$/, 'Rumour #$1');
+					const rumourTextSanitized = rumourData.text.replace(/"/g, '&quot;').replace(/%NEWLINE%|<br>/g, ' | ');
+					const rumourInputSanitized = rumourData.text.replace(/"/g, '&quot;').replace(/<br>/g, '%NEWLINE%');
+					const rumourType = rumourData.type || "background"; 
+					menu += `
+					<tr>
+						<td><small style="${styles.rumour}">${cleanRumour}</small></td>
+						<td style="${styles.smallButtonContainer}">
+							<span class=icon style="${styles.button} ${styles.smallButton}" width="12px" height="12px" title="${rumourTextSanitized}">👁</span>
+						</td>
+						<td style="${styles.smallButtonContainer}">
+							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=update|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}|new=?{Update Rumour|${rumourInputSanitized}}">c</a>
+						</td>
+						<td style="${styles.smallButtonContainer}">
+							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=remove|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}">-</a>
+						</td>
+						<td style="${styles.smallButtonContainer}">
+							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=changeType|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}">${rumourType === 'priority' ? 'p' : 'b'}</a>
+						</td>
+						<td style="${styles.smallButtonContainer}">
+							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=toggleOnce|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}">${rumourData.once ? '1' : '∞'}</a>
+						</td>
+						<td style="${styles.smallButtonContainer}">
+							<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=addrumour|rumourid=${rumourId}">T</a>
+						</td>
+					</tr>`;
+				});
+			} else {
+				menu += `<tr><td colspan="6"><small>No rumours</small></td></tr>`;
+			}
+			menu += `
 				<tr style="border-top: 1px solid #ddd">
 					<td></td>
 					<td colspan="5" style="${styles.smallButtonAdd}">
-						<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=add|questid=${questId}|status=${statusId.toLowerCase()}|location=${weight}|new=?{Enter New Rumour}">+</a>
+						<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=add|questid=${questId}|status=${statusId.toLowerCase()}|new=?{Enter New Rumour}">+</a>
 					</td>
 				</tr>
 				</table>`;
-			});
 			menu += `
 				<br><hr>
 				<span style="${styles.floatRight}">
@@ -6487,48 +6599,19 @@ var QuestTracker = QuestTracker || (function () {
 					</div>`.replace(/[\r\n]/g, ''));
 				return;
 			}
-			let menu = H.buildQuestDetailsHtml(questId);
-			menu = menu.replace(/[\r\n]/g, '');
-			Utils.sendGMMessage(menu);
+			const linkHandoutURL = `!qt-quest action=linkhandout|current=${questId}|key=?{How to Link|Auto Link,AUTO|Manual Link,?{Key&#125;`;
+			Utils.sendGMMessage(`
+				<div style="${styles.menu}">
+					<h3 style="margin-bottom: 10px;">${quest.name || 'Unnamed Quest'}</h3>
+					<p>This quest needs a linked handout before the quest workspace can open.</p>
+					<a style="${styles.button}" href="${linkHandoutURL}">Link Handout</a>
+				</div>`.replace(/[\r\n]/g, ''));
 		};
 		const manageRumourLocations = () => {
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Rumour Locations</h3>`;
-			let locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
-			if (!locationTable) {
-				menu += `<p>Error 317: Locations table not found. Please check if the table exists in the game.</p></div>`;
-				H.showReview('Manage Rumour Locations', menu);
-				return;
-			}
-			let locationItems = findObjs({ type: 'tableitem', rollabletableid: locationTable.id });
-			let everywhereLocation = locationItems.find(loc => loc.get('name').toLowerCase() === 'everywhere');
-			let otherLocations = locationItems
-				.filter(loc => loc.get('name').toLowerCase() !== 'everywhere')
-				.sort((a, b) => a.get('name').localeCompare(b.get('name')));
-			let uniqueLocations = new Set();
-			if (everywhereLocation) {
-				otherLocations.unshift(everywhereLocation);
-			}
-			otherLocations.forEach(location => {
-				let locationName = location.get('name');
-				let locationKey = locationName.toLowerCase();
-				let locationId = location.get('weight');
-				if (!uniqueLocations.has(locationKey)) {
-					uniqueLocations.add(locationKey);
-					let rumourCount = QUEST_TRACKER_rumoursByLocation[locationKey] ? Object.keys(QUEST_TRACKER_rumoursByLocation[locationKey]).length : 0;
-					let showButtons = !(locationId === 1 || locationKey === 'everywhere');
-					menu += `<li style="${styles.column}">
-								<span style="${styles.floatLeft}">${locationName}<br><small>${rumourCount} Rumours</small></span>
-								<span style="${styles.floatRight}">`;
-					if (showButtons) {
-						menu += `<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=editLocationName|locationId=${locationId}|old=${locationName}|new=?{Update Location Name|${locationName}}">c</a>
-								 <a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=removeLocation|locationId=${locationId}|confirmation=?{Type DELETE to confirm removal of this location|}">-</a>`;
-					}
-					menu += `</span></li>`;
-				}
-			});
-			menu += `<br><a style="${styles.button}" href="!qt-rumours action=addLocation|new=?{New Location Name}">Add New Location</a>`;
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Rumour Locations</h3>`;
+			menu += `<p>Rumour locations are no longer managed separately. Set a single Location on each quest; generated rumours use the current calendar/weather location.</p>`;
 			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=allrumours">Back to Rumours</a></div>`;
-			H.showReview('Manage Rumour Locations', menu);
+			H.showReview('Rumour Locations', menu);
 		};
 		const manageQuestGroups = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Quest Groups</h3>`;
@@ -6563,7 +6646,7 @@ var QuestTracker = QuestTracker || (function () {
 				});
 			}
 			menu += `<br><a style="${styles.button}" href="!qt-questgroup action=add|new=?{New Group Name}">Add New Group</a>`;
-			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=allquests">Back to Quests</a></div>`;
+			menu += `<br><hr><a style="${styles.button}" href="${H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName)}">Back to Quests</a></div>`;
 			menu = menu.replace(/[\r\n]/g, ''); 
 			H.showReview('Manage Quest Groups', menu);
 		};
@@ -6572,7 +6655,7 @@ var QuestTracker = QuestTracker || (function () {
 			Object.entries(Statuses.getAll()).forEach(([id, status]) => {
 				const isDefault = Statuses.isDefault(id);
 				menu += `<li style="${styles.column}">
-					<span style="${styles.floatLeft}"><span style="color:${status.color};">[color]</span> ${status.name}<br><small>ID ${id}${isDefault ? ' default' : ''}; active ${status.active ? 'yes' : 'no'}</small></span>
+					<span style="${styles.floatLeft}"><span style="display:inline-block; width:10px; height:10px; background-color:${status.color}; border:1px solid #444; margin-right:4px;"></span>${status.name}<br><small>ID ${id}${isDefault ? ' default' : ''}; active ${status.active ? 'yes' : 'no'}</small></span>
 					<span style="${styles.floatRight}">
 						<a style="${styles.button} ${styles.smallButton}" href="!qt-status action=update|id=${id}|field=name|new=?{Status Name|${status.name}}">n</a>
 						<a style="${styles.button} ${styles.smallButton}" href="!qt-status action=update|id=${id}|field=color|new=?{Status Colour|${status.color}}">c</a>
@@ -6620,7 +6703,7 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><a style="${styles.button}" href="!qt-flag action=add|name=?{Flag Name}|value=?{Initial Value|false}|category=?{Category|general}|status=?{Flag Status${Flags.buildStatusDropdown()}}">Add Flag</a>`;
 			menu += `&nbsp;<a style="${styles.button}" href="!qt-menu action=flagStatuses">Manage Statuses</a>`;
 			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=main">Back to Main Menu</a></div>`;
-			H.showReview('Campaign Flags', menu);
+			H.showReview('Campaign Flags', menu, { handoutName: QUEST_TRACKER_FlagsHandoutName });
 		};
 		const manageFlagStatuses = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Flag Statuses</h3>`;
@@ -6628,7 +6711,7 @@ var QuestTracker = QuestTracker || (function () {
 				const isDefault = Flags.isDefaultStatus(id);
 				const flagCount = Object.values(QUEST_TRACKER_Flags).filter(flagData => `${flagData.status}` === `${id}`).length;
 				menu += `<li style="${styles.column}">
-					<span style="${styles.floatLeft}"><span style="color:${status.color};">[color]</span> ${status.name}<br><small>ID ${id}${isDefault ? ' default' : ''}; ${flagCount} flag${flagCount === 1 ? '' : 's'}</small></span>
+					<span style="${styles.floatLeft}"><span style="display:inline-block; width:10px; height:10px; background-color:${status.color}; border:1px solid #444; margin-right:4px;"></span>${status.name}<br><small>ID ${id}${isDefault ? ' default' : ''}; ${flagCount} flag${flagCount === 1 ? '' : 's'}</small></span>
 					<span style="${styles.floatRight}">
 						<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=updatestatus|id=${id}|field=name|new=?{Status Name|${status.name}}">n</a>
 						<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=updatestatus|id=${id}|field=color|new=?{Status Colour|${status.color}}">c</a>
@@ -6639,7 +6722,7 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><a style="${styles.button}" href="!qt-flag action=addstatus|name=?{Status Name}|color=?{Status Colour|#CCCCCC}">Add Status</a>`;
 			menu += `<br><a style="${styles.button}" href="!qt-flag action=resetstatuses|confirmation=?{Type CONFIRM to restore default flag statuses|}">Reset Defaults</a>`;
 			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=flags">Back to Flags</a></div>`;
-			H.showReview('Manage Flag Statuses', menu);
+			H.showReview('Manage Flag Statuses', menu, { handoutName: QUEST_TRACKER_FlagsHandoutName });
 		};
 		const adminMenu = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Quest Tracker Configuration</h3>`;
@@ -6653,39 +6736,52 @@ var QuestTracker = QuestTracker || (function () {
 			// menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=togglejumpgate|value=${QUEST_TRACKER_jumpGate === true ? 'false' : 'true'}">Toggle JumpGate (${QUEST_TRACKER_jumpGate === true ? 'on' : 'off'})</a>`;
 			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleVerboseErrors|value=${QUEST_TRACKER_verboseErrorLogging === true ? 'false' : 'true'}">Toggle Verbose Errors (${QUEST_TRACKER_verboseErrorLogging === true ? 'on' : 'off'})</a>`;
 			menu += `<br clear=all><h4>Data</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-import">${RefreshImport} JSON Data</a>`;
+			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=rebuildQuestHandouts">Rebuild Quest Handouts</a>`;
 			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=checkVersion">Check Version</a>`;
 			menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=reset|confirmation=?{Are you sure? This will also clear all historical weather data. Type CONFIRM to continue|}">Reset to Defaults</a>`;
 			menu += `<br clear=all><h4>Quest Statuses</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-menu action=statuses">Manage Quest Statuses</a>`;
 			menu += `<br clear=all><h4>Quest Tree</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-questtree action=build|force=true">Build Quest Tree Page</a>`;
 			menu += `<br><h4>Calander</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=setcalender|new=?{Choose Calender${calenderDropdown}}">Calendar: ${CALENDARS[QUEST_TRACKER_calenderType]?.name || "Unknown Calendar"}</a>`;
-			menu += `<br clear=all><h4>Weather</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleWeather|value=${QUEST_TRACKER_WEATHER === true ? 'false' : 'true'}">Toggle Weather (${QUEST_TRACKER_WEATHER === true ? 'on' : 'off'})</a>`;
+			menu += `<br clear=all><h4>Weather</h4><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleWeather|value=${QUEST_TRACKER_WEATHER === true ? 'false' : 'true'}">Toggle Weather (${QUEST_TRACKER_WEATHER === true ? 'on' : 'off'})</a>`;
 			if (QUEST_TRACKER_WEATHER) {
 				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=setclimate|new=?{Choose Calender${climateDropdown}}">Climate: ${QUEST_TRACKER_Location}</a>`;
-				menu += `<br clear=all><h4>Weather Trends</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=dry|new=?{Set Trend}">Dry: ${QUEST_TRACKER_WEATHER_TRENDS['dry'] || 0}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=wet|new=?{Set Trend}">Wet: ${QUEST_TRACKER_WEATHER_TRENDS['wet'] || 0}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=heat|new=?{Set Trend}">Heat: ${QUEST_TRACKER_WEATHER_TRENDS['heat'] || 0}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=cold|new=?{Set Trend}">Cold: ${QUEST_TRACKER_WEATHER_TRENDS['cold'] || 0}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=wind|new=?{Set Trend}">Wind: ${QUEST_TRACKER_WEATHER_TRENDS['wind'] || 0}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=humid|new=?{Set Trend}">Humidity: ${QUEST_TRACKER_WEATHER_TRENDS['humid'] || 0}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=visibility|new=?{Set Trend}">Fog: ${QUEST_TRACKER_WEATHER_TRENDS['visibility'] || 0}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|field=cloudy|new=?{Set Trend}">Cloud Cover: ${QUEST_TRACKER_WEATHER_TRENDS['cloudy'] || 0}</a>`;
-				menu += `<br clear=all><h4>Forced Weather Trends</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=dry">Dry: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['dry'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=wet">Wet: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['wet'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=heat">Heat: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['heat'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=cold">Cold: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cold'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=wind">Wind: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['wind'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=humid">Humidity: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['humid'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=visibility">Visibility: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['visibility'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|field=cloudy">Cloud Cover: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cloudy'] || 'False'}</a>`;
-				menu += `<br clear=all><h4>Imperial Measurements</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=temperature|value=${QUEST_TRACKER_imperialMeasurements['temperature'] === true ? 'false' : 'true'}">Temperature: ${QUEST_TRACKER_imperialMeasurements['temperature'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=precipitation|value=${QUEST_TRACKER_imperialMeasurements['precipitation'] === true ? 'false' : 'true'}">Precipitation: ${QUEST_TRACKER_imperialMeasurements['precipitation'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=wind|value=${QUEST_TRACKER_imperialMeasurements['wind'] === true ? 'false' : 'true'}">Wind: ${QUEST_TRACKER_imperialMeasurements['wind'] || 'False'}</a>`;
-				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=visibility|value=${QUEST_TRACKER_imperialMeasurements['visibility'] === true ? 'false' : 'true'}">Visibility: ${QUEST_TRACKER_imperialMeasurements['visibility'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-menu action=weatherConfig">Weather Configuration</a>`;
 			}
 			menu += `<br clear=all><hr><a style="${styles.button} ${styles.floatClearRight}" href="!qt-menu action=main">Back to Main Menu</a>`;
 			menu += `</div>`;
 			menu = menu.replace(/[\r\n]/g, ''); 
 			H.showReview('Configuration', menu);
+		};
+		const weatherConfig = () => {
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Weather Configuration</h3>`;
+			if (QUEST_TRACKER_WEATHER) {
+				menu += `<br clear=all><h4>Weather Trends</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=dry|new=?{Set Trend}">Dry: ${QUEST_TRACKER_WEATHER_TRENDS['dry'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=wet|new=?{Set Trend}">Wet: ${QUEST_TRACKER_WEATHER_TRENDS['wet'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=heat|new=?{Set Trend}">Heat: ${QUEST_TRACKER_WEATHER_TRENDS['heat'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=cold|new=?{Set Trend}">Cold: ${QUEST_TRACKER_WEATHER_TRENDS['cold'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=wind|new=?{Set Trend}">Wind: ${QUEST_TRACKER_WEATHER_TRENDS['wind'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=humid|new=?{Set Trend}">Humidity: ${QUEST_TRACKER_WEATHER_TRENDS['humid'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=visibility|new=?{Set Trend}">Fog: ${QUEST_TRACKER_WEATHER_TRENDS['visibility'] || 0}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=settrend|weather=true|field=cloudy|new=?{Set Trend}">Cloud Cover: ${QUEST_TRACKER_WEATHER_TRENDS['cloudy'] || 0}</a>`;
+				menu += `<br clear=all><h4>Forced Weather Trends</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=dry">Dry: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['dry'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=wet">Wet: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['wet'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=heat">Heat: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['heat'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=cold">Cold: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cold'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=wind">Wind: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['wind'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=humid">Humidity: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['humid'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=visibility">Visibility: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['visibility'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-date action=forcetrend|weather=true|field=cloudy">Cloud Cover: ${QUEST_TRACKER_FORCED_WEATHER_TRENDS['cloudy'] || 'False'}</a>`;
+				menu += `<br clear=all><h4>Imperial Measurements</h4><br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=temperature|value=${QUEST_TRACKER_imperialMeasurements['temperature'] === true ? 'false' : 'true'}">Temperature: ${QUEST_TRACKER_imperialMeasurements['temperature'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=precipitation|value=${QUEST_TRACKER_imperialMeasurements['precipitation'] === true ? 'false' : 'true'}">Precipitation: ${QUEST_TRACKER_imperialMeasurements['precipitation'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=wind|value=${QUEST_TRACKER_imperialMeasurements['wind'] === true ? 'false' : 'true'}">Wind: ${QUEST_TRACKER_imperialMeasurements['wind'] || 'False'}</a>`;
+				menu += `<br><a style="${styles.button} ${styles.floatClearRight}" href="!qt-config action=toggleimperial|type=visibility|value=${QUEST_TRACKER_imperialMeasurements['visibility'] === true ? 'false' : 'true'}">Visibility: ${QUEST_TRACKER_imperialMeasurements['visibility'] || 'False'}</a>`;
+			} else {
+				menu += `<p>Weather is currently off. Enable weather from the main Configuration menu.</p>`;
+			}
+			menu += `<br clear=all><hr><a style="${styles.button} ${styles.floatClearRight}" href="!qt-menu action=config">Back to Configuration</a>`;
+			menu += `</div>`;
+			menu = menu.replace(/[\r\n]/g, ''); 
+			H.showReview('Weather Configuration', menu);
 		};
 		const showAllEvents = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">All Events</h3>`;
@@ -6993,13 +7089,13 @@ var QuestTracker = QuestTracker || (function () {
 				<span style="${styles.floatRight}">
 					<a style="${styles.button}" href="!qt-trigger action=add">Add Trigger</a>
 					&nbsp;
-					<a style="${styles.button}" href="!qt-menu action=allquests">Quests</a>
+					<a style="${styles.button}" href="${H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName)}">Quests</a>
 					&nbsp;
 					<a style="${styles.button}" href="!qt-menu action=main">Main Menu</a>
 				</span>
 			</div>`;
 			menu = menu.replace(/[\r\n]/g, '');
-			H.showReview('All Triggers', menu);
+			H.showReview('All Triggers', menu, { handoutName: QUEST_TRACKER_AllTriggersHandoutName });
 		};
 		const showTrigger = (triggerId) => {
 			Triggers.initializeTriggersStructure();
@@ -7135,11 +7231,13 @@ var QuestTracker = QuestTracker || (function () {
 			showFlags,
 			manageFlagStatuses,
 			adminMenu,
+			weatherConfig,
 			adjustDate,
 			buildWeather,
 			manageFilter,
 			showAllTriggers,
 			showTrigger,
+			refreshAllQuestsHandout,
 			updateLinkedQuestHandout: H.updateLinkedQuestHandout,
 			updateAllLinkedQuestHandouts: H.updateAllLinkedQuestHandouts
 		};
@@ -7242,6 +7340,11 @@ var QuestTracker = QuestTracker || (function () {
 								if (newItem !== 'remove') {
 									Quest.manageQuestObject({ action: 'add', field, current, old, newItem });
 								}								
+							}
+							break;
+						case 'location':
+							if (action === 'update') {
+								Quest.manageQuestObject({ action, field, current, old, newItem });
 							}
 							break;
 						default:
@@ -7410,20 +7513,18 @@ var QuestTracker = QuestTracker || (function () {
 				case 'send':
 					if (errorCheck(89, 'exists', number, 'number')) return;
 					if (errorCheck(90, 'number', number, 'number')) return;
-					if (errorCheck(91, 'exists', location, 'location')) return;
-					Rumours.sendRumours(location, number);
+					Rumours.sendRumours(number);
 					break;
 				case 'add':
 				case 'update':
 				case 'remove':
-					if (errorCheck(92, 'exists', location, 'location')) return;
 					if (errorCheck(93, 'exists', status, 'status')) return;
 					if (errorCheck(94, 'exists', questid, 'questid')) return;
 					if (action === 'add') {
 						if (errorCheck(95, 'exists', newItem, 'newItem')) return;
 						let cleanedItem = newItem.replace(/[\r\n]/g, '');
 						cleanedItem = cleanedItem.replace(/<br\s*\/?>/g, '%NEWLINE%');
-						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem: cleanedItem, status, location });
+						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem: cleanedItem, status });
 						setTimeout(() => {
 							Menu.showRumourDetails(questid, status);
 						}, 500);
@@ -7433,17 +7534,15 @@ var QuestTracker = QuestTracker || (function () {
 						if (errorCheck(98, 'exists', QUEST_TRACKER_globalRumours[questid], `QUEST_TRACKER_globalRumours[${questid}]`)) return;
 						let cleanedItem = newItem.replace(/[\r\n]/g, '');
 						cleanedItem = cleanedItem.replace(/<br\s*\/?>/g, '%NEWLINE%');
-						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, location, rumourId: rumourid });
-						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem: cleanedItem, status, location, rumourId: rumourid });
+						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, rumourId: rumourid });
+						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem: cleanedItem, status, rumourId: rumourid });
 						setTimeout(() => {
 							Menu.showRumourDetails(questid, status);
 						}, 500);
 					} else if (action === 'remove') {
 						if (errorCheck(99, 'exists', QUEST_TRACKER_globalRumours[questid], `QUEST_TRACKER_globalRumours[${questid}]`)) return;
 						if (errorCheck(100, 'exists', QUEST_TRACKER_globalRumours[questid][status], `QUEST_TRACKER_globalRumours[${questid}][${status}]`)) return;
-						if (errorCheck(101, 'exists', Rumours.getLocationNameById(location), `getLocationNameById(${location})`)) return;
-						if (errorCheck(102, 'exists', QUEST_TRACKER_globalRumours[questid][status][Rumours.getLocationNameById(location).toLowerCase()], `QUEST_TRACKER_globalRumours[${questid}][${status}][getLocationNameById(${location}).toLowerCase()]`)) return;
-						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, location, rumourId: rumourid });
+						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, rumourId: rumourid });
 						setTimeout(() => {
 							Menu.showRumourDetails(questid, status);
 						}, 500);
@@ -7452,9 +7551,8 @@ var QuestTracker = QuestTracker || (function () {
 				case 'toggleOnce':
 					if (errorCheck(338, 'exists', questid, 'questid')) return;
 					if (errorCheck(226, 'exists', status, 'status')) return;
-					if (errorCheck(227, 'exists', location, 'location')) return;
 					if (errorCheck(228, 'exists', rumourid, 'rumourid')) return;
-					Rumours.manageRumourObject({ action: 'toggleOnce', questId: questid, status, location, rumourId: rumourid });
+					Rumours.manageRumourObject({ action: 'toggleOnce', questId: questid, status, rumourId: rumourid });
 					setTimeout(() => {
 						Menu.showRumourDetails(questid, status);
 					}, 500);
@@ -7462,35 +7560,16 @@ var QuestTracker = QuestTracker || (function () {
 				case 'changeType':
 					if (errorCheck(229, 'exists', questid, 'questid')) return;
 					if (errorCheck(339, 'exists', status, 'status')) return;
-					if (errorCheck(231, 'exists', location, 'location')) return;
 					if (errorCheck(232, 'exists', rumourid, 'rumourid')) return;
-					Rumours.manageRumourObject({ action: 'changeType', questId: questid, status, location, rumourId: rumourid });
+					Rumours.manageRumourObject({ action: 'changeType', questId: questid, status, rumourId: rumourid });
 					setTimeout(() => {
 						Menu.showRumourDetails(questid, status);
 					}, 500);
 					break;
 				case 'addLocation':
-					if (errorCheck(103, 'exists', newItem, 'newItem')) return;
-					Rumours.manageRumourLocation('add', newItem, null);
-					setTimeout(() => {
-						Menu.manageRumourLocations();
-					}, 500);
-					break;
 				case 'editLocationName':
-					if (errorCheck(104, 'exists', newItem, 'newItem')) return;
-					if (errorCheck(105, 'exists', locationId, 'locationId')) return;
-					Rumours.manageRumourLocation('update', newItem, locationId);
-					setTimeout(() => {
-						Menu.manageRumourLocations();
-					}, 500);
-					break;
 				case 'removeLocation':
-					if (errorCheck(106, 'exists', locationId, 'locationId')) return;
-					if (!errorCheck(107, 'confirmation', confirmation, 'DELETE')) return;
-					Rumours.manageRumourLocation('remove', null, locationId);
-					setTimeout(() => {
-						Menu.manageRumourLocations();
-					}, 500);
+					errorCheck(341, 'msg', null, 'Rumour locations are no longer managed separately. Set the Location field on each quest instead.');
 					break;
 				default:
 					errorCheck(108, 'msg', null,`Unsupported action for type ( ${action} )`);
@@ -7533,6 +7612,8 @@ var QuestTracker = QuestTracker || (function () {
 				Menu.generateGMMenu();
 			} else if (action === 'config') {
 				Menu.adminMenu();
+			} else if (action === 'weatherConfig') {
+				Menu.weatherConfig();
 			} else if (action === 'quest') {
 				if (errorCheck(115, 'exists', id,'id')) return;
 				Menu.showQuestDetails(id);
@@ -7548,7 +7629,7 @@ var QuestTracker = QuestTracker || (function () {
 				if (errorCheck(118, 'exists', status,'status')) return;
 				Menu.showRumourDetails(questId, status);
 			} else if (action === 'manageRumourLocations') {
-				Menu.manageRumourLocations();
+				errorCheck(342, 'msg', null, 'Rumour locations are now quest locations. Open a quest and change its Location field.');
 			} else if (action === 'manageQuestGroups') {
 				Menu.manageQuestGroups();
 			} else if (action === 'statuses') {
@@ -7943,7 +8024,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 			}	
 		} else if (command === '!qt-date') {
-			const { action, field, current, old, new: newItem, unit = 'day', date, eventid, menu = false, home = false} = params;
+			const { action, field, current, old, new: newItem, unit = 'day', date, eventid, menu = false, home = false, weather = false} = params;
 			if (errorCheck(121, 'exists', action,'action')) return;
 			switch (action) {
 				case 'set':
@@ -8013,14 +8094,14 @@ var QuestTracker = QuestTracker || (function () {
 					if (num <= 0) return;
 					Calendar.setWeatherTrend(field, num);
 					setTimeout(() => {
-						Menu.adminMenu();
+						weather ? Menu.weatherConfig() : Menu.adminMenu();
 					}, 500);
 					break;
 				case 'forcetrend':
 					if (errorCheck(131, 'exists', field, 'field')) return;
 					Calendar.forceWeatherTrend(field);
 					setTimeout(() => {
-						Menu.adminMenu();
+						weather ? Menu.weatherConfig() : Menu.adminMenu();
 					}, 500);
 					break;
 				case 'modify':
@@ -8100,7 +8181,7 @@ var QuestTracker = QuestTracker || (function () {
 				if (errorCheck(151, 'exists', type, 'type')) return;
 				Utils.toggleImperial(type,value);
 				setTimeout(() => {
-					Menu.adminMenu();
+					Menu.weatherConfig();
 				}, 500);
 			} else if (action === 'reset') {
 				if (!errorCheck(141, 'confirmation', confirmation, 'CONFIRM')) return;
@@ -8115,6 +8196,13 @@ var QuestTracker = QuestTracker || (function () {
 				}, 500);
 			} else if (action === 'checkVersion'){
 				checkVersion();
+				setTimeout(() => {
+					Menu.adminMenu();
+				}, 500);
+			} else if (action === 'rebuildQuestHandouts'){
+				Menu.updateAllLinkedQuestHandouts();
+				Menu.refreshAllQuestsHandout(false);
+				Utils.sendGMMessage('Quest handouts and All Quests handout rebuilt.');
 				setTimeout(() => {
 					Menu.adminMenu();
 				}, 500);
@@ -8183,6 +8271,7 @@ var QuestTracker = QuestTracker || (function () {
 		Import,
 		Calendar,
 		Quest,
+		QuestLocations,
 		Statuses,
 		Flags,
 		Triggers,

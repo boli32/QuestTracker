@@ -62,8 +62,6 @@ The review handout is currently used for:
 
 * Main menu.
 * All quests.
-* All rumours.
-* Rumour details and rumour locations.
 * Quest groups.
 * Quest statuses.
 * Campaign flags and flag statuses.
@@ -75,6 +73,8 @@ The review handout is currently used for:
 
 Linked quest handouts are used for full quest-specific output once a quest has a handout link. The linked quest handout is updated with the QuestTracker marker section and includes relevant quest details, rumours, and triggers.
 
+Rumours are managed from linked quest handouts. The review handout and chat UI do not provide the old all-rumours or rumour-location management screens.
+
 #### Chat UI
 
 Chat is still used for:
@@ -84,7 +84,7 @@ Chat is still used for:
 * Numbered errors.
 * Import and initialization messages.
 * Failed prerequisite warnings.
-* Public/in-world output such as shown rumours, event announcements, date changes, and weather descriptions.
+* Public/in-world output such as event announcements, date changes, and weather descriptions.
 
 Until a quest has a linked quest handout, the individual quest details view falls back to chat UI. This keeps quest editing available while leaving room for a later default-handout flow.
 
@@ -242,49 +242,37 @@ Rumours are structured hierarchically by **quest**, **status**, and **location**
 #### Key Elements:
 * *quest* – The associated quest ID.
 * *status* – The quest state (unknown, discovered, ongoing, etc.).
-* *location* – Where the rumour can be heard.
-* *rumour_id* – A unique identifier for the rumour.
+* *location* – The associated quest location.
+* *rumour_id* – An automatically generated rumour identifier.
 * *description* – The actual rumour text.
 
 ### Managing Rumours
 
-Rumours are stored in Roll20 handouts and managed through the UI. You can import and refresh JSON data from the Configuration Menu.
+Rumours are stored in Roll20 handouts and managed from the linked quest handout. You can import and refresh JSON data from the Configuration Menu.
 
 #### Viewing Rumours
 
-Navigate to Show All Rumours to browse rumours tied to a quest. Use filters to display unknown, discovered, or ongoing rumours.
+Open the linked quest handout for a quest and use its Rumours section. Rumours are grouped by quest status, and each entry can be edited from that handout.
 
 
 ![Rumours Interface](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumoursinterface.png)
 
 #### UI Buttons
 
-* **Add** (+) – Create a new rumour at a location.
+* **Add** (+) – Create a new rumour for the quest and status. The rumour number is assigned automatically.
 * **View Rumour** (👁) - Hover over this icon to see the rumour.
 * **Change** (c) – Edit an existing rumour.
-* **Remove** (-) – Delete a rumour from a location.
+* **Remove** (-) – Delete a rumour.
 * **Priority** - (b or p) - Toggle between a priority rumour or a background rumour.
-* **Frequency** (∞ or 1) - Toggle Betqween the rumour being only shown once, or any number of times   
+* **Frequency** (∞ or 1) - Toggle between the rumour being only shown once, or any number of times.
 * **Add Trigger** (T) - Add a trigger to this rumour when it is shown.
 
 #### Location-Based Rumours
-Rumours tied to specific locations appear when players interact with those areas. You can also define global rumours ("everywhere") that can be heard across multiple locations.
+Rumour locations are no longer managed separately. Set the Location field on the quest itself; the quest handout then becomes the source of truth for that quest's rumours.
 
-### Showing Rumours to Players
+### Reviewing Rumours
 
-To reveal rumours in chat:
-
-1. Select the location where the players are.
-2. Choose the number of random rumours to display.
-3. Press Show Rumours – the selected rumours will be sent to chat.
-
-> Everywhere is a global rumour pool. If no valid rumours exist for the selected location, the system will pull from this pool.
-
-#### Example Display:
-
-![Show Button](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/show_rumours.png)
-
-![Rumour Display](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/rumour_display.png)
+The old chat-based Show Rumours flow has been removed in v1.3. Rumours are reviewed and managed from the linked quest handout.
 
 #### Formatting Tips
 * Use %NEWLINE% to insert line breaks within rumour text.
@@ -306,15 +294,15 @@ Rumours can be set to disappear after being shown, ensuring they don’t repeat.
 A rumour can be linked to triggers that change a quest’s state when revealed (e.g., a rumour about bandits can mark a quest as discovered when heard).
 
 ### Error Handling
-* Ensure rumour IDs are unique to prevent overwrites.
-* Validate quest and location IDs to maintain consistency.
+* Rumour IDs are generated automatically to prevent overwrites.
+* Validate quest IDs and quest locations to maintain consistency.
 
 
 ## Filters
 
 ![Filters](https://raw.githubusercontent.com/boli32/QuestTracker/refs/heads/main/img/filters_open.png)
 
-All Quests and all rumours have a filters section at the top allowing for better navigation.
+All Quests has a filters section at the top allowing for better navigation. Rumours are handled from the linked quest handout for each quest.
 
 
 ## Quest Tree Page
@@ -813,8 +801,8 @@ No, there is a script in place to convert all autoadvance triggers into the new 
   * Rumours can be set as 'Priority' or 'Background' where priority rumours will aim to make up at least half of the rumours shown to players
   * Rumours can now also be set to be shown only once and then deleted afterwards
   * Rumours can now count as trigger events; such as changing a quest to be 'discovered' after the rumour is shown to players.
-  * Given how rumours are stored, there is a shortcut on the rumours page to automatically create a Rumour Trigger.
-  * The Rumours page has had a redesign using symbols as buttons removing reliance on external images. and rather than a truncated rumour the rumour # is shown instead. (As before you can hover over the eye symbol to read the rumour in full)
+  * Given how rumours are stored, there is a shortcut to automatically create a Rumour Trigger. In v1.3 this is handled from the linked quest handout.
+  * The old Rumours page was redesigned in v1.2 using symbols as buttons. In v1.3, rumour management has moved to linked quest handouts.
 - **Triggers Module**
   * Added 'Script' triggers which can be triggered from a button press (or a link within a handout), thee bypss checks and just run through the Effect List.
   * Homepage now has an 'Automtion' section which links direct to Triggers. Script triggers can be set a 'active' and they will appear here.

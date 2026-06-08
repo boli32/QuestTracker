@@ -1,0 +1,210 @@
+QuestTracker 1.3 Codex Handoff
+================================
+
+This file is a handoff note for future Codex sessions working on this repo.
+It explains the current direction of the QuestTracker v1.3 refactor and the
+reason behind the recent rumour changes.
+
+Handoff rule
+------------
+
+Every Codex session working on this repo should treat this file as shared
+handoff memory.
+
+At the start of work:
+
+- Read codex.txt before making assumptions.
+- Check git status so local uncommitted work is understood.
+- Preserve any user or other-Codex changes unless the user explicitly asks for
+  them to be reverted.
+
+Before handing off, stopping, committing, pushing, or moving work between home
+and work:
+
+- Update codex.txt with the current task state.
+- Note any files changed, tests/checks run, and known unfinished work.
+- Keep the important design decisions current, especially decisions the user
+  explicitly said not to undo.
+- Do this on both sides of the workflow: the home Codex and the work Codex
+  should both maintain this file whenever they touch the project.
+
+Current repo/task context
+-------------------------
+
+- Work is happening in the 1.3 directory.
+- The 1.2 directory should stay as the pulled upstream 1.2 baseline unless the
+  user explicitly asks otherwise.
+- The latest handoff work touches:
+  - 1.3/QuestTracker.js
+  - README.md
+  - codex.txt
+- Do not assume these changes are mistakes if they appear in a future diff.
+  They are part of the current 1.3 direction.
+
+Latest local update
+-------------------
+
+The linked quest handout command controls were changed from compact
+symbol/small-button controls to full text links.
+
+Current intended linked quest handout command style:
+
+[ Edit | Delete | Make Priority | Use Once | Add Trigger ]
+
+For single actions:
+
+[ Add Rumour ]
+
+Apply this pattern to linked quest handout commands generally, including quest
+field edits, relationships, rumours, trigger summaries, trigger conditions,
+trigger effects, and footer navigation.
+
+Do not reintroduce tiny c/-/p/b/1/T rumour buttons or other compact handout
+command buttons unless the user explicitly asks for that older compact layout.
+
+The old graphical prerequisite tree was removed from linked quest handouts. It
+was inaccurate once flag requirements became first-class prerequisites. The
+linked quest handout should show a plain relationship summary instead:
+
+- Quest requirements as text, preserving AND/OR wording.
+- Mutually exclusive quests as bullet points.
+- Flag requirements as "flag name / required status".
+
+Do not bring back the handout tree box/line renderer. The separate Quest Tree
+Page feature is not the same thing and was not removed.
+
+Important rumour model direction
+--------------------------------
+
+The user does not want to revert the v1.3 rumour location/climate change.
+
+Rumours no longer have their own separately managed location layer in the UI.
+They are linked to a quest and status only, and the rumour location is derived
+from the quest's Location field.
+
+In practical terms:
+
+- Quest location is the source of truth.
+- That location is the climate/location key used by the calendar/weather
+  location system.
+- A rumour belongs to:
+  - quest id
+  - quest status
+  - rumour id
+- It should not expose separate rumour-location management to the GM.
+
+Expected rumour shape for v1.3 is:
+
+QUEST_TRACKER_globalRumours[questId][statusKey][rumourId] = {
+  text: "...",
+  type: "background" | "priority",
+  once: false
+}
+
+The old nested location shape is legacy/import compatibility only and should
+not be reintroduced as the active authoring model.
+
+Do not bring back:
+
+- All Rumours menu as a primary UI.
+- Rumour details menu as a primary UI.
+- Rumour locations menu.
+- Chat-based Show Rumours flow.
+- Manual rumour number/id entry.
+- Any UI that asks the user to choose or edit a rumour location separately from
+  the quest location/climate.
+
+Current rumour UI direction
+---------------------------
+
+The GM should manage rumours from the linked quest handout.
+
+The linked quest handout is updated under this marker:
+
+<hr><h1>QuestTracker</h1>
+
+Everything before that marker is preserved. Everything after that marker is
+QuestTracker-generated and may be rewritten.
+
+If the marker does not exist, QuestTracker appends the marker and generated
+content to the end of the handout.
+
+Until a quest has a linked quest handout, quest details may fall back to chat
+only to tell the GM to link/create a handout. The direction is still to move
+working UI into handouts where possible.
+
+Recent rumour changes already made
+----------------------------------
+
+In 1.3/QuestTracker.js:
+
+- Rumour add now always uses H.getNewRumourId().
+- The add UI asks only for rumour text; it does not offer a rumour number.
+- Rumour update preserves the existing rumour id instead of remove-and-add.
+- Rumour edit/add/remove/type/once actions refresh the linked quest handout.
+- The main menu no longer shows Active Rumours or Show All Rumours.
+- Old rumour menu functions are compatibility redirects/stubs:
+  - showAllRumours warns and opens All Quests.
+  - showQuestRumourByStatus opens quest details.
+  - showRumourDetails opens quest details.
+  - manageRumourLocations warns that quest location is the source of truth.
+- !qt-rumours action=send no longer reveals rumours to chat.
+- sendRumours() now warns instead of sending /desc output.
+- Trigger UI no longer offers manual rumour id entry.
+
+README direction already updated
+--------------------------------
+
+README.md now documents:
+
+- Rumours are managed from linked quest handouts.
+- Rumour ids are automatically generated.
+- The old chat-based Show Rumours flow has been removed in v1.3.
+- Filters apply to All Quests; rumours are handled from each quest handout.
+
+Validation already run after the rumour changes
+-----------------------------------------------
+
+These checks passed:
+
+- node --check 1.3/QuestTracker.js
+- duplicate errorCheck(...) id audit
+- git diff --check
+- Roll20-stub smoke test proving:
+  - adding a rumour creates rumour_2 after rumour_1
+  - updating rumour_2 preserves that id
+  - linked quest handout refresh includes the updated rumour
+  - existing handout content before the QuestTracker marker is preserved
+  - old chat rumour send path does not emit /desc
+  - old rumour menu path warns/redirects
+
+Final validation before tonight's commit
+----------------------------------------
+
+Final validation passed on 2026-06-08 before committing/pushing the current 1.3
+handout/refactor work:
+
+- node --check 1.3/QuestTracker.js
+- duplicate errorCheck(...) id audit
+- git diff --check
+- Roll20-stub smoke test for:
+  - rumour auto-increment and update-in-place
+  - linked quest handout marker preservation
+  - disabled rumour chat reveal
+  - bracketed text-link command rendering
+  - plain quest prerequisite summary with nested OR requirements
+  - mutually exclusive bullet list
+  - flag requirements as "flag name / required status"
+
+Open design direction
+---------------------
+
+The user is considering default handout creation so QuestTracker can avoid chat
+fallbacks for quest-specific work. Do not solve that unless asked, but keep new
+UI work compatible with that direction.
+
+When in doubt, preserve this principle:
+
+Quest handout is the working surface. Quest location/climate is the rumour
+location source of truth. Chat is for basic commands, warnings, and review
+links, not for rumour management.

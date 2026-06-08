@@ -1922,10 +1922,10 @@ var QuestTracker = QuestTracker || (function () {
 			buildFlagRequirementLink: (questId, groupnum = null) => {
 				const flagDropdown = H.buildFlagDropdownString();
 				if (!flagDropdown) {
-					return `<span style="${styles.buttonDisabled} ${styles.smallButton}">+</span>`;
+					return 'No flags available';
 				}
 				const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
-				return `<a href="!qt-questrelationship currentquest=${questId}|action=add|type=flag${groupPart}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}" style="${styles.button} ${styles.smallButton}">+</a>`;
+				return `<a href="!qt-questrelationship currentquest=${questId}|action=add|type=flag${groupPart}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}">Add Flag Requirement</a>`;
 			},
 			checkPrerequisites: (questId) => {
 				const quest = QUEST_TRACKER_globalQuestData[questId];
@@ -4603,49 +4603,7 @@ var QuestTracker = QuestTracker || (function () {
 			saveQuestTrackerData();
 		};
 		const sendRumours = (locationId, numberOfRumours = null) => {
-			if (numberOfRumours === null) {
-				numberOfRumours = locationId;
-				locationId = QuestLocations.getCurrent();
-			}
-			const normalizedLocationId = QuestLocations.normalize(locationId, QuestLocations.getCurrent());
-			const locationRumours = QUEST_TRACKER_rumoursByLocation[normalizedLocationId] || { background: {}, priority: {} };
-			const everywhereRumours = QUEST_TRACKER_rumoursByLocation['everywhere'] || { background: {}, priority: {} };
-			let priorityList = [
-				...Object.entries(locationRumours.priority || {}),
-				...Object.entries(everywhereRumours.priority || {})
-			];
-			let backgroundList = [
-				...Object.entries(locationRumours.background || {}),
-				...Object.entries(everywhereRumours.background || {})
-			];
-			let priorityCount = Math.min(Math.ceil(numberOfRumours / 2), priorityList.length);
-			let backgroundCount = Math.min(numberOfRumours - priorityCount, backgroundList.length);
-			if (priorityList.length < priorityCount) {
-				backgroundCount = Math.min(numberOfRumours - priorityList.length, backgroundList.length);
-				priorityCount = priorityList.length;
-			}
-			const shuffleArray = (array) => array.sort(() => Math.random() - 0.5);
-			priorityList = shuffleArray(priorityList).slice(0, priorityCount);
-			backgroundList = shuffleArray(backgroundList).slice(0, backgroundCount);
-			const selectedRumours = [...priorityList, ...backgroundList];
-			if (selectedRumours.length === 0) {
-				Utils.sendGMMessage(`No rumours available for this location.`);
-				return;
-			}
-			selectedRumours.forEach(([rumourId, rumourText]) => {
-				Utils.sendDescMessage(rumourText);
-				Triggers.checkTriggers('rumour', rumourId);
-				const rumourDetails = H.findRumourLocation(rumourId);
-				if (rumourDetails.once) {
-					manageRumourObject({
-						action: 'remove',
-						questId: rumourDetails.questId,
-						newItem: '',
-						status: rumourDetails.status,
-						rumourId: rumourId
-					});
-				}
-			});
+			errorCheck(346, 'msg', null, 'Rumour chat output has been removed. Open the relevant linked quest handout to manage rumours.');
 		};
 		const getLocationNameById = (locationId) => {
 			const locationTable = findObjs({ type: 'rollabletable', name: QUEST_TRACKER_ROLLABLETABLE_LOCATIONS })[0];
@@ -4705,12 +4663,18 @@ var QuestTracker = QuestTracker || (function () {
 			const statusRumours = questRumours[status];
 			switch (action) {
 				case 'add': {
-					const newRumourKey = rumourId === '' ? H.getNewRumourId() : rumourId;
+					const newRumourKey = H.getNewRumourId();
 					statusRumours[newRumourKey] = {
 						text: newItem,
 						type: type,
 						once: false
 					};
+					break;
+				}
+				case 'update': {
+					if (statusRumours[rumourId]) {
+						statusRumours[rumourId].text = newItem;
+					}
 					break;
 				}
 				case 'remove': {
@@ -4738,6 +4702,7 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			Utils.updateHandoutField('rumour');
 			calculateRumoursByLocation();
+			QUEST_TRACKER_refreshLinkedQuestHandouts(questId);
 		};
 		return {
 			calculateRumoursByLocation,
@@ -4779,15 +4744,6 @@ var QuestTracker = QuestTracker || (function () {
 			questlink: 'color: #007bff; text-decoration: none; cursor: pointer; background-color: #FFFFFF;',
 			filterlink: 'color: #007bff; text-decoration: none; cursor: pointer; background-color: #FFFFFF; padding:0px;',
 			paddedfilterlink: 'color: #007bff; text-decoration: none; cursor: pointer; background-color: #FFFFFF; padding:5px;',
-			treeStyle: 'display: inline-block; position: relative; text-align: center; margin-top: 0px;',
-			questBox50: 'display: inline-block; width: 15px; height: 6px; padding: 5px; border: 1px solid #000; border-radius: 5px; background-color: #f5f5f5; text-align: center; position: relative; margin-right: 20px;',
-			verticalLineStyle: 'position: absolute; width: 2px; background-color: black;',
-			lineHorizontalRed: 'position: absolute; width: 24px; height: 2px; background-color: red; left: 57%;',
-			lineHorizontal: 'position: absolute; height: 2px; background-color: black;',
-			treeContainerStyle: 'position: relative; width: 100%; height: 100%; text-align: center; margin-top: 20px;',
-			ulStyle: 'list-style: none; position: relative; padding: 0; margin: 0; display: block; text-align: center;',
-			liStyle: 'display: inline-block; text-align: center; position: relative;',
-			spanText: 'bottom: -1px; position: absolute; left: -1px; right: 0px;',
 			centreImage: 'display: block; margin: auto; text-align: center;'
 		};
 		const H = {
@@ -4832,23 +4788,7 @@ var QuestTracker = QuestTracker || (function () {
 				return AQMenu;
 			},
 			showActiveRumours: () => {
-				let menu = `<ul style="${styles.list}">`;
-				const locationKey = QuestLocations.getCurrent();
-				const locationName = QuestLocations.getName(locationKey);
-				const countRumours = (rumours = {}) => Object.values(rumours).reduce((count, typedRumours) => count + Object.keys(typedRumours || {}).length, 0);
-				const rumourCount = countRumours(QUEST_TRACKER_rumoursByLocation[locationKey] || {});
-				const everywhereRumourCount = locationKey === QuestLocations.EVERYWHERE ? 0 : countRumours(QUEST_TRACKER_rumoursByLocation[QuestLocations.EVERYWHERE] || {});
-				const totalRumourCount = rumourCount + everywhereRumourCount;
-				const displayRumourCount = everywhereRumourCount > 0 ? `${rumourCount} (+${everywhereRumourCount})` : `${rumourCount}`;
-				menu += `
-					<li style="${styles.column}">
-						<span style="${styles.floatLeft}">${locationName}<br><small>${displayRumourCount} Rumours</small></span>
-						<span style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-rumours action=send|number=?{How Many Rumours? (Max: ${totalRumourCount})|1}">Show</a>
-						</span>
-					</li>`;
-				menu += `</ul>`;
-				return menu;
+				return '';
 			},
 			showCampaignFlagsSummary: () => {
 				const flagEntries = Object.entries(QUEST_TRACKER_Flags).sort((a, b) => {
@@ -4913,6 +4853,11 @@ var QuestTracker = QuestTracker || (function () {
 			escapeMacroText: (text = '') => {
 				return `${text}`.replace(/"/g, '&quot;').replace(/<br\s*\/?>/g, '%NEWLINE%').replace(/[\r\n]/g, '%NEWLINE%');
 			},
+			actionLink: (href, label) => `<a href="${href}">${label}</a>`,
+			actionList: (links = []) => {
+				const cleanLinks = links.filter(Boolean);
+				return cleanLinks.length ? `[ ${cleanLinks.join(' | ')} ]` : '';
+			},
 			buildQuestDetailsHtml: (questId, options = {}) => {
 				let quest = QUEST_TRACKER_globalQuestData[questId];
 				if (!quest) return `<div><p>Error 313: Quest "${questId}" not found.</p></div>`;
@@ -4933,16 +4878,21 @@ var QuestTracker = QuestTracker || (function () {
 				const questLocationDropdown = QuestLocations.buildDropdown();
 				const relationshipsHtml = displayQuestRelationships(questId);
 				const relationshipMenuHtml = H.relationshipMenu(questId);
+				const editActions = H.actionList([
+					H.actionLink(`!qt-quest action=update|field=name|current=${questId}|old=${normalizedQuest.name || ''}|new=?{Title|${normalizedQuest.name || ''}}`, 'Edit Title'),
+					H.actionLink(`!qt-quest action=update|field=description|current=${questId}|old=${normalizedQuest.description || ''}|new=?{Description|${normalizedQuest.description || ''}}`, 'Edit Description')
+				]);
+				const navigationActions = H.actionList([
+					H.actionLink('!qt-menu action=triggers', 'Triggers'),
+					H.actionLink(H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName), 'All Quests'),
+					H.actionLink('!qt-menu action=main', 'Main Menu')
+				]);
 				return `
 					<div${frameStyle}>
 						<h3 style="margin-bottom: 10px;">${normalizedQuest.name || 'Unnamed Quest'}</h3>
 						${includeToken ? H.displayQuestToken(questId) : ''}
 						<p>${normalizedQuest.description || 'No description available.'}</p>
-						<span style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-quest action=update|field=name|current=${questId}|old=${normalizedQuest.name || ''}|new=?{Title|${normalizedQuest.name || ''}}">Edit Title</a>
-							&nbsp;
-							<a style="${styles.button}" href="!qt-quest action=update|field=description|current=${questId}|old=${normalizedQuest.description || ''}|new=?{Description|${normalizedQuest.description || ''}}">Edit Description</a>
-						</span>
+						${editActions}
 						<br>
 						${includeHandoutControl ? H.displayQuestHandout(questId) : ''}
 						<br>
@@ -4951,33 +4901,20 @@ var QuestTracker = QuestTracker || (function () {
 						${relationshipMenuHtml}
 						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Status</h4>
 						<span>${statusName}</span>
-						<span style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-quest action=update|field=status|current=${questId}|new=?{Change Status${Statuses.buildDropdown()}}">Change</a>
-						</span>
+						<br>${H.actionList([H.actionLink(`!qt-quest action=update|field=status|current=${questId}|new=?{Change Status${Statuses.buildDropdown()}}`, 'Change Status')])}
 						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Hidden</h4>
 						<span>${hiddenStatus}</span>
-						<span style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-quest action=update|field=hidden|current=${questId}|old=${hiddenStatusTorF}|new=${hiddenStatusTorFReverse}">Change</a>
-						</span>
+						<br>${H.actionList([H.actionLink(`!qt-quest action=update|field=hidden|current=${questId}|old=${hiddenStatusTorF}|new=${hiddenStatusTorFReverse}`, normalizedQuest.hidden ? 'Show Quest' : 'Hide Quest')])}
 						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Disabled</h4>
 						<span>${disabledStatus}</span>
-						<span style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-quest action=update|field=disabled|current=${questId}|old=${disabledStatusTorF}|new=${disabledStatusTorFReverse}">Change</a>
-						</span>
+						<br>${H.actionList([H.actionLink(`!qt-quest action=update|field=disabled|current=${questId}|old=${disabledStatusTorF}|new=${disabledStatusTorFReverse}`, (normalizedQuest.disabled ?? false) ? 'Enable Quest' : 'Disable Quest')])}
 						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Quest Group</h4>
 						<span>${questGroup}</span>
-						<span style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-quest action=update|field=group|current=${questId}|new=${validQuestGrouping}">Adjust</a>
-						</span>
+						<br>${H.actionList([H.actionLink(`!qt-quest action=update|field=group|current=${questId}|new=${validQuestGrouping}`, 'Change Group')])}
 						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Location</h4>
 						<span>${questLocationName}</span>
-						<span style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-quest action=update|field=location|current=${questId}|new=${questLocationDropdown}">Change</a>
-						</span>
-						${includeNavigation ? `<br><hr>
-						<a style="${styles.button}" href="!qt-menu action=triggers">Triggers</a>
-						&nbsp;<a style="${styles.button}" href="${H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName)}">All Quests</a>
-						&nbsp;<a style="${styles.button}" href="!qt-menu action=main">Main Menu</a>` : ''}
+						<br>${H.actionList([H.actionLink(`!qt-quest action=update|field=location|current=${questId}|new=${questLocationDropdown}`, 'Change Location')])}
+						${includeNavigation ? `<br><hr>${navigationActions}` : ''}
 					</div>`;
 			},
 			buildQuestRumoursHtml: (questId) => {
@@ -4996,32 +4933,29 @@ var QuestTracker = QuestTracker || (function () {
 						const cleanRumour = rumourId.replace(/^rumour_(\d+)$/, 'Rumour #$1');
 						const rumourText = H.escapeMacroText(rumourData.text || '');
 						const rumourType = rumourData.type || 'background';
+						const displayRumourText = (rumourData.text || '').replace(/%NEWLINE%|<br>/g, ' | ');
+						const typeToggleLabel = rumourType === 'priority' ? 'Make Background' : 'Make Priority';
+						const frequencyToggleLabel = rumourData.once ? 'Allow Repeats' : 'Use Once';
+						const actionLinks = H.actionList([
+							H.actionLink(`!qt-rumours action=update|questid=${questId}|status=${statusKey}|rumourid=${rumourId}|new=?{Update Rumour|${rumourText}}`, 'Edit'),
+							H.actionLink(`!qt-rumours action=remove|questid=${questId}|status=${statusKey}|rumourid=${rumourId}`, 'Delete'),
+							H.actionLink(`!qt-rumours action=changeType|questid=${questId}|status=${statusKey}|rumourid=${rumourId}`, typeToggleLabel),
+							H.actionLink(`!qt-rumours action=toggleOnce|questid=${questId}|status=${statusKey}|rumourid=${rumourId}`, frequencyToggleLabel),
+							H.actionLink(`!qt-trigger action=addrumour|rumourid=${rumourId}`, 'Add Trigger')
+						]);
 						html += `
 							<tr>
-								<td><small>${cleanRumour}</small></td>
-								<td><small>${(rumourData.text || '').replace(/%NEWLINE%|<br>/g, ' | ')}</small></td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=update|questid=${questId}|status=${statusKey}|rumourid=${rumourId}|new=?{Update Rumour|${rumourText}}">c</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=remove|questid=${questId}|status=${statusKey}|rumourid=${rumourId}">-</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=changeType|questid=${questId}|status=${statusKey}|rumourid=${rumourId}">${rumourType === 'priority' ? 'p' : 'b'}</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=toggleOnce|questid=${questId}|status=${statusKey}|rumourid=${rumourId}">${rumourData.once ? '1' : 'many'}</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=addrumour|rumourid=${rumourId}">T</a>
+								<td colspan="7">
+									<strong>${cleanRumour}</strong> (${rumourType === 'priority' ? 'Priority' : 'Background'}, ${rumourData.once ? 'Once' : 'Repeating'})
+									<br>${displayRumourText}
+									<br>${actionLinks}
 								</td>
 							</tr>`;
 					});
 					html += `
 						<tr style="${styles.topBorder}">
-							<td colspan="6"><small>Add Rumour</small></td>
-							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=add|questid=${questId}|status=${statusKey}|new=?{Enter New Rumour}">+</a>
+							<td colspan="7">
+								${H.actionList([H.actionLink(`!qt-rumours action=add|questid=${questId}|status=${statusKey}|new=?{Enter New Rumour}`, 'Add Rumour')])}
 							</td>
 						</tr>
 					</table>`;
@@ -5087,25 +5021,25 @@ var QuestTracker = QuestTracker || (function () {
 						if (condition?.type !== 'flag') return;
 						html += `
 							<tr>
-								<td>${H.getFlagRequirementLabel(condition)}</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=updatecondition|triggerid=${triggerId}|oldflag=${condition.key}|oldstatus=${condition.status}|flag=${flagDropdown || condition.key}|status=?{Flag Status${Flags.buildStatusDropdown()}}">c</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=removecondition|triggerid=${triggerId}|flag=${condition.key}|status=${condition.status}">-</a>
+								<td colspan="3">
+									${H.getFlagRequirementLabel(condition)}
+									<br>${H.actionList([
+										H.actionLink(`!qt-trigger action=updatecondition|triggerid=${triggerId}|oldflag=${condition.key}|oldstatus=${condition.status}|flag=${flagDropdown || condition.key}|status=?{Flag Status${Flags.buildStatusDropdown()}}`, 'Edit'),
+										H.actionLink(`!qt-trigger action=removecondition|triggerid=${triggerId}|flag=${condition.key}|status=${condition.status}`, 'Delete')
+									])}
 								</td>
 							</tr>`;
 					});
 				} else {
 					html += `<tr><td colspan="3"><small>No flag conditions</small></td></tr>`;
 				}
-				html += `<tr><td colspan="2"><small>Add Flag Condition</small></td><td style="${styles.smallButtonContainer}">${flagDropdown ? `<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=addcondition|triggerid=${triggerId}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}">+</a>` : `<span style="${styles.buttonDisabled} ${styles.smallButton}">+</span>`}</td></tr></table>`;
+				html += `<tr><td colspan="3">${flagDropdown ? H.actionList([H.actionLink(`!qt-trigger action=addcondition|triggerid=${triggerId}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}`, 'Add Flag Condition')]) : 'No flags available to add.'}</td></tr></table>`;
 				return html;
 			},
 			buildQuestTriggersHtml: (questId) => {
 				const triggerEntries = H.collectQuestTriggers(questId);
 				let html = `<div><h3>Triggers</h3>
-					<a style="${styles.button}" href="!qt-trigger action=addquest|questid=${questId}">Add Quest Trigger</a>`;
+					${H.actionList([H.actionLink(`!qt-trigger action=addquest|questid=${questId}`, 'Add Quest Trigger')])}`;
 				if (triggerEntries.length === 0) {
 					html += `<p>No relevant triggers.</p></div>`;
 					return html;
@@ -5122,15 +5056,20 @@ var QuestTracker = QuestTracker || (function () {
 							<tr><td>Type</td><td>${type}</td></tr>
 							<tr><td>Parent</td><td>${parentId}</td></tr>
 							<tr><td>Relevant Because</td><td>${reasons.join(', ')}</td></tr>
-							<tr><td>Enabled</td><td><a style="${styles.button}" href="!qt-trigger action=toggle|triggerid=${triggerId}|field=enabled|value=${enabled ? 'false' : 'true'}">${enabled ? 'Enabled' : 'Disabled'}</a></td></tr>
-							${type === 'script' ? `<tr><td>Active</td><td><a style="${styles.button}" href="!qt-trigger action=toggle|triggerid=${triggerId}|field=active|value=${active ? 'false' : 'true'}">${active ? 'Active' : 'Inactive'}</a></td></tr>` : ''}
+							<tr><td>Enabled</td><td>${enabled ? 'Enabled' : 'Disabled'}<br>${H.actionList([H.actionLink(`!qt-trigger action=toggle|triggerid=${triggerId}|field=enabled|value=${enabled ? 'false' : 'true'}`, enabled ? 'Disable' : 'Enable')])}</td></tr>
+							${type === 'script' ? `<tr><td>Active</td><td>${active ? 'Active' : 'Inactive'}<br>${H.actionList([H.actionLink(`!qt-trigger action=toggle|triggerid=${triggerId}|field=active|value=${active ? 'false' : 'true'}`, active ? 'Deactivate' : 'Activate')])}</td></tr>` : ''}
 							${type === 'quest' ? `<tr><td>Quest Action</td><td>
-								<a style="${styles.button}" href="!qt-trigger action=action|triggerid=${triggerId}|type=?{Choose Type|Status Change,status|Toggle: Visibility,hidden|Toggle: State,disabled}">${actionType || 'Choose Type'}</a>
-								${actionType ? `<a style="${styles.button}" href="!qt-trigger action=effect|triggerid=${triggerId}|type=${H.effectDropdown(actionType)}">${actionType === 'status' ? Statuses.getName(actionEffect) : (actionEffect || 'Choose')}</a>` : ''}
+								${actionType || 'Choose Type'}${actionType ? `: ${actionType === 'status' ? Statuses.getName(actionEffect) : (actionEffect || 'Choose')}` : ''}
+								<br>${H.actionList([
+									H.actionLink(`!qt-trigger action=action|triggerid=${triggerId}|type=?{Choose Type|Status Change,status|Toggle: Visibility,hidden|Toggle: State,disabled}`, 'Change Action Type'),
+									actionType ? H.actionLink(`!qt-trigger action=effect|triggerid=${triggerId}|type=${H.effectDropdown(actionType)}`, 'Change Action Effect') : ''
+								])}
 							</td></tr>` : ''}
 							<tr><td colspan="2">
-								<a style="${styles.button}" href="!qt-menu action=showTriggerDetails|id=${triggerId}">Inspect</a>
-								<a style="${styles.button}" href="!qt-trigger action=delete|triggerid=${triggerId}">Delete</a>
+								${H.actionList([
+									H.actionLink(`!qt-menu action=showTriggerDetails|id=${triggerId}`, 'Inspect'),
+									H.actionLink(`!qt-trigger action=delete|triggerid=${triggerId}`, 'Delete')
+								])}
 							</td></tr>
 						</table>
 						<h5>Conditions</h5>
@@ -5154,9 +5093,11 @@ var QuestTracker = QuestTracker || (function () {
 					${H.buildQuestTriggersHtml(questId)}
 					<br>
 					<div>
-						<a style="${styles.button}" href="!qt-menu action=quest|id=${questId}">Refresh Quest Handout</a>
-						&nbsp;<a style="${styles.button}" href="${H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName)}">All Quests</a>
-						&nbsp;<a style="${styles.button}" href="!qt-menu action=main">Main Menu</a>
+						${H.actionList([
+							H.actionLink(`!qt-menu action=quest|id=${questId}`, 'Refresh Quest Handout'),
+							H.actionLink(H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName), 'All Quests'),
+							H.actionLink('!qt-menu action=main', 'Main Menu')
+						])}
 					</div>
 				`.replace(/[\r\n]/g, '');
 			},
@@ -5179,10 +5120,10 @@ var QuestTracker = QuestTracker || (function () {
 			buildFlagRequirementLink: (questId, groupnum = null) => {
 				const flagDropdown = H.buildFlagDropdownString();
 				if (!flagDropdown) {
-					return `<span style="${styles.buttonDisabled} ${styles.smallButton}">+</span>`;
+					return 'No flags available';
 				}
 				const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
-				return `<a href="!qt-questrelationship currentquest=${questId}|action=add|type=flag${groupPart}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}" style="${styles.button} ${styles.smallButton}">+</a>`;
+				return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=flag${groupPart}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}`, 'Add Flag Requirement');
 			},
 			calculateStartingGroupNum: (conditions, isInLogicGroup = false) => {
 				let count = 0;
@@ -5211,8 +5152,12 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			formatConditions: (questId, conditions, parentLogic = 'AND', indent = false, groupnum = 0, isInLogicGroup = false) => {
 				if (!Array.isArray(conditions)) return '';
-				let spanOrAnchor = `${H.buildDropdownString(questId) === '' ? 'span' : 'a'}`;
-				let renderButtonStyle = `${H.buildDropdownString(questId) === '' ? styles.buttonDisabled : styles.button}`;
+				const questDropdown = H.buildDropdownString(questId);
+				const addRelationshipAction = (type, label, currentGroupNum = null) => {
+					if (!questDropdown) return null;
+					const groupPart = currentGroupNum === null ? '' : `|groupnum=${currentGroupNum}`;
+					return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=${type}${groupPart}|quest=${questDropdown}`, label);
+				};
 				groupnum += H.calculateStartingGroupNum(conditions, isInLogicGroup);
 				return conditions.map((condition, index) => {
 					const currentGroupNum = H.calculateGroupNum(condition, conditions, groupnum);
@@ -5222,46 +5167,28 @@ var QuestTracker = QuestTracker || (function () {
 					const isOnlyGroupCondition = conditions.length === 1 && typeof conditions[0] === 'object';
 					const addFlagRequirementRow = !indent && isLastnonGroupCondition ? `
 							<tr>
-								<td colspan="3">
-									<small>Add Flag Requirement</small>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									${H.buildFlagRequirementLink(questId)}
-								</td>
+								<td colspan="4">${H.actionList([H.buildFlagRequirementLink(questId)])}</td>
 							</tr>
 						` : '';
 					if (typeof condition === 'string') {
 						return `
 							<tr>
-								${indent ? `<td>&nbsp;</td><td>` : `<td colspan="2">`}
-										${H.getQuestAnchor(condition)}
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|oldquest=${condition}|action=update|type=${indent ? `group|groupnum=${currentGroupNum}` : `single`}|quest=${H.buildDropdownString(questId, condition)}">c</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=remove|type=${indent ? `group|groupnum=${currentGroupNum}|confirmation=DELETE` : `single`}|quest=${condition}">-</a>
+								<td colspan="4">
+									${indent ? '&nbsp;&nbsp;' : ''}${H.getQuestAnchor(condition)}
+									<br>${H.actionList([
+										H.actionLink(`!qt-questrelationship currentquest=${questId}|oldquest=${condition}|action=update|type=${indent ? `group|groupnum=${currentGroupNum}` : `single`}|quest=${H.buildDropdownString(questId, condition)}`, 'Change'),
+										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=${indent ? `group|groupnum=${currentGroupNum}|confirmation=DELETE` : `single`}|quest=${condition}`, 'Delete')
+									])}
 								</td>
 							</tr>
 							${indent && isLastCondition ? `
 							<tr>
-								<td>&nbsp;</td>
-								<td colspan="2">
-									<small>Add Relationship</small>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=group|groupnum=${currentGroupNum}|quest=${H.buildDropdownString(questId)}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
-								</td>
+								<td colspan="4">${H.actionList([addRelationshipAction('group', 'Add Relationship', currentGroupNum)])}</td>
 							</tr>
 							` : ''}
 							${!indent && isLastnonGroupCondition ? `
 							<tr>
-								<td colspan="3">
-									<small>Add Relationship</small>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=${H.buildDropdownString(questId)}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
-								</td>
+								<td colspan="4">${H.actionList([addRelationshipAction('single', 'Add Relationship')])}</td>
 							</tr>
 							` : ''}
 							${addFlagRequirementRow}
@@ -5269,14 +5196,12 @@ var QuestTracker = QuestTracker || (function () {
 					} else if (H.isFlagCondition(condition)) {
 						return `
 							<tr>
-								${indent ? `<td>&nbsp;</td><td>` : `<td colspan="2">`}
-									${H.getFlagRequirementLabel(condition)}
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=update|type=flag|oldflag=${condition.key}|oldstatus=${condition.status}|flag=${H.buildFlagDropdownString() || condition.key}|status=?{Flag Status${Flags.buildStatusDropdown()}}${indent ? `|groupnum=${currentGroupNum}` : ''}">c</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=remove|type=flag|flag=${condition.key}|status=${condition.status}${indent ? `|groupnum=${currentGroupNum}` : ''}|confirmation=DELETE">-</a>
+								<td colspan="4">
+									${indent ? '&nbsp;&nbsp;' : ''}${H.getFlagRequirementLabel(condition)}
+									<br>${H.actionList([
+										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=flag|oldflag=${condition.key}|oldstatus=${condition.status}|flag=${H.buildFlagDropdownString() || condition.key}|status=?{Flag Status${Flags.buildStatusDropdown()}}${indent ? `|groupnum=${currentGroupNum}` : ''}`, 'Change'),
+										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=flag|flag=${condition.key}|status=${condition.status}${indent ? `|groupnum=${currentGroupNum}` : ''}|confirmation=DELETE`, 'Delete')
+									])}
 								</td>
 							</tr>
 							${addFlagRequirementRow}
@@ -5285,28 +5210,21 @@ var QuestTracker = QuestTracker || (function () {
 						const subLogic = H.formatConditions(questId, condition.conditions, condition.logic, true, currentGroupNum, true);
 						const reverseLogic = condition.logic === 'AND' ? 'OR' : 'AND';
 						let addRelasionshipRow = ''
-						if (currentGroupNum === 0) {
+							if (currentGroupNum === 0) {
 							addRelasionshipRow += `
 								<tr style="${styles.topBorder}">
-									<td colspan="3" style="${styles.topBorder}">
-										<small>Add Relationship</small>
-									</td>
-									<td style="${styles.smallButtonContainer}">
-										<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=${H.buildDropdownString(questId)}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
-									</td>
+									<td colspan="4" style="${styles.topBorder}">${H.actionList([addRelationshipAction('single', 'Add Relationship')])}</td>
 								</tr>`;
 						}
 						return `
 							${addRelasionshipRow}
 							<tr>
-								<td>&nbsp;</td><td>
+								<td colspan="4">
 									${condition.logic}
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=update|type=grouplogic|groupnum=${currentGroupNum}">c</a>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a style="${styles.button} ${styles.smallButton}" href="!qt-questrelationship currentquest=${questId}|action=remove|type=removegroup|groupnum=${currentGroupNum}|confirmation=?{Type DELETE to confirm removal of this Group Logic|}">-</a>
+									<br>${H.actionList([
+										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=grouplogic|groupnum=${currentGroupNum}`, 'Change Logic'),
+										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=removegroup|groupnum=${currentGroupNum}|confirmation=?{Type DELETE to confirm removal of this Group Logic|}`, 'Delete Group')
+									])}
 								</td>
 							</tr>
 							${subLogic}
@@ -5339,54 +5257,32 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			relationshipMenu: (questId) => {
 				const quest = QUEST_TRACKER_globalQuestData[questId];
+				const questDropdown = H.buildDropdownString(questId);
+				const addRelationshipLink = (type, label, groupnum = null) => {
+					if (!questDropdown) return null;
+					const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
+					return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=${type}${groupPart}|quest=${questDropdown}`, label);
+				};
 				let htmlOutput = "";
-				let spanOrAnchor = `${H.buildDropdownString(questId) === '' ? 'span' : 'a'}`;
-				let renderButtonStyle = `${H.buildDropdownString(questId) === '' ? styles.buttonDisabled : styles.button}`;
 				if (!quest || !quest.relationships || !Array.isArray(quest.relationships.conditions) || quest.relationships.conditions.length === 0) {
-					htmlOutput += `<br><table style="width:100%;">
-										<tr style="${styles.topBorder}">
-											<td colspan="3" style="${styles.topBorder}">
-												<small>Add Relationship</small>
-											</td>
-											<td style="${styles.smallButtonContainer}">
-												<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=single|quest=${H.buildDropdownString(questId)}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
-											</td>
-										</tr>
-										<tr>
-											<td colspan="3">
-												<small>Add Flag Requirement</small>
-											</td>
-											<td style="${styles.smallButtonContainer}">
-												${H.buildFlagRequirementLink(questId)}
-											</td>
-										</tr>
-										<tr style="${styles.bottomBorder}">
-											<td colspan="3"><small>Add Relationship Group</small></td>
-											<td style="${styles.smallButtonContainer}">
-												<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=${H.buildDropdownString(questId)}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
-											</td>
-										</tr>
-									</table>`;
+					htmlOutput += `<br>${H.actionList([
+						addRelationshipLink('single', 'Add Relationship'),
+						H.buildFlagRequirementLink(questId),
+						addRelationshipLink('addgroup', 'Add Relationship Group')
+					])}`;
 				} else {
 					const conditionsHtml = H.formatConditions(questId, quest.relationships.conditions, quest.relationships.logic || 'AND');
 					htmlOutput += `
 						<table style="width:100%;">
 							${quest.relationships.conditions.length > 1 ? `<tr>
-								<td colspan="3" style="${styles.topBorder}">
+								<td colspan="4" style="${styles.topBorder}">
 									${quest.relationships.logic || 'AND'}
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<a href="!qt-questrelationship currentquest=${questId}|action=update|type=logic" style="${styles.button} ${styles.smallButton}">c</a>
+									<br>${H.actionList([H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=logic`, 'Change Logic')])}
 								</td>
 							</tr>` : ''}
 							${conditionsHtml}
 							<tr style="${styles.bottomBorder}">
-								<td colspan="3">
-									<small>Add Relationship Group</small>
-								</td>
-								<td style="${styles.smallButtonContainer}">
-									<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=addgroup|quest=${H.buildDropdownString(questId)}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
-								</td>
+								<td colspan="4">${H.actionList([addRelationshipLink('addgroup', 'Add Relationship Group')])}</td>
 							</tr>
 						</table>`;
 				}
@@ -5394,14 +5290,12 @@ var QuestTracker = QuestTracker || (function () {
 				if (Array.isArray(quest.relationships.mutually_exclusive) && quest.relationships.mutually_exclusive.length > 0) {
 					mutuallyExclusiveHtml += quest.relationships.mutually_exclusive.map(exclusive => `
 						<tr>
-							<td colspan="2">
+							<td colspan="4">
 								${H.getQuestAnchor(exclusive)}
-							</td>
-							<td style="${styles.smallButtonContainer}">
-								<a href="!qt-questrelationship currentquest=${questId}|action=update|type=mutuallyexclusive|oldquest=${exclusive}|quest=${H.buildDropdownString(questId)}" style="${styles.button} ${styles.smallButton}">c</a>
-							</td>
-							<td style="${styles.smallButtonContainer}">
-								<a href="!qt-questrelationship currentquest=${questId}|action=remove|type=mutuallyexclusive|quest=${exclusive}" style="${styles.button} ${styles.smallButton}">-</a>
+								<br>${H.actionList([
+									questDropdown ? H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=mutuallyexclusive|oldquest=${exclusive}|quest=${questDropdown}`, 'Change') : '',
+									H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=mutuallyexclusive|quest=${exclusive}`, 'Delete')
+								])}
 							</td>
 						</tr>
 					`).join('');				
@@ -5414,10 +5308,7 @@ var QuestTracker = QuestTracker || (function () {
 					<table style="width:100%;">
 						${mutuallyExclusiveHtml}
 						<tr>
-							<td colspan="3"></td>
-							<td style="${styles.smallButtonContainer}">
-								<${spanOrAnchor} href="!qt-questrelationship currentquest=${questId}|action=add|type=mutuallyexclusive|quest=${H.buildDropdownString(questId)}" style="${renderButtonStyle} ${styles.smallButton}">+</a>
-							</td>
+							<td colspan="4">${H.actionList([addRelationshipLink('mutuallyexclusive', 'Add Mutually Exclusive Quest')])}</td>
 						</tr>
 					</table>`;
 				return htmlOutput;
@@ -5658,7 +5549,7 @@ var QuestTracker = QuestTracker || (function () {
 										<small>${quest.rumourCount} rumour${quest.rumourCount === 1 ? '' : 's'}</small>
 									</span>
 									<span style="${styles.floatRight}">
-										<a style="${styles.button}" href="!qt-menu action=showQuestRumours|questId=${quest.id}">Show</a>
+										<a style="${styles.button}" href="!qt-menu action=quest|id=${quest.id}">Open Quest</a>
 									</span>
 								</li>`;
 						});
@@ -5853,7 +5744,7 @@ var QuestTracker = QuestTracker || (function () {
 					case 'flag':
 						return '?{Choose Field|Status,status|Value,value|Name,name|Category,category|Description,description}';
 					case 'trigger':
-						return '?{Choose Field|Enabled,enabled|Active,active|Name,name|Date,date|Quest,quest|Reaction,reaction|Rumour,rumour|Event,event|Delete,delete|Quest Action Type,actiontype|Quest Action Effect,actioneffect}';
+						return '?{Choose Field|Enabled,enabled|Active,active|Name,name|Date,date|Quest,quest|Reaction,reaction|Event,event|Delete,delete|Quest Action Type,actiontype|Quest Action Effect,actioneffect}';
 					case 'quest':
 					default:
 						return '?{Choose Type|Status Change,status|Toggle: Visibility,hidden|Toggle: State,disabled}';
@@ -5883,7 +5774,7 @@ var QuestTracker = QuestTracker || (function () {
 							case 'reaction':
 								return H.createTriggerDropdown(triggerId, true);
 							case 'rumour':
-								return '?{Set Rumour ID}';
+								return 'null';
 							case 'event':
 								return H.createEventDropdown();
 							case 'script':
@@ -5944,41 +5835,26 @@ var QuestTracker = QuestTracker || (function () {
 						const targetDropdown = targetDropdowns[effecttype] || null;
 						effectsSection += `
 							<tr>
-								<td>&nbsp;</td>
-								<td>Effect</td>
-								<td><a style="${styles.button}" href="!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=effecttype|value=${effectCatToggle}">${effectCat}</a></td>
-							</tr>
-							<tr>
-								<td>&nbsp;</td>
-								<td>${effectCat}</td>
-								<td>${targetDropdown
-									? `<a style="${styles.button}" href="!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=id|value=${targetDropdown}">${H.getTriggerEffectTargetName(effect, triggerId)}</a>`
-									: `<span style="${styles.buttonDisabled} ${styles.spanInline}">${H.getTriggerEffectTargetName(effect, triggerId)}</span>`}
+								<td colspan=3>
+									<strong>${effectId}</strong>
+									<br>Effect: ${effectCat}
+									<br>${effectCat}: ${H.getTriggerEffectTargetName(effect, triggerId)}
+									<br>Type: ${typeLabel}
+									${effect.type !== 'delete' ? `<br>Value: ${H.getTriggerEffectValueLabel(effect)}` : ''}
+									<br>${H.actionList([
+										H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=effecttype|value=${effectCatToggle}`, 'Change Effect Type'),
+										targetDropdown ? H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=id|value=${targetDropdown}`, `Change ${effectCat}`) : '',
+										H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=type|value=${H.triggerEffectTypeDropdown(effecttype)}`, 'Change Field'),
+										effect.type !== 'delete' && valueDropdown ? H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=value|value=${valueDropdown}`, 'Change Value') : '',
+										H.actionLink(`!qt-trigger action=removeeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}`, 'Delete')
+									])}
 								</td>
-							</tr>
-							<tr>
-								<td>&nbsp;</td>
-								<td>Type</td>
-								<td><a style="${styles.button}" href="!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=type|value=${H.triggerEffectTypeDropdown(effecttype)}">${typeLabel}</a></td>
-							</tr>
-							${effect.type !== 'delete' ? `
-							<tr>
-								<td>&nbsp;</td>
-								<td>Value</td>
-								<td>${valueDropdown
-									? `<a style="${styles.button}" href="!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=value|value=${valueDropdown}">${H.getTriggerEffectValueLabel(effect)}</a>`
-									: `<span style="${styles.buttonDisabled} ${styles.spanInline}">${H.getTriggerEffectValueLabel(effect)}</span>`}
-								</td>
-							</tr>` : ''}
-							<tr>
-								<td><a style="${styles.button}" href="!qt-trigger action=removeeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}">Delete</a></td>
-								<td colspan=2>&nbsp;</td>
 							</tr>`;
 					});
 				}
 				effectsSection += `
 					<tr><td colspan=3><br></td></tr>
-					<tr><td colspan=3><a style="${styles.button} ${styles.floatRight}" href="!qt-trigger action=addeffect|triggerid=${triggerId}${effectSetParam}">Add Effect</a></td></tr>
+					<tr><td colspan=3>${H.actionList([H.actionLink(`!qt-trigger action=addeffect|triggerid=${triggerId}${effectSetParam}`, 'Add Effect')])}</td></tr>
 				</table>`;
 				return effectsSection;
 			},
@@ -6104,256 +5980,58 @@ var QuestTracker = QuestTracker || (function () {
 			}
 		};
 		const displayQuestRelationships = (questId) => {
-			const d = {
-				drawLine: (type, depth, half = false, flip = false) => {
-					let style = "";
-					switch (type) {
-						case 'r':
-							style = `${styles.lineHorizontalRed} top: ${26 + (depth * 26)}px`;
-							return `<div style="${style}"></div>`;
-						case 'v':
-							style = `${styles.verticalLineStyle} height: 16px; left:${half ? 38 : 13}px; top:${38 + (depth * 16)}px`;
-							return `<div style="${style}"></div>`;
-						case 'h':
-							style = `${styles.lineHorizontal} top: ${52 + (depth * 16)}px; width:${half ? 26 : 52}px; left:${flip ? 39 : 13}px`;
-							return `<div style="${style}"></div>`;
-					}
-				},
-				drawQuestBox: (content, columnInstructions = [], depth = false) => {
-					const renderInstructions = columnInstructions.map(instruction => {
-						const { type, depth, center, flip } = instruction;
-						return d.drawLine(type, depth, center, flip);
-					}).join('');
-					return `
-					<li style="${styles.liStyle}">
-						<div style="${styles.questBox50} margin-top:${depth ? 40 : 20}px;">
-							<span style="${styles.spanText}">${content}</span>
-						</div>
-						${renderInstructions}
-					</li>`;
-				}
-			};
-			const l = {
-				checkMutualExclusivity: (questIds) => {
-					const questData = QUEST_TRACKER_globalQuestData[questIds[0].toLowerCase()];
-					if (!questData || !questData.relationships || !Array.isArray(questData.relationships.mutually_exclusive)) {
-						return false;
-					}
-					const mutuallyExclusiveList = questData.relationships.mutually_exclusive;
-					return mutuallyExclusiveList.includes(questIds[1]);
-				},
-				processConditions: (conditions, parentLogic = 'AND') => {
-					const flattenedArray = [];
-					if (!Array.isArray(conditions)) return flattenedArray;
-
-					conditions.forEach((condition, index) => {
-						if (typeof condition === 'string') {
-							flattenedArray.push(condition);
-							if (index < conditions.length - 1) {
-								flattenedArray.push(parentLogic);
-							}
-						} else if (typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
-							condition.conditions.forEach((subCondition, subIndex) => {
-								if (typeof subCondition === 'string') {
-									flattenedArray.push(subCondition);
-									if (subIndex < condition.conditions.length - 1) {
-										flattenedArray.push(condition.logic);
-									}
-								}
-							});
-							if (index < conditions.length - 1) {
-								flattenedArray.push(parentLogic);
-							}
-						}
-					});
-					return flattenedArray;
-				},
-				traverseLogicTree: (conditions, depth = 0, columnOffset = 0, depthMap = {}, parentLogic = 'AND') => {
-					if (!depthMap[depth]) depthMap[depth] = [];
-					let column = columnOffset;
-					conditions.forEach((condition, index) => {
-						if (typeof condition === 'string') {
-							depthMap[depth].push({
-								type: 'quest',
-								value: condition,
-								logic: parentLogic,
-								depth,
-								column,
-								endColumn: column + 1
-							});
-							column++;
-						} else if (typeof condition === 'object' && condition.logic) {
-							const nextDepth = depth + 1;
-							const subColumnsStart = column;
-							const subColumnsEnd = column + condition.conditions.length - 1;
-							l.traverseLogicTree(condition.conditions, nextDepth, column, depthMap, condition.logic);
-							depthMap[depth].push({
-								type: 'logic',
-								logic: condition.logic,
-								conditions: condition.conditions.map(cond => (typeof cond === 'string' ? cond : cond.conditions)),
-								depth,
-								column: subColumnsStart,
-								endColumn: subColumnsEnd + 1
-							});
-							column = subColumnsEnd + 1;
-						}
-					});
-					return { depthMap };
-				},
-				connectHorizontalLines: (depthMap, instructionsPerColumn) => {
-					const depth0Elements = depthMap['0'] ? depthMap['0'] : [];
-					if (depth0Elements.length + (depthMap['1'] ? depthMap['1'].length : 0) <= 1) return;
-					const depth0Groups = depth0Elements.filter(el => el.type === 'logic')
-						.map(el => ({ column: el.column, endColumn: el.endColumn, logic: el.logic, conditions: el.conditions }));
-					depth0Groups.forEach(group => {
-						for (let col = group.column; col < group.endColumn; col++) {
-							if (!instructionsPerColumn[col]) instructionsPerColumn[col] = [];
-							instructionsPerColumn[col].push({ type: 'h', depth: 0, center: false });
-						}
-					});
-					if (!depthMap['1']) {
-						const allColumns = depth0Elements.flatMap(el => el.type === 'logic' ? [el.column, el.endColumn] : [el.column]);
-						const startColumn = Math.min(...allColumns);
-						const endColumn = Math.max(...allColumns);
-						for (let col = startColumn; col < endColumn; col++) {
-							if (!instructionsPerColumn[col]) instructionsPerColumn[col] = [];
-							instructionsPerColumn[col].push({ type: 'h', depth: 0, center: false });
-						}
-						const baseLogic = depthMap['0'].length && depthMap['0'][0].logic;
-						return;
-					}
-					const allColumns = [
-						...depth0Elements.flatMap(el => el.type === 'logic' ? [el.column, el.endColumn] : [el.column]),
-						...depthMap['1'].map(el => el.column)
-					];
-					const lastDepth0LogicGroup = depth0Groups.reduce((lastGroup, group) => {
-						return group.endColumn > lastGroup.endColumn ? group : lastGroup;
-					}, { endColumn: -1, conditions: [] });
-					const groupSize = lastDepth0LogicGroup.conditions.length;
-					if (allColumns.length > 1) {
-						const startColumn = Math.min(...allColumns);
-						const endColumn = Math.max(...allColumns);
-						for (let col = startColumn; col < endColumn; col++) {
-							if (!instructionsPerColumn[col]) instructionsPerColumn[col] = [];
-							let lineInstruction;
-							if (col < endColumn - 1) {
-								lineInstruction = { type: 'h', depth: 1, center: false };
-							} else if (col === endColumn - 1) {
-								lineInstruction = { type: 'h', depth: 1, center: groupSize % 2 === 0 };
-							} else {
-								continue;
-							}
-							
-							instructionsPerColumn[col].push(lineInstruction);
-						}
-					}
-				},
-				addOrIndicators: (elements, instructionsPerColumn, depth) => {
-					elements.forEach((element, index) => {
-						if (element.logic === 'OR' && element.type === 'quest') {
-							const orGroup = elements.filter(e => e.logic === 'OR' && e.depth === element.depth);
-							const conditionIds = orGroup.map(e => e.value.toLowerCase());
-							let isMutuallyExclusive = conditionIds.every(q => {
-								const quest = QUEST_TRACKER_globalQuestData[q];
-								return quest && quest.relationships && conditionIds.some(other => quest.relationships.mutually_exclusive?.includes(other));
-							});
-							if (isMutuallyExclusive) {
-								const startColumn = Math.min(...orGroup.map(e => e.column));
-								const endColumn = Math.max(...orGroup.map(e => e.column));
-								for (let col = startColumn; col < endColumn; col++) {
-									if (!instructionsPerColumn[col]) instructionsPerColumn[col] = [];
-									instructionsPerColumn[col].push({ type: 'r', depth, center: false });
-								}
-							}
-						}
-					});
-				},
-				addCenterVerticalLine: (totalColumns, depth, instructionsPerColumn, startColumn = 0) => {
-					const centerColumn = (totalColumns % 2 === 0)
-						? startColumn + Math.floor((totalColumns - 1) / 2)
-						: startColumn + Math.floor(totalColumns / 2);
-					if (!instructionsPerColumn[centerColumn]) instructionsPerColumn[centerColumn] = [];
-					instructionsPerColumn[centerColumn].push({ type: 'v', depth, center: totalColumns % 2 === 0 });
-				},
-				buildVerticalLines: (depthMap, instructionsPerColumn) => {
-					if (Array.isArray(depthMap['0'])) {
-						const totalColumns = depthMap['0'].reduce((count, element) => {
-							if (element.type === 'quest') {
-								return count + 1;
-							} else if (element.type === 'logic' && Array.isArray(element.conditions)) {
-								return count + element.conditions.length;
-							}
-							return count;
-						}, 0);
-						for (let column = 0; column < totalColumns; column++) {
-							if (!instructionsPerColumn[column]) instructionsPerColumn[column] = [];
-							instructionsPerColumn[column].push({ type: 'v', depth: 0, center: false });
-						}
-						if (!depthMap['1']) {
-							l.addCenterVerticalLine(totalColumns, 1, instructionsPerColumn);
-						}
-					}
-					if (Array.isArray(depthMap['1']) && Array.isArray(depthMap['0'])) {
-						depthMap['0'].forEach((element) => {
-							if (element.type === 'logic') {
-								const startColumn = element.column;
-								l.addCenterVerticalLine(element.conditions.length, 1, instructionsPerColumn, startColumn);
-							} else if (element.type === 'quest') {
-								const column = element.column;
-								if (!instructionsPerColumn[column]) instructionsPerColumn[column] = [];
-								instructionsPerColumn[column].push({type: 'v', depth: 1, center: false});
-							}
-						});
-						const totalQuestCount = depthMap['0'].reduce((count, element) => {
-							return count + (element.type === 'quest' ? 1 : element.conditions.length);
-						}, 0);
-						l.addCenterVerticalLine(totalQuestCount, 2, instructionsPerColumn);
-					}
-				},
-				buildQuestTreeBottomUp: (relationships, currentDepth = 0) => {
-					const { depthMap } = l.traverseLogicTree(relationships.conditions, currentDepth, 0, {}, relationships.logic || 'AND');
-					const instructionsPerColumn = [];
-					l.buildVerticalLines(depthMap, instructionsPerColumn);
-					const depths = Object.keys(depthMap).sort((a, b) => b - a);
-					depths.forEach((depth) => {
-						const elements = depthMap[depth];
-						l.addOrIndicators(elements, instructionsPerColumn, parseInt(depth));
-					});
-					l.connectHorizontalLines(depthMap, instructionsPerColumn);
-					return instructionsPerColumn;
-				},
-				buildQuestListHTML: (flattenedLogic, columnInstructionsMap, depth = 0) => {
-					let questListHTML = `<table style="width:100%;"><tr><td colspan="3"><ul style="${styles.ulStyle}">`;
-					let questIndex = 0;
-					flattenedLogic.forEach((item, index) => {
-						const instructions = columnInstructionsMap[questIndex] || [];
-						if (item !== 'AND' && item !== 'OR') {
-							questListHTML += d.drawQuestBox('P', instructions, depth);
-							questIndex++;
-						}
-					});
-					questListHTML += '</ul>';
-					return questListHTML;
-				}
-			};
 			const quest = QUEST_TRACKER_globalQuestData[questId];
-			let questLayers = {};
-			if (!quest || !quest.relationships || !Array.isArray(quest.relationships.conditions) || quest.relationships.conditions.length === 0) {
-				return `<ul style="${styles.ulStyle}"> ${d.drawQuestBox("Q", [])} </ul>`;
-			}
-			else {
-				const flattenedLogic = l.processConditions(quest.relationships.conditions, quest.relationships.logic || 'AND');
-				const columnInstructionsMap = l.buildQuestTreeBottomUp(quest.relationships);
-				let html = `<div style="${styles.treeContainerStyle}"><div style="${styles.treeStyle}">`;
-				html += l.buildQuestListHTML(flattenedLogic, columnInstructionsMap, 0);
-				html += `
-					<ul style="${styles.ulStyle}">
-						${d.drawQuestBox("Q", [], questLayers['1'] ? true : false)}
-					</ul>
-				`;
-				html += '</div></div></td></tr></table>';
-				return html;
-			}
+			const relationships = quest?.relationships || {};
+			const conditions = Array.isArray(relationships.conditions) ? relationships.conditions : [];
+			const rootLogic = relationships.logic || 'AND';
+			const flagRequirements = [];
+			const addFlagRequirement = (condition) => {
+				if (!H.isFlagCondition(condition)) return;
+				const flag = Flags.getFlag(condition.key);
+				const flagName = flag?.name || condition.key;
+				const statusName = Flags.getStatusName(condition.status);
+				const label = `${flagName} / ${statusName}`;
+				if (!flagRequirements.includes(label)) flagRequirements.push(label);
+			};
+			const renderQuestCondition = (condition) => {
+				if (typeof condition === 'string') return H.getQuestAnchor(condition);
+				if (H.isFlagCondition(condition)) {
+					addFlagRequirement(condition);
+					return '';
+				}
+				if (condition && typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
+					const parts = condition.conditions
+						.map(renderQuestCondition)
+						.filter(Boolean);
+					if (parts.length === 0) return '';
+					return parts.length === 1 ? parts[0] : parts.join(` ${condition.logic} `);
+				}
+				return '';
+			};
+			const questRequirementLines = conditions
+				.map(renderQuestCondition)
+				.filter(Boolean);
+			const mutuallyExclusive = Array.isArray(relationships.mutually_exclusive)
+				? relationships.mutually_exclusive
+				: [];
+			const questRequirementsHtml = questRequirementLines.length
+				? questRequirementLines.join(`<br>${rootLogic}<br>`)
+				: '<small>No quest prerequisites.</small>';
+			const mutuallyExclusiveHtml = mutuallyExclusive.length
+				? `<ul>${mutuallyExclusive.map(exclusiveQuest => `<li>${H.getQuestAnchor(exclusiveQuest)}</li>`).join('')}</ul>`
+				: '<small>No mutually exclusive quests.</small>';
+			const flagRequirementsHtml = flagRequirements.length
+				? `<ul>${flagRequirements.map(requirement => `<li>${requirement}</li>`).join('')}</ul>`
+				: '<small>No flag requirements.</small>';
+			return `
+				<div>
+					<strong>Quest Requirements</strong>
+					<br>${questRequirementsHtml}
+					<h4>Mutually Exclusive</h4>
+					${mutuallyExclusiveHtml}
+					<h4>Flag Requirements</h4>
+					${flagRequirementsHtml}
+				</div>`;
 		};
 		const generateGMMenu = () => {
 			refreshAllQuestsHandout(false);
@@ -6372,9 +6050,6 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Campaign Flags</h3>`;
 			menu += H.showCampaignFlagsSummary();
 			menu += `<br><a style="${styles.button}" href="${flagsLink}">Show All Flags</a>`;
-			menu += `<br><hr><h3 style="margin-bottom: 10px;">Active Rumours</h3>`;
-			menu += H.showActiveRumours();
-			menu += `<br><a style="${styles.button}" href="!qt-menu action=allrumours">Show All Rumours</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Automation</h3>`;
 			menu += H.showTriggers();
 			menu += `<br><a style="${styles.button}" href="${triggersLink}">Show All Triggers</a>`;
@@ -6444,146 +6119,14 @@ var QuestTracker = QuestTracker || (function () {
 			H.showReview('All Quests', menu, { handoutName: QUEST_TRACKER_AllQuestsHandoutName });
 		};
 		const showAllRumours = () => {
-			QUEST_TRACKER_RUMOUR_FILTER.filter = QUEST_TRACKER_RUMOUR_FILTER.filter || {};
-			QUEST_TRACKER_RUMOUR_FILTER.groupBy = QUEST_TRACKER_RUMOUR_FILTER.groupBy || null;
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">All Rumours</h3>`;
-			menu += H.showFilterMenu('rumour') + "<br>";
-			menu += `<p>This menu displays all the rumours currently associated with quests. Use the options below to filter, navigate through locations, and modify rumours.</p>`;
-			if (Object.keys(QUEST_TRACKER_globalQuestData).length === 0) {
-				menu += `<p>There are no quests available. You need to create quests or import from handouts.</p>`;
-			} else {
-				const filteredQuests = Object.keys(QUEST_TRACKER_globalQuestData)
-					.map(questId => {
-						const questData = QUEST_TRACKER_globalQuestData[questId] || {};
-						const normalizedData = Object.keys(questData).reduce((acc, key) => {
-							acc[key.toLowerCase()] = questData[key];
-							return acc;
-						}, {});
-						if (!H.applyFilter(QUEST_TRACKER_RUMOUR_FILTER.filter, normalizedData)) return null;
-						const questRumours = QUEST_TRACKER_globalRumours[questId] || {};
-						let rumourCount = Object.values(questRumours)
-							.reduce((sum, statusRumours) => sum + Object.keys(statusRumours || {}).length, 0);
-						return {
-							id: questId,
-							name: questData.name || `Quest: ${questId}`,
-							rumourCount
-						};
-					})
-					.filter(Boolean)
-					.sort((a, b) => a.name.localeCompare(b.name));
-				menu += H.renderQuestList(filteredQuests, QUEST_TRACKER_RUMOUR_FILTER.groupBy, 'rumour');
-			}
-			menu += `
-				<br><hr>
-				<span style="${styles.floatRight}">
-					<a style="${styles.button}" href="!qt-menu action=main">Back to Main</a>
-				</span>
-			</div>`;
-			menu = menu.replace(/[\r\n]/g, '');
-			H.showReview('All Rumours', menu);
+			errorCheck(344, 'msg', null, 'Rumour menus have moved into linked quest handouts. Open a quest handout to manage its rumours.');
+			showAllQuests();
 		};
 		const showQuestRumourByStatus = (questId) => {
-			let questData = QUEST_TRACKER_globalQuestData[questId];
-			const questDisplayName = questData && questData.name ? questData.name : `Quest: ${questId}`;
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Rumours for ${questDisplayName}</h3>`;
-			menu += `<p>${questData.description || "No description available."}</p>`;
-			const questRumours = QUEST_TRACKER_globalRumours[questId] || {};
-			const allStatuses = Object.values(Statuses.getAll()).map(status => status.name);
-			if (allStatuses.length > 0) {
-				menu += `<br><hr><table style="width:100%;">`;
-				allStatuses.forEach(status => {
-					const rumoursByStatus = questRumours[status.toLowerCase()] || {};
-					const rumourCount = Object.keys(rumoursByStatus).length;
-					menu += `
-					<tr>
-						<td>${status}<br><small>${rumourCount} rumour${rumourCount === 1 ? '' : 's'}</small></td>
-						<td style="${styles.floatRight}">
-							<a style="${styles.button}" href="!qt-menu action=showRumourDetails|questId=${questId}|status=${status.toLowerCase()}">Show</a>
-						</td>
-					</tr>`;
-				});
-				menu += `</table><br>`;
-			} else {
-				menu += `
-					<p>There are no rumours available; either refresh the data, or start adding manually.</p>
-					<br><hr>
-					<a style="${styles.button}" href="!qt-import">Import Quest and Rumour Data</a>
-				`;
-			}
-			menu += `
-				<br><hr>
-				<span style="${styles.floatRight}">
-					<a style="${styles.button}" href="!qt-menu action=allrumours">All Rumours</a>
-					&nbsp;
-					<a style="${styles.button}" href="!qt-menu action=main">Main Menu</a>
-				</span>
-				<br><hr>
-			</div>`;
-			menu = menu.replace(/[\r\n]/g, '');
-			H.showReview(`Rumours for ${questDisplayName}`, menu);
+			showQuestDetails(questId);
 		};
 		const showRumourDetails = (questId, statusId) => {
-			const questData = QUEST_TRACKER_globalQuestData[questId];
-			const questDisplayName = questData && questData.name ? questData.name : `Quest: ${questId}`;
-			const statusName = Statuses.getName(statusId) || statusId;
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Rumours for ${questDisplayName}</h3><h3>Status: ${statusName}</h3>`;
-			menu += `<p>This menu displays all the rumours currently associated with ${questDisplayName} under the status "${statusName}". Use the options below to update, add, or remove rumours.</p><p>To add new lines into the rumours use &#37;NEWLINE&#37;. To add in quotation marks you need to use &amp;quot;.</p><ul><li>Hover over 👁 to view full rumour Text<li>b = background rumour, toggle to a priority rumour.<li>∞ measn this can be shown multiple times, '1' means it is deleted after being shown only once.<li>T - add a trigger to this rumour event.</ul><br><hr>`;
-			const questRumours = QUEST_TRACKER_globalRumours[questId] || {};
-			const rumoursByStatus = questRumours[statusId.toLowerCase()] || {};
-			menu += `<table style="width:100%;">`;
-			if (Object.keys(rumoursByStatus).length > 0) {
-				Object.entries(rumoursByStatus).forEach(([rumourId, rumourData]) => {
-					const cleanRumour = rumourId.replace(/^rumour_(\d+)$/, 'Rumour #$1');
-					const rumourTextSanitized = rumourData.text.replace(/"/g, '&quot;').replace(/%NEWLINE%|<br>/g, ' | ');
-					const rumourInputSanitized = rumourData.text.replace(/"/g, '&quot;').replace(/<br>/g, '%NEWLINE%');
-					const rumourType = rumourData.type || "background"; 
-					menu += `
-					<tr>
-						<td><small style="${styles.rumour}">${cleanRumour}</small></td>
-						<td style="${styles.smallButtonContainer}">
-							<span class=icon style="${styles.button} ${styles.smallButton}" width="12px" height="12px" title="${rumourTextSanitized}">👁</span>
-						</td>
-						<td style="${styles.smallButtonContainer}">
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=update|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}|new=?{Update Rumour|${rumourInputSanitized}}">c</a>
-						</td>
-						<td style="${styles.smallButtonContainer}">
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=remove|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}">-</a>
-						</td>
-						<td style="${styles.smallButtonContainer}">
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=changeType|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}">${rumourType === 'priority' ? 'p' : 'b'}</a>
-						</td>
-						<td style="${styles.smallButtonContainer}">
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=toggleOnce|questid=${questId}|status=${statusId.toLowerCase()}|rumourid=${rumourId}">${rumourData.once ? '1' : '∞'}</a>
-						</td>
-						<td style="${styles.smallButtonContainer}">
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=addrumour|rumourid=${rumourId}">T</a>
-						</td>
-					</tr>`;
-				});
-			} else {
-				menu += `<tr><td colspan="6"><small>No rumours</small></td></tr>`;
-			}
-			menu += `
-				<tr style="border-top: 1px solid #ddd">
-					<td></td>
-					<td colspan="5" style="${styles.smallButtonAdd}">
-						<a style="${styles.button} ${styles.smallButton}" href="!qt-rumours action=add|questid=${questId}|status=${statusId.toLowerCase()}|new=?{Enter New Rumour}">+</a>
-					</td>
-				</tr>
-				</table>`;
-			menu += `
-				<br><hr>
-				<span style="${styles.floatRight}">
-					<a style="${styles.button}" href="!qt-menu action=showQuestRumours|questId=${questId}">By Status</a>
-					&nbsp;
-					<a style="${styles.button}" href="!qt-menu action=allrumours">All Rumours</a>
-					&nbsp;
-					<a style="${styles.button}" href="!qt-menu action=main">Main Menu</a>
-				</span>
-				<br><hr>
-			</div>`;
-			menu = menu.replace(/[\r\n]/g, '');
-			H.showReview(`Rumours for ${questDisplayName}`, menu);
+			showQuestDetails(questId);
 		};
 		const showQuestDetails = (questId) => {
 			const quest = QUEST_TRACKER_globalQuestData[questId];
@@ -6608,10 +6151,7 @@ var QuestTracker = QuestTracker || (function () {
 				</div>`.replace(/[\r\n]/g, ''));
 		};
 		const manageRumourLocations = () => {
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Rumour Locations</h3>`;
-			menu += `<p>Rumour locations are no longer managed separately. Set a single Location on each quest; generated rumours use the current calendar/weather location.</p>`;
-			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=allrumours">Back to Rumours</a></div>`;
-			H.showReview('Rumour Locations', menu);
+			errorCheck(342, 'msg', null, 'Rumour locations are now quest locations. Open a quest handout and change its Location field.');
 		};
 		const manageQuestGroups = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Quest Groups</h3>`;
@@ -7144,7 +6684,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				case 'rumour':
 					const cleanRumour = triggerPathParts[2].replace(/^rumour_(\d+)$/, 'Rumour #$1');
-					activationSection += `<a style="${styles.button}" href="!qt-trigger action=prompt|triggerid=${triggerId}|field=rumour|value=?{Provide Rumour ID}">${triggerPathParts[2] === "null" ? `Set Rumour ID` : `${cleanRumour}`}</a>`;
+					activationSection += `<span>${triggerPathParts[2] === "null" ? 'No rumour assigned' : cleanRumour}</span>`;
 					break;
 				case 'event':
 					if (H.createEventDropdown(triggerId) !== null) {
@@ -7511,9 +7051,7 @@ var QuestTracker = QuestTracker || (function () {
 			if (errorCheck(88, 'exists', action, 'action')) return;
 			switch (action) {
 				case 'send':
-					if (errorCheck(89, 'exists', number, 'number')) return;
-					if (errorCheck(90, 'number', number, 'number')) return;
-					Rumours.sendRumours(number);
+					errorCheck(345, 'msg', null, 'Rumour chat output has been removed. Manage and review rumours from the linked quest handout.');
 					break;
 				case 'add':
 				case 'update':
@@ -7526,7 +7064,7 @@ var QuestTracker = QuestTracker || (function () {
 						cleanedItem = cleanedItem.replace(/<br\s*\/?>/g, '%NEWLINE%');
 						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem: cleanedItem, status });
 						setTimeout(() => {
-							Menu.showRumourDetails(questid, status);
+							Menu.showQuestDetails(questid);
 						}, 500);
 					} else if (action === 'update') {
 						if (errorCheck(96, 'exists', newItem, 'newItem')) return;
@@ -7534,17 +7072,16 @@ var QuestTracker = QuestTracker || (function () {
 						if (errorCheck(98, 'exists', QUEST_TRACKER_globalRumours[questid], `QUEST_TRACKER_globalRumours[${questid}]`)) return;
 						let cleanedItem = newItem.replace(/[\r\n]/g, '');
 						cleanedItem = cleanedItem.replace(/<br\s*\/?>/g, '%NEWLINE%');
-						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, rumourId: rumourid });
-						Rumours.manageRumourObject({ action: 'add', questId: questid, newItem: cleanedItem, status, rumourId: rumourid });
+						Rumours.manageRumourObject({ action: 'update', questId: questid, newItem: cleanedItem, status, rumourId: rumourid });
 						setTimeout(() => {
-							Menu.showRumourDetails(questid, status);
+							Menu.showQuestDetails(questid);
 						}, 500);
 					} else if (action === 'remove') {
 						if (errorCheck(99, 'exists', QUEST_TRACKER_globalRumours[questid], `QUEST_TRACKER_globalRumours[${questid}]`)) return;
 						if (errorCheck(100, 'exists', QUEST_TRACKER_globalRumours[questid][status], `QUEST_TRACKER_globalRumours[${questid}][${status}]`)) return;
 						Rumours.manageRumourObject({ action: 'remove', questId: questid, newItem: '', status, rumourId: rumourid });
 						setTimeout(() => {
-							Menu.showRumourDetails(questid, status);
+							Menu.showQuestDetails(questid);
 						}, 500);
 					}
 					break;
@@ -7554,7 +7091,7 @@ var QuestTracker = QuestTracker || (function () {
 					if (errorCheck(228, 'exists', rumourid, 'rumourid')) return;
 					Rumours.manageRumourObject({ action: 'toggleOnce', questId: questid, status, rumourId: rumourid });
 					setTimeout(() => {
-						Menu.showRumourDetails(questid, status);
+						Menu.showQuestDetails(questid);
 					}, 500);
 					break;
 				case 'changeType':
@@ -7563,7 +7100,7 @@ var QuestTracker = QuestTracker || (function () {
 					if (errorCheck(232, 'exists', rumourid, 'rumourid')) return;
 					Rumours.manageRumourObject({ action: 'changeType', questId: questid, status, rumourId: rumourid });
 					setTimeout(() => {
-						Menu.showRumourDetails(questid, status);
+						Menu.showQuestDetails(questid);
 					}, 500);
 					break;
 				case 'addLocation':
@@ -7629,7 +7166,7 @@ var QuestTracker = QuestTracker || (function () {
 				if (errorCheck(118, 'exists', status,'status')) return;
 				Menu.showRumourDetails(questId, status);
 			} else if (action === 'manageRumourLocations') {
-				errorCheck(342, 'msg', null, 'Rumour locations are now quest locations. Open a quest and change its Location field.');
+				errorCheck(347, 'msg', null, 'Rumour locations are now quest locations. Open a quest and change its Location field.');
 			} else if (action === 'manageQuestGroups') {
 				Menu.manageQuestGroups();
 			} else if (action === 'statuses') {
@@ -7654,11 +7191,11 @@ var QuestTracker = QuestTracker || (function () {
 			const { action, id, field, name, color, new: newItem, confirmation } = params;
 			switch (action) {
 				case 'add':
-					if (errorCheck(340, 'exists', name, 'name')) return;
+					if (errorCheck(348, 'exists', name, 'name')) return;
 					Statuses.addStatus(name, color || '#CCCCCC');
 					break;
 				case 'update':
-					if (errorCheck(341, 'exists', id, 'id')) return;
+					if (errorCheck(349, 'exists', id, 'id')) return;
 					if (errorCheck(239, 'exists', field, 'field')) return;
 					if (errorCheck(240, 'exists', newItem, 'newItem')) return;
 					if (!Statuses.updateStatus(id, field, newItem)) errorCheck(241, 'msg', null, `Unknown status: ${id}`);

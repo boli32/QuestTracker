@@ -47,7 +47,6 @@ var QuestTracker = QuestTracker || (function () {
 	let QUEST_TRACKER_ReviewHandoutName = "QuestTracker Review";
 	let QUEST_TRACKER_AllQuestsHandoutName = "QuestTracker All Quests";
 	let QUEST_TRACKER_AllTriggersHandoutName = "QuestTracker All Triggers";
-	let QUEST_TRACKER_FlagsHandoutName = "QuestTracker Flags";
 	let QUEST_TRACKER_rumoursByLocation = {};
 	let QUEST_TRACKER_readableJSON = true;
 	let QUEST_TRACKER_pageName = "Quest Tree Page";
@@ -321,8 +320,8 @@ var QuestTracker = QuestTracker || (function () {
 		};
 		QUEST_TRACKER_CACHED_QUEST_TREE = state.QUEST_TRACKER.cachedQuestTree || false;
 		QUEST_TRACKER_QuestStatuses = Statuses.normalize(state.QUEST_TRACKER.questStatuses);
-		QUEST_TRACKER_Flags = state.QUEST_TRACKER.campaignFlags || state.QUEST_TRACKER.states || {};
-		QUEST_TRACKER_FlagStatuses = Flags.normalizeStatuses(state.QUEST_TRACKER.flagStatuses || state.QUEST_TRACKER.stateStatuses);
+		QUEST_TRACKER_Flags = state.QUEST_TRACKER.campaignFlags || {};
+		QUEST_TRACKER_FlagStatuses = Flags.normalizeStatuses(state.QUEST_TRACKER.flagStatuses);
 		Statuses.migrateLoadedData();
 		Flags.migrateLoadedData();
 	};
@@ -367,8 +366,6 @@ var QuestTracker = QuestTracker || (function () {
 		state.QUEST_TRACKER.questStatuses = QUEST_TRACKER_QuestStatuses;
 		state.QUEST_TRACKER.campaignFlags = QUEST_TRACKER_Flags;
 		state.QUEST_TRACKER.flagStatuses = QUEST_TRACKER_FlagStatuses;
-		delete state.QUEST_TRACKER.states;
-		delete state.QUEST_TRACKER.stateStatuses;
 	};
 	const initializeQuestTrackerState = (forced = false) => {
 		if (!state.QUEST_TRACKER || Object.keys(state.QUEST_TRACKER).length === 0 || forced) {
@@ -457,9 +454,6 @@ var QuestTracker = QuestTracker || (function () {
 			}
 			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_AllTriggersHandoutName })[0]) {
 				createObj('handout', { name: QUEST_TRACKER_AllTriggersHandoutName });
-			}
-			if (!findObjs({ type: 'handout', name: QUEST_TRACKER_FlagsHandoutName })[0]) {
-				createObj('handout', { name: QUEST_TRACKER_FlagsHandoutName });
 			}
 			if (typeof Menu !== 'undefined' && Menu.refreshAllQuestsHandout) Menu.refreshAllQuestsHandout(false);
 			Utils.sendGMMessage("QuestTracker has been initialized.");
@@ -1920,12 +1914,12 @@ var QuestTracker = QuestTracker || (function () {
 			getFlagRequirementLabel: (condition) => Flags.getRequirementLabel(condition),
 			buildFlagDropdownString: () => Flags.buildDropdownString(),
 			buildFlagRequirementLink: (questId, groupnum = null) => {
-				const flagDropdown = H.buildFlagDropdownString();
-				if (!flagDropdown) {
+				const flagStatusDropdown = Flags.buildFlagStatusPairDropdownString();
+				if (!flagStatusDropdown) {
 					return 'No flags available';
 				}
 				const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
-				return `<a href="!qt-questrelationship currentquest=${questId}|action=add|type=flag${groupPart}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}">Add Flag Requirement</a>`;
+				return `<a href="!qt-questrelationship currentquest=${questId}|action=add|type=flagpair${groupPart}|flagstatus=${flagStatusDropdown}">Add Flag Requirement</a>`;
 			},
 			checkPrerequisites: (questId) => {
 				const quest = QUEST_TRACKER_globalQuestData[questId];
@@ -4203,34 +4197,71 @@ var QuestTracker = QuestTracker || (function () {
 				return normalized;
 			}, {});
 		};
-		const getStatuses = () => normalizeStatuses(QUEST_TRACKER_FlagStatuses);
-		const getStatusName = (statusId) => {
-			const statuses = getStatuses();
+		const cloneStatuses = (statuses = {}) => normalizeStatuses(statuses);
+		const getFirstStatusId = (statuses = {}) => {
+			const ids = Object.keys(statuses).map(id => parseInt(id, 10)).filter(id => !isNaN(id)).sort((a, b) => a - b);
+			return ids.length ? ids[0] : 1;
+		};
+		const getStatuses = (flagKey = null) => {
+			if (flagKey) {
+				const flag = QUEST_TRACKER_Flags[normalizeKey(flagKey)];
+				if (flag && flag.statuses && typeof flag.statuses === 'object' && !Array.isArray(flag.statuses)) {
+					return normalizeStatuses(flag.statuses);
+				}
+			}
+			return normalizeStatuses(QUEST_TRACKER_FlagStatuses);
+		};
+		const getStatusName = (statusId, flagKey = null) => {
+			const statuses = getStatuses(flagKey);
 			if (statuses[statusId]) return statuses[statusId].name;
 			const status = Object.values(statuses).find(definition => definition.name.toLowerCase() === `${statusId}`.toLowerCase());
 			return status?.name || 'Unknown';
 		};
-		const getStatusColor = (statusIdOrName) => {
-			const statuses = getStatuses();
+		const getStatusColor = (statusIdOrName, flagKey = null) => {
+			const statuses = getStatuses(flagKey);
 			if (statuses[statusIdOrName]) return statuses[statusIdOrName].color;
 			const status = Object.values(statuses).find(definition => definition.name === statusIdOrName);
 			return status?.color || '#CCCCCC';
 		};
-		const buildStatusDropdown = () => Object.entries(getStatuses())
+		const buildStatusDropdown = (flagKey = null) => Object.entries(getStatuses(flagKey))
 			.map(([id, status]) => `|${status.name},${id}`)
 			.join('');
-		const getNextStatusId = () => {
-			const ids = Object.keys(getStatuses()).map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+		const getNextStatusId = (flagKey = null) => {
+			const ids = Object.keys(getStatuses(flagKey)).map(id => parseInt(id, 10)).filter(id => !isNaN(id));
 			return `${ids.length ? Math.max(...ids) + 1 : 1}`;
 		};
-		const getStatusIdFromValue = (value) => {
+		const getStatusIdFromValue = (value, flagKey = null) => {
 			if (value === undefined || value === null || value === '') return null;
-			const statuses = getStatuses();
+			const statuses = getStatuses(flagKey);
 			if (statuses[value]) return parseInt(value, 10);
 			const match = Object.entries(statuses).find(([, status]) => status.name.toLowerCase() === `${value}`.toLowerCase());
 			return match ? parseInt(match[0], 10) : null;
 		};
-		const isDefaultStatus = (id) => !!DEFAULT_FLAG_STATUSES[id];
+		const getDefaultStatusId = (flagKey = null) => getFirstStatusId(getStatuses(flagKey));
+		const buildFlagStatusPairDropdownString = () => {
+			const options = [];
+			Object.entries(QUEST_TRACKER_Flags)
+				.sort((a, b) => (a[1].name || a[0]).localeCompare(b[1].name || b[0]))
+				.forEach(([key, flag]) => {
+					Object.entries(getStatuses(key)).forEach(([statusId, status]) => {
+						options.push({
+							label: `${Utils.roll20MacroSanitize(flag.name || key)}: ${Utils.roll20MacroSanitize(status.name)}`,
+							value: `${key}::${statusId}`
+						});
+					});
+				});
+			if (options.length === 0) return '';
+			if (options.length === 1) return options[0].value;
+			return `?{Choose Flag Status|${options.map(option => `${option.label},${option.value}`).join('|')}}`;
+		};
+		const parseFlagStatusPair = (pair) => {
+			const [flagKey, statusId] = `${pair || ''}`.split('::');
+			if (!flagKey || !statusId) return null;
+			return {
+				flag: normalizeKey(flagKey),
+				status: statusId
+			};
+		};
 		const migrateLoadedData = () => {
 			let changed = false;
 			if (!QUEST_TRACKER_Flags || typeof QUEST_TRACKER_Flags !== 'object' || Array.isArray(QUEST_TRACKER_Flags)) {
@@ -4238,38 +4269,47 @@ var QuestTracker = QuestTracker || (function () {
 				changed = true;
 			}
 			const normalizedStatuses = normalizeStatuses(QUEST_TRACKER_FlagStatuses);
-			if (!state.QUEST_TRACKER.flagStatuses || state.QUEST_TRACKER.stateStatuses || state.QUEST_TRACKER.states || JSON.stringify(QUEST_TRACKER_FlagStatuses) !== JSON.stringify(normalizedStatuses)) {
+			if (!state.QUEST_TRACKER.flagStatuses || JSON.stringify(QUEST_TRACKER_FlagStatuses) !== JSON.stringify(normalizedStatuses)) {
 				QUEST_TRACKER_FlagStatuses = normalizedStatuses;
 				changed = true;
 			}
 			Object.keys(QUEST_TRACKER_Flags).forEach(key => {
 				const flagData = QUEST_TRACKER_Flags[key] || {};
-				const statusId = getStatusIdFromValue(flagData.status) || 1;
+				if (!flagData.statuses || typeof flagData.statuses !== 'object' || Array.isArray(flagData.statuses) || Object.keys(flagData.statuses).length === 0) {
+					flagData.statuses = cloneStatuses(getStatuses());
+					changed = true;
+				} else {
+					const normalizedFlagStatuses = normalizeStatuses(flagData.statuses);
+					if (JSON.stringify(flagData.statuses) !== JSON.stringify(normalizedFlagStatuses)) {
+						flagData.statuses = normalizedFlagStatuses;
+						changed = true;
+					}
+				}
+				const statusId = getStatusIdFromValue(flagData.status, key) || getDefaultStatusId(key);
 				if (`${flagData.status}` !== `${statusId}`) {
 					flagData.status = statusId;
 					changed = true;
 				}
-				if (!flagData.category) {
-					flagData.category = 'general';
+				if (flagData.value !== undefined) {
+					delete flagData.value;
 					changed = true;
 				}
-				if (flagData.description === undefined) {
-					flagData.description = '';
+				if (flagData.category !== undefined) {
+					delete flagData.category;
 					changed = true;
 				}
 			});
 			if (changed) saveQuestTrackerData();
 		};
-		const addFlag = (name, value = 'false', category = 'general', status = 1) => {
+		const addFlag = (name) => {
 			const key = normalizeKey(name);
 			if (!key) return null;
 			if (!QUEST_TRACKER_Flags[key]) {
+				const copiedStatuses = cloneStatuses(getStatuses());
 				QUEST_TRACKER_Flags[key] = {
 					name,
-					value,
-					category,
-					status: getStatusIdFromValue(status) || 1,
-					description: ''
+					status: getFirstStatusId(copiedStatuses),
+					statuses: copiedStatuses
 				};
 			}
 			saveQuestTrackerData();
@@ -4285,11 +4325,13 @@ var QuestTracker = QuestTracker || (function () {
 				QUEST_TRACKER_Flags[newKey] = QUEST_TRACKER_Flags[key];
 				delete QUEST_TRACKER_Flags[key];
 			} else if (field === 'status') {
-				const statusId = getStatusIdFromValue(value);
+				const statusId = getStatusIdFromValue(value, key);
 				if (!statusId) return false;
 				QUEST_TRACKER_Flags[key].status = statusId;
-			} else if (['name', 'value', 'category', 'description'].includes(field)) {
+			} else if (field === 'name') {
 				QUEST_TRACKER_Flags[key][field] = value;
+			} else {
+				return false;
 			}
 			saveQuestTrackerData();
 			QUEST_TRACKER_refreshLinkedQuestHandouts();
@@ -4304,7 +4346,6 @@ var QuestTracker = QuestTracker || (function () {
 			return true;
 		};
 		const getFlag = (key) => QUEST_TRACKER_Flags[normalizeKey(key)] || null;
-		const setFlagValue = (key, value) => updateFlag(key, 'value', value);
 		const setFlagStatus = (key, status) => updateFlag(key, 'status', status);
 		const isCondition = (condition) => {
 			return typeof condition === 'object' && condition !== null && condition.type === 'flag' && condition.key;
@@ -4313,10 +4354,10 @@ var QuestTracker = QuestTracker || (function () {
 			type: 'flag',
 			key: normalizeKey(flagKey),
 			status: (() => {
-				const resolvedStatus = getStatusIdFromValue(statusId);
+				const resolvedStatus = getStatusIdFromValue(statusId, flagKey);
 				if (resolvedStatus) return resolvedStatus;
 				const parsedStatus = parseInt(statusId, 10);
-				return Number.isNaN(parsedStatus) ? 1 : parsedStatus;
+				return Number.isNaN(parsedStatus) ? getDefaultStatusId(flagKey) : parsedStatus;
 			})()
 		});
 		const conditionEquals = (a, b) => {
@@ -4331,14 +4372,14 @@ var QuestTracker = QuestTracker || (function () {
 			const met = !!flag && `${flag.status}` === `${condition.status}`;
 			return {
 				met,
-				label: `${flag?.name || condition.key} is ${flag ? getStatusName(flag.status) : 'missing'}; needs ${getStatusName(condition.status)}`
+				label: `${flag?.name || condition.key} is ${flag ? getStatusName(flag.status, condition.key) : 'missing'}; needs ${getStatusName(condition.status, condition.key)}`
 			};
 		};
 		const getRequirementLabel = (condition) => {
 			const flag = getFlag(condition.key);
 			const flagName = flag?.name || condition.key;
-			const requiredStatus = getStatusName(condition.status);
-			const currentStatus = flag ? getStatusName(flag.status) : 'Missing Flag';
+			const requiredStatus = getStatusName(condition.status, condition.key);
+			const currentStatus = flag ? getStatusName(flag.status, condition.key) : 'Missing Flag';
 			return `${flagName} = ${requiredStatus} <small>(current: ${currentStatus})</small>`;
 		};
 		const buildDropdownString = () => {
@@ -4368,22 +4409,58 @@ var QuestTracker = QuestTracker || (function () {
 			return true;
 		};
 		const removeStatus = (id) => {
-			if (!QUEST_TRACKER_FlagStatuses[id] || isDefaultStatus(id)) return false;
+			if (!QUEST_TRACKER_FlagStatuses[id] || Object.keys(getStatuses()).length <= 1) return false;
 			delete QUEST_TRACKER_FlagStatuses[id];
-			Object.values(QUEST_TRACKER_Flags).forEach(flagData => {
-				if (`${flagData.status}` === `${id}`) flagData.status = 1;
-			});
 			saveQuestTrackerData();
 			QUEST_TRACKER_refreshLinkedQuestHandouts();
 			return true;
 		};
 		const resetStatuses = () => {
 			QUEST_TRACKER_FlagStatuses = normalizeStatuses();
-			Object.values(QUEST_TRACKER_Flags).forEach(flagData => {
-				if (!QUEST_TRACKER_FlagStatuses[flagData.status]) flagData.status = 1;
-			});
 			saveQuestTrackerData();
 			QUEST_TRACKER_refreshLinkedQuestHandouts();
+		};
+		const addFlagStatus = (key, name, color = '#CCCCCC') => {
+			key = normalizeKey(key);
+			const flag = getFlag(key);
+			if (!flag) return null;
+			flag.statuses = cloneStatuses(getStatuses(key));
+			const id = getNextStatusId(key);
+			flag.statuses[id] = { name, color };
+			saveQuestTrackerData();
+			QUEST_TRACKER_refreshLinkedQuestHandouts();
+			return id;
+		};
+		const updateFlagStatus = (key, id, field, value) => {
+			key = normalizeKey(key);
+			const flag = getFlag(key);
+			if (!flag || !flag.statuses || !flag.statuses[id]) return false;
+			if (field === 'name') flag.statuses[id].name = value;
+			else if (field === 'color') flag.statuses[id].color = value || '#CCCCCC';
+			else return false;
+			saveQuestTrackerData();
+			QUEST_TRACKER_refreshLinkedQuestHandouts();
+			return true;
+		};
+		const removeFlagStatus = (key, id) => {
+			key = normalizeKey(key);
+			const flag = getFlag(key);
+			if (!flag || !flag.statuses || !flag.statuses[id] || Object.keys(getStatuses(key)).length <= 1) return false;
+			delete flag.statuses[id];
+			if (`${flag.status}` === `${id}`) flag.status = getDefaultStatusId(key);
+			saveQuestTrackerData();
+			QUEST_TRACKER_refreshLinkedQuestHandouts();
+			return true;
+		};
+		const resetFlagStatuses = (key) => {
+			key = normalizeKey(key);
+			const flag = getFlag(key);
+			if (!flag) return false;
+			flag.statuses = cloneStatuses(getStatuses());
+			flag.status = getDefaultStatusId(key);
+			saveQuestTrackerData();
+			QUEST_TRACKER_refreshLinkedQuestHandouts();
+			return true;
 		};
 		return {
 			normalizeStatuses,
@@ -4392,13 +4469,14 @@ var QuestTracker = QuestTracker || (function () {
 			getStatusColor,
 			buildStatusDropdown,
 			getStatusIdFromValue,
-			isDefaultStatus,
+			getDefaultStatusId,
+			buildFlagStatusPairDropdownString,
+			parseFlagStatusPair,
 			migrateLoadedData,
 			addFlag,
 			updateFlag,
 			removeFlag,
 			getFlag,
-			setFlagValue,
 			setFlagStatus,
 			isCondition,
 			buildCondition,
@@ -4409,7 +4487,11 @@ var QuestTracker = QuestTracker || (function () {
 			addStatus,
 			updateStatus,
 			removeStatus,
-			resetStatuses
+			resetStatuses,
+			addFlagStatus,
+			updateFlagStatus,
+			removeFlagStatus,
+			resetFlagStatuses
 		};
 	})();
 	const Rumours = (() => {
@@ -4741,6 +4823,7 @@ var QuestTracker = QuestTracker || (function () {
 			overflow: 'overflow: hidden; margin:1px',
 			rumour: 'text-overflow: ellipsis;overflow: hidden;width: 100px;display: block;word-break: break-all;white-space: nowrap;',
 			link: 'color: #007bff; text-decoration: underline; cursor: pointer;',
+			textLink: 'color: #000; text-decoration: none; cursor: pointer; background-color: transparent; border: 0; padding: 0; font-weight: normal;',
 			questlink: 'color: #007bff; text-decoration: none; cursor: pointer; background-color: #FFFFFF;',
 			filterlink: 'color: #007bff; text-decoration: none; cursor: pointer; background-color: #FFFFFF; padding:0px;',
 			paddedfilterlink: 'color: #007bff; text-decoration: none; cursor: pointer; background-color: #FFFFFF; padding:5px;',
@@ -4795,21 +4878,22 @@ var QuestTracker = QuestTracker || (function () {
 					return (a[1].name || a[0]).localeCompare(b[1].name || b[0]);
 				});
 				if (flagEntries.length === 0) {
-					return `<ul><li style="${styles.overflow}"><span style="${styles.floatLeft}"><small>No campaign flags set</small></span></li></ul>`;
+					return `<p><small>No campaign flags set</small></p>`;
 				}
-				let menu = `<ul style="${styles.list}">`;
+				let menu = `<style>.qt-flag-summary-link:hover{text-decoration:underline !important;}</style><div>`;
 				flagEntries.forEach(([key, flagData]) => {
-					const statusName = Flags.getStatusName(flagData.status);
-					const statusColor = Flags.getStatusColor(flagData.status);
+					const statusName = Flags.getStatusName(flagData.status, key);
+					const statusColor = Flags.getStatusColor(flagData.status, key);
+					const statusSquare = `<span style="display:inline-block; width:10px; height:10px; background-color:${statusColor}; border:1px solid #444; margin-right:4px; vertical-align:middle;"></span>`;
+					const statusLinkStyle = `${styles.textLink} color:${statusColor};`;
 					menu += `
-						<li style="${styles.overflow}">
-							<span style="${styles.floatLeft}"><small>${flagData.name || key}</small></span>
-							<span style="${styles.floatRight}">
-								<a style="${styles.button}" href="!qt-flag action=setstatus|key=${key}|status=?{Flag Status${Flags.buildStatusDropdown()}}"><span style="color:${statusColor};">${statusName}</span></a>
-							</span>
-						</li>`;
+						<div style="margin: 2px 0;">
+							${statusSquare}
+							<a class="qt-flag-summary-link" style="${styles.textLink}" href="!qt-menu action=flag|key=${key}">${flagData.name || key}</a>
+							[ <a class="qt-flag-summary-link" style="${statusLinkStyle}" href="!qt-flag action=setstatus|key=${key}|status=?{Flag Status${Flags.buildStatusDropdown(key)}}|menu=main">${statusName}</a> ]
+						</div>`;
 				});
-				menu += `</ul>`;
+				menu += `</div>`;
 				return menu;
 			},
 			showTriggers: () => {
@@ -4876,8 +4960,7 @@ var QuestTracker = QuestTracker || (function () {
 				const questLocation = QuestLocations.ensureQuestLocation(quest);
 				const questLocationName = QuestLocations.getName(questLocation);
 				const questLocationDropdown = QuestLocations.buildDropdown();
-				const relationshipsHtml = displayQuestRelationships(questId);
-				const relationshipMenuHtml = H.relationshipMenu(questId);
+				const relationshipsHtml = H.relationshipMenu(questId);
 				const editActions = H.actionList([
 					H.actionLink(`!qt-quest action=update|field=name|current=${questId}|old=${normalizedQuest.name || ''}|new=?{Title|${normalizedQuest.name || ''}}`, 'Edit Title'),
 					H.actionLink(`!qt-quest action=update|field=description|current=${questId}|old=${normalizedQuest.description || ''}|new=?{Description|${normalizedQuest.description || ''}}`, 'Edit Description')
@@ -4898,7 +4981,6 @@ var QuestTracker = QuestTracker || (function () {
 						<br>
 						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Relationships</h4>
 						${relationshipsHtml}
-						${relationshipMenuHtml}
 						<h4 style="${styles.bottomBorder} ${styles.topMargin}">Status</h4>
 						<span>${statusName}</span>
 						<br>${H.actionList([H.actionLink(`!qt-quest action=update|field=status|current=${questId}|new=?{Change Status${Statuses.buildDropdown()}}`, 'Change Status')])}
@@ -5014,7 +5096,7 @@ var QuestTracker = QuestTracker || (function () {
 				return Array.from(triggers.values()).sort((a, b) => (a.trigger.name || '').localeCompare(b.trigger.name || ''));
 			},
 			renderTriggerConditions: (triggerId, trigger) => {
-				const flagDropdown = H.buildFlagDropdownString();
+				const flagStatusDropdown = Flags.buildFlagStatusPairDropdownString();
 				let html = `<table style="width:100%;">`;
 				if (Array.isArray(trigger.conditions) && trigger.conditions.length > 0) {
 					trigger.conditions.forEach(condition => {
@@ -5024,7 +5106,7 @@ var QuestTracker = QuestTracker || (function () {
 								<td colspan="3">
 									${H.getFlagRequirementLabel(condition)}
 									<br>${H.actionList([
-										H.actionLink(`!qt-trigger action=updatecondition|triggerid=${triggerId}|oldflag=${condition.key}|oldstatus=${condition.status}|flag=${flagDropdown || condition.key}|status=?{Flag Status${Flags.buildStatusDropdown()}}`, 'Edit'),
+										flagStatusDropdown ? H.actionLink(`!qt-trigger action=updatecondition|triggerid=${triggerId}|oldflag=${condition.key}|oldstatus=${condition.status}|flagstatus=${flagStatusDropdown}`, 'Edit') : '',
 										H.actionLink(`!qt-trigger action=removecondition|triggerid=${triggerId}|flag=${condition.key}|status=${condition.status}`, 'Delete')
 									])}
 								</td>
@@ -5033,7 +5115,7 @@ var QuestTracker = QuestTracker || (function () {
 				} else {
 					html += `<tr><td colspan="3"><small>No flag conditions</small></td></tr>`;
 				}
-				html += `<tr><td colspan="3">${flagDropdown ? H.actionList([H.actionLink(`!qt-trigger action=addcondition|triggerid=${triggerId}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}`, 'Add Flag Condition')]) : 'No flags available to add.'}</td></tr></table>`;
+				html += `<tr><td colspan="3">${flagStatusDropdown ? H.actionList([H.actionLink(`!qt-trigger action=addcondition|triggerid=${triggerId}|flagstatus=${flagStatusDropdown}`, 'Add Flag Condition')]) : 'No flags available to add.'}</td></tr></table>`;
 				return html;
 			},
 			buildQuestTriggersHtml: (questId) => {
@@ -5118,12 +5200,12 @@ var QuestTracker = QuestTracker || (function () {
 			getFlagRequirementLabel: (condition) => Flags.getRequirementLabel(condition),
 			buildFlagDropdownString: () => Flags.buildDropdownString(),
 			buildFlagRequirementLink: (questId, groupnum = null) => {
-				const flagDropdown = H.buildFlagDropdownString();
-				if (!flagDropdown) {
+				const flagStatusDropdown = Flags.buildFlagStatusPairDropdownString();
+				if (!flagStatusDropdown) {
 					return 'No flags available';
 				}
 				const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
-				return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=flag${groupPart}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}`, 'Add Flag Requirement');
+				return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=flagpair${groupPart}|flagstatus=${flagStatusDropdown}`, 'Add Flag Requirement');
 			},
 			calculateStartingGroupNum: (conditions, isInLogicGroup = false) => {
 				let count = 0;
@@ -5151,86 +5233,25 @@ var QuestTracker = QuestTracker || (function () {
 				return groupnum + count;
 			},
 			formatConditions: (questId, conditions, parentLogic = 'AND', indent = false, groupnum = 0, isInLogicGroup = false) => {
-				if (!Array.isArray(conditions)) return '';
-				const questDropdown = H.buildDropdownString(questId);
-				const addRelationshipAction = (type, label, currentGroupNum = null) => {
-					if (!questDropdown) return null;
-					const groupPart = currentGroupNum === null ? '' : `|groupnum=${currentGroupNum}`;
-					return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=${type}${groupPart}|quest=${questDropdown}`, label);
-				};
-				groupnum += H.calculateStartingGroupNum(conditions, isInLogicGroup);
-				return conditions.map((condition, index) => {
-					const currentGroupNum = H.calculateGroupNum(condition, conditions, groupnum);
-					const displayIndex = index + 1;
-					const isLastCondition = displayIndex === conditions.length;
-					const isLastnonGroupCondition = (index + 1 < conditions.length && typeof conditions[index + 1] === 'object') || index === conditions.length - 1;
-					const isOnlyGroupCondition = conditions.length === 1 && typeof conditions[0] === 'object';
-					const addFlagRequirementRow = !indent && isLastnonGroupCondition ? `
-							<tr>
-								<td colspan="4">${H.actionList([H.buildFlagRequirementLink(questId)])}</td>
-							</tr>
-						` : '';
+				if (!Array.isArray(conditions) || conditions.length === 0) return '';
+				const renderCondition = (condition) => {
 					if (typeof condition === 'string') {
-						return `
-							<tr>
-								<td colspan="4">
-									${indent ? '&nbsp;&nbsp;' : ''}${H.getQuestAnchor(condition)}
-									<br>${H.actionList([
-										H.actionLink(`!qt-questrelationship currentquest=${questId}|oldquest=${condition}|action=update|type=${indent ? `group|groupnum=${currentGroupNum}` : `single`}|quest=${H.buildDropdownString(questId, condition)}`, 'Change'),
-										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=${indent ? `group|groupnum=${currentGroupNum}|confirmation=DELETE` : `single`}|quest=${condition}`, 'Delete')
-									])}
-								</td>
-							</tr>
-							${indent && isLastCondition ? `
-							<tr>
-								<td colspan="4">${H.actionList([addRelationshipAction('group', 'Add Relationship', currentGroupNum)])}</td>
-							</tr>
-							` : ''}
-							${!indent && isLastnonGroupCondition ? `
-							<tr>
-								<td colspan="4">${H.actionList([addRelationshipAction('single', 'Add Relationship')])}</td>
-							</tr>
-							` : ''}
-							${addFlagRequirementRow}
-						`;
-					} else if (H.isFlagCondition(condition)) {
-						return `
-							<tr>
-								<td colspan="4">
-									${indent ? '&nbsp;&nbsp;' : ''}${H.getFlagRequirementLabel(condition)}
-									<br>${H.actionList([
-										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=flag|oldflag=${condition.key}|oldstatus=${condition.status}|flag=${H.buildFlagDropdownString() || condition.key}|status=?{Flag Status${Flags.buildStatusDropdown()}}${indent ? `|groupnum=${currentGroupNum}` : ''}`, 'Change'),
-										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=flag|flag=${condition.key}|status=${condition.status}${indent ? `|groupnum=${currentGroupNum}` : ''}|confirmation=DELETE`, 'Delete')
-									])}
-								</td>
-							</tr>
-							${addFlagRequirementRow}
-						`;
-					} else if (typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
-						const subLogic = H.formatConditions(questId, condition.conditions, condition.logic, true, currentGroupNum, true);
-						const reverseLogic = condition.logic === 'AND' ? 'OR' : 'AND';
-						let addRelasionshipRow = ''
-							if (currentGroupNum === 0) {
-							addRelasionshipRow += `
-								<tr style="${styles.topBorder}">
-									<td colspan="4" style="${styles.topBorder}">${H.actionList([addRelationshipAction('single', 'Add Relationship')])}</td>
-								</tr>`;
-						}
-						return `
-							${addRelasionshipRow}
-							<tr>
-								<td colspan="4">
-									${condition.logic}
-									<br>${H.actionList([
-										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=grouplogic|groupnum=${currentGroupNum}`, 'Change Logic'),
-										H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=removegroup|groupnum=${currentGroupNum}|confirmation=?{Type DELETE to confirm removal of this Group Logic|}`, 'Delete Group')
-									])}
-								</td>
-							</tr>
-							${subLogic}
-						`;
+						return `<li>${H.getQuestAnchor(condition)}</li>`;
 					}
-				}).join('');
+					if (H.isFlagCondition(condition)) {
+						return `<li>${H.getFlagRequirementLabel(condition)}</li>`;
+					}
+					if (condition && typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
+						const subConditions = condition.conditions
+							.map(renderCondition)
+							.filter(Boolean)
+							.join('');
+						return `<li>${condition.logic || parentLogic}<ul>${subConditions}</ul></li>`;
+					}
+					return '';
+				};
+				const conditionHtml = conditions.map(renderCondition).filter(Boolean).join('');
+				return conditionHtml ? `<ul>${conditionHtml}</ul>` : '';
 			},
 			buildDropdownString: (questId) => {
 				if (!Quest.getValidQuestsForDropdown(questId)) return '';
@@ -5257,61 +5278,104 @@ var QuestTracker = QuestTracker || (function () {
 			},
 			relationshipMenu: (questId) => {
 				const quest = QUEST_TRACKER_globalQuestData[questId];
+				const relationships = quest?.relationships || {};
+				const conditions = Array.isArray(relationships.conditions) ? relationships.conditions : [];
+				const mutuallyExclusive = Array.isArray(relationships.mutually_exclusive) ? relationships.mutually_exclusive : [];
+				const rootLogic = relationships.logic || 'AND';
 				const questDropdown = H.buildDropdownString(questId);
+				const flagStatusDropdown = Flags.buildFlagStatusPairDropdownString();
 				const addRelationshipLink = (type, label, groupnum = null) => {
 					if (!questDropdown) return null;
 					const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
 					return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=${type}${groupPart}|quest=${questDropdown}`, label);
 				};
-				let htmlOutput = "";
-				if (!quest || !quest.relationships || !Array.isArray(quest.relationships.conditions) || quest.relationships.conditions.length === 0) {
-					htmlOutput += `<br>${H.actionList([
-						addRelationshipLink('single', 'Add Relationship'),
-						H.buildFlagRequirementLink(questId),
-						addRelationshipLink('addgroup', 'Add Relationship Group')
-					])}`;
-				} else {
-					const conditionsHtml = H.formatConditions(questId, quest.relationships.conditions, quest.relationships.logic || 'AND');
-					htmlOutput += `
-						<table style="width:100%;">
-							${quest.relationships.conditions.length > 1 ? `<tr>
-								<td colspan="4" style="${styles.topBorder}">
-									${quest.relationships.logic || 'AND'}
-									<br>${H.actionList([H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=logic`, 'Change Logic')])}
-								</td>
-							</tr>` : ''}
-							${conditionsHtml}
-							<tr style="${styles.bottomBorder}">
-								<td colspan="4">${H.actionList([addRelationshipLink('addgroup', 'Add Relationship Group')])}</td>
-							</tr>
-						</table>`;
-				}
-				let mutuallyExclusiveHtml = "";
-				if (Array.isArray(quest.relationships.mutually_exclusive) && quest.relationships.mutually_exclusive.length > 0) {
-					mutuallyExclusiveHtml += quest.relationships.mutually_exclusive.map(exclusive => `
-						<tr>
-							<td colspan="4">
-								${H.getQuestAnchor(exclusive)}
-								<br>${H.actionList([
-									questDropdown ? H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=mutuallyexclusive|oldquest=${exclusive}|quest=${questDropdown}`, 'Change') : '',
-									H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=mutuallyexclusive|quest=${exclusive}`, 'Delete')
-								])}
-							</td>
-						</tr>
-					`).join('');				
-				} else {
-					mutuallyExclusiveHtml += `<tr><td colspan="4"><small>No mutually exclusive quests available.</small></td></tr>`;
-				}
-				htmlOutput += `
-					<br>
-					<h4>Mutually Exclusive Quests</h4>
-					<table style="width:100%;">
+				const addFlagRequirementLink = (label, groupnum = null) => {
+					if (!flagStatusDropdown) return null;
+					const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
+					return H.actionLink(`!qt-questrelationship currentquest=${questId}|action=add|type=flagpair${groupPart}|flagstatus=${flagStatusDropdown}`, label);
+				};
+				const questActions = (condition, groupnum = null) => {
+					const inGroup = groupnum !== null;
+					const updateType = inGroup ? `group|groupnum=${groupnum}` : 'single';
+					const removeType = inGroup ? `group|groupnum=${groupnum}|confirmation=DELETE` : 'single';
+					return H.actionList([
+						questDropdown ? H.actionLink(`!qt-questrelationship currentquest=${questId}|oldquest=${condition}|action=update|type=${updateType}|quest=${questDropdown}`, 'Edit') : '',
+						H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=${removeType}|quest=${condition}`, 'Delete')
+					]);
+				};
+				const flagActions = (condition, groupnum = null) => {
+					const groupPart = groupnum === null ? '' : `|groupnum=${groupnum}`;
+					return H.actionList([
+						flagStatusDropdown ? H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=flagpair|oldflag=${condition.key}|oldstatus=${condition.status}|flagstatus=${flagStatusDropdown}${groupPart}`, 'Edit') : '',
+						H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=flag|flag=${condition.key}|status=${condition.status}${groupPart}|confirmation=DELETE`, 'Delete')
+					]);
+				};
+				const groupActions = (groupnum) => H.actionList([
+					H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=grouplogic|groupnum=${groupnum}`, 'Edit Logic'),
+					H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=removegroup|groupnum=${groupnum}|confirmation=?{Type DELETE to confirm removal of this Group Logic|}`, 'Delete Group')
+				]);
+				const groupAddLinks = [];
+				let groupCount = 0;
+				const renderRequirement = (condition, groupnum = null) => {
+					if (typeof condition === 'string') {
+						return `<li>${H.getQuestAnchor(condition)} ${questActions(condition, groupnum)}</li>`;
+					}
+					if (H.isFlagCondition(condition)) {
+						return `<li>${H.getFlagRequirementLabel(condition)} ${flagActions(condition, groupnum)}</li>`;
+					}
+					return '';
+				};
+				const requirementItems = conditions.map((condition, index) => {
+					if (condition && typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
+						groupCount++;
+						const groupLabel = `Group ${groupCount}`;
+						const groupnum = index;
+						groupAddLinks.push(addRelationshipLink('group', `Add Quest Requirement to ${groupLabel}`, groupnum));
+						if (flagStatusDropdown) groupAddLinks.push(addFlagRequirementLink(`Add Flag Requirement to ${groupLabel}`, groupnum));
+						const groupRequirements = condition.conditions
+							.map(subCondition => renderRequirement(subCondition, groupnum))
+							.filter(Boolean)
+							.join('');
+						return `
+							<li>
+								<strong>${groupLabel} (${condition.logic || 'AND'})</strong> ${groupActions(groupnum)}
+								<ul>${groupRequirements || '<li><small>No requirements in this group.</small></li>'}</ul>
+							</li>`;
+					}
+					return renderRequirement(condition);
+				}).filter(Boolean);
+				const requirementsHtml = requirementItems.length
+					? `<ul>${requirementItems.join('')}</ul>`
+					: '<p><small>No quest or flag requirements.</small></p>';
+				const logicHtml = conditions.length > 1
+					? `<p><small>Requirement Logic: ${rootLogic} ${H.actionList([H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=logic`, 'Edit Logic')])}</small></p>`
+					: '';
+				const mutuallyExclusiveHtml = mutuallyExclusive.length
+					? `<ul>${mutuallyExclusive.map(exclusive => `
+						<li>
+							${H.getQuestAnchor(exclusive)} ${H.actionList([
+								questDropdown ? H.actionLink(`!qt-questrelationship currentquest=${questId}|action=update|type=mutuallyexclusive|oldquest=${exclusive}|quest=${questDropdown}`, 'Edit') : '',
+								H.actionLink(`!qt-questrelationship currentquest=${questId}|action=remove|type=mutuallyexclusive|quest=${exclusive}`, 'Delete')
+							])}
+						</li>`).join('')}</ul>`
+					: '<p><small>No mutually exclusive quests.</small></p>';
+				const addCommands = H.actionList([
+					addRelationshipLink('single', 'Add Quest Requirement'),
+					addFlagRequirementLink('Add Flag Requirement') || (!flagStatusDropdown ? 'No flags available' : null),
+					addRelationshipLink('addgroup', 'Add Requirement Group'),
+					addRelationshipLink('mutuallyexclusive', 'Add Mutually Exclusive Quest'),
+					...groupAddLinks
+				]);
+				return `
+					<div>
+						<strong>Requirements</strong>
+						${logicHtml}
+						${requirementsHtml}
+						<strong>Mutually Exclusive</strong>
 						${mutuallyExclusiveHtml}
-						<tr>
-							<td colspan="4">${H.actionList([addRelationshipLink('mutuallyexclusive', 'Add Mutually Exclusive Quest')])}</td>
-						</tr>
-					</table>`;
-				return htmlOutput;
+						<strong>Add Relationships</strong>
+						<p>${addCommands || '<small>No relationship actions available.</small>'}</p>
+					</div>`;
 			},
 			getValidQuestGroups: (questId) => {
 				let result = '';
@@ -5742,7 +5806,7 @@ var QuestTracker = QuestTracker || (function () {
 					case 'event':
 						return 'enabled';
 					case 'flag':
-						return '?{Choose Field|Status,status|Value,value|Name,name|Category,category|Description,description}';
+						return '?{Choose Field|Status,status}';
 					case 'trigger':
 						return '?{Choose Field|Enabled,enabled|Active,active|Name,name|Date,date|Quest,quest|Reaction,reaction|Event,event|Delete,delete|Quest Action Type,actiontype|Quest Action Effect,actioneffect}';
 					case 'quest':
@@ -5758,8 +5822,8 @@ var QuestTracker = QuestTracker || (function () {
 					case 'event':
 						return '?{Enabled Changes to|True,true|False,false}';
 					case 'flag':
-						if (effect.type === 'status') return `?{Flag Status${Flags.buildStatusDropdown()}}`;
-						return `?{Set Flag ${effect.type || 'Value'}|${effect.value || ''}}`;
+						if (effect.type === 'status') return `?{Flag Status${Flags.buildStatusDropdown(effect.id)}}`;
+						return '';
 					case 'trigger':
 						switch (effect.type) {
 							case 'enabled':
@@ -5813,7 +5877,7 @@ var QuestTracker = QuestTracker || (function () {
 			getTriggerEffectValueLabel: (effect) => {
 				if (effect.value === null || effect.value === undefined || effect.value === '') return 'Choose Value';
 				if ((effect.effecttype || 'quest') === 'quest' && effect.type === 'status') return Statuses.getName(effect.value);
-				if ((effect.effecttype || 'quest') === 'flag' && effect.type === 'status') return Flags.getStatusName(effect.value);
+				if ((effect.effecttype || 'quest') === 'flag' && effect.type === 'status') return Flags.getStatusName(effect.value, effect.id);
 				return `${effect.value}`.charAt(0).toUpperCase() + `${effect.value}`.slice(1);
 			},
 			renderTriggerEffects: (triggerId, effects, effectSet = 'effects') => {
@@ -5825,6 +5889,8 @@ var QuestTracker = QuestTracker || (function () {
 						const effectCat = effecttype.charAt(0).toUpperCase() + effecttype.slice(1);
 						const effectCatToggle = '?{Choose Effect Type|Quest,quest|Event,event|Flag,flag|Trigger,trigger}';
 						const typeLabel = effect.type === null || effect.type === undefined ? 'Choose Field' : `${effect.type}`.charAt(0).toUpperCase() + `${effect.type}`.slice(1);
+						const valueLabel = effecttype === 'flag' ? 'Status' : 'Value';
+						const changeValueLabel = effecttype === 'flag' ? 'Change Status' : 'Change Value';
 						const valueDropdown = H.triggerEffectValueDropdown(effect, triggerId);
 						const targetDropdowns = {
 							quest: H.createQuestDropdown(),
@@ -5840,12 +5906,12 @@ var QuestTracker = QuestTracker || (function () {
 									<br>Effect: ${effectCat}
 									<br>${effectCat}: ${H.getTriggerEffectTargetName(effect, triggerId)}
 									<br>Type: ${typeLabel}
-									${effect.type !== 'delete' ? `<br>Value: ${H.getTriggerEffectValueLabel(effect)}` : ''}
+									${effect.type !== 'delete' ? `<br>${valueLabel}: ${H.getTriggerEffectValueLabel(effect)}` : ''}
 									<br>${H.actionList([
 										H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=effecttype|value=${effectCatToggle}`, 'Change Effect Type'),
 										targetDropdown ? H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=id|value=${targetDropdown}`, `Change ${effectCat}`) : '',
 										H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=type|value=${H.triggerEffectTypeDropdown(effecttype)}`, 'Change Field'),
-										effect.type !== 'delete' && valueDropdown ? H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=value|value=${valueDropdown}`, 'Change Value') : '',
+										effect.type !== 'delete' && valueDropdown ? H.actionLink(`!qt-trigger action=modifyeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}|field=value|value=${valueDropdown}`, changeValueLabel) : '',
 										H.actionLink(`!qt-trigger action=removeeffect|triggerid=${triggerId}|effectid=${effectId}${effectSetParam}`, 'Delete')
 									])}
 								</td>
@@ -5979,64 +6045,10 @@ var QuestTracker = QuestTracker || (function () {
 				return menu;
 			}
 		};
-		const displayQuestRelationships = (questId) => {
-			const quest = QUEST_TRACKER_globalQuestData[questId];
-			const relationships = quest?.relationships || {};
-			const conditions = Array.isArray(relationships.conditions) ? relationships.conditions : [];
-			const rootLogic = relationships.logic || 'AND';
-			const flagRequirements = [];
-			const addFlagRequirement = (condition) => {
-				if (!H.isFlagCondition(condition)) return;
-				const flag = Flags.getFlag(condition.key);
-				const flagName = flag?.name || condition.key;
-				const statusName = Flags.getStatusName(condition.status);
-				const label = `${flagName} / ${statusName}`;
-				if (!flagRequirements.includes(label)) flagRequirements.push(label);
-			};
-			const renderQuestCondition = (condition) => {
-				if (typeof condition === 'string') return H.getQuestAnchor(condition);
-				if (H.isFlagCondition(condition)) {
-					addFlagRequirement(condition);
-					return '';
-				}
-				if (condition && typeof condition === 'object' && condition.logic && Array.isArray(condition.conditions)) {
-					const parts = condition.conditions
-						.map(renderQuestCondition)
-						.filter(Boolean);
-					if (parts.length === 0) return '';
-					return parts.length === 1 ? parts[0] : parts.join(` ${condition.logic} `);
-				}
-				return '';
-			};
-			const questRequirementLines = conditions
-				.map(renderQuestCondition)
-				.filter(Boolean);
-			const mutuallyExclusive = Array.isArray(relationships.mutually_exclusive)
-				? relationships.mutually_exclusive
-				: [];
-			const questRequirementsHtml = questRequirementLines.length
-				? questRequirementLines.join(`<br>${rootLogic}<br>`)
-				: '<small>No quest prerequisites.</small>';
-			const mutuallyExclusiveHtml = mutuallyExclusive.length
-				? `<ul>${mutuallyExclusive.map(exclusiveQuest => `<li>${H.getQuestAnchor(exclusiveQuest)}</li>`).join('')}</ul>`
-				: '<small>No mutually exclusive quests.</small>';
-			const flagRequirementsHtml = flagRequirements.length
-				? `<ul>${flagRequirements.map(requirement => `<li>${requirement}</li>`).join('')}</ul>`
-				: '<small>No flag requirements.</small>';
-			return `
-				<div>
-					<strong>Quest Requirements</strong>
-					<br>${questRequirementsHtml}
-					<h4>Mutually Exclusive</h4>
-					${mutuallyExclusiveHtml}
-					<h4>Flag Requirements</h4>
-					${flagRequirementsHtml}
-				</div>`;
-		};
+		const displayQuestRelationships = (questId) => H.relationshipMenu(questId);
 		const generateGMMenu = () => {
 			refreshAllQuestsHandout(false);
 			const allQuestsLink = H.getMenuHandoutLink(QUEST_TRACKER_AllQuestsHandoutName);
-			const flagsLink = H.getMenuHandoutLink(QUEST_TRACKER_FlagsHandoutName);
 			const triggersLink = H.getMenuHandoutLink(QUEST_TRACKER_AllTriggersHandoutName);
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Calendar</h3>`;
 			menu += `<br>${Calendar.formatDateFull()}<br>( ${QUEST_TRACKER_currentDate} )`;
@@ -6049,7 +6061,7 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><a style="${styles.button}" href="${allQuestsLink}">Show All Quests</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Campaign Flags</h3>`;
 			menu += H.showCampaignFlagsSummary();
-			menu += `<br><a style="${styles.button}" href="${flagsLink}">Show All Flags</a>`;
+			menu += `<br><a style="${styles.button}" href="!qt-menu action=flags">Manage Flags</a>`;
 			menu += `<br><hr><h3 style="margin-bottom: 10px;">Automation</h3>`;
 			menu += H.showTriggers();
 			menu += `<br><a style="${styles.button}" href="${triggersLink}">Show All Triggers</a>`;
@@ -6209,60 +6221,107 @@ var QuestTracker = QuestTracker || (function () {
 			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=config">Back to Configuration</a></div>`;
 			H.showReview('Manage Quest Statuses', menu);
 		};
+		const getSortedFlagEntries = () => Object.entries(QUEST_TRACKER_Flags).sort((a, b) => {
+			return (a[1].name || a[0]).localeCompare(b[1].name || b[0]);
+		});
+		const showAllFlags = () => showFlags();
+		const showFlag = (key) => {
+			const flag = Flags.getFlag(key);
+			if (!flag) {
+				errorCheck(377, 'msg', null, `Unknown flag: ${key}`);
+				showFlags();
+				return;
+			}
+			const statusName = Flags.getStatusName(flag.status, key);
+			const statusColor = Flags.getStatusColor(flag.status, key);
+			const statusSquare = `<span style="display:inline-block; width:10px; height:10px; background-color:${statusColor}; border:1px solid #444; margin-right:4px;"></span>`;
+			const buttonBlock = `${styles.button} display:block; width:100%; box-sizing:border-box;`;
+			const buttonCell = 'width:50%; padding:2px;';
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">${flag.name || key}</h3>`;
+			menu += `<p>${statusSquare}${statusName}</p>`;
+			menu += `<table style="width:100%; border-collapse:collapse;">
+				<tr>
+					<td style="${buttonCell}"><a style="${buttonBlock}" href="!qt-flag action=setstatus|key=${key}|status=?{Flag Status${Flags.buildStatusDropdown(key)}}|menu=flag">Change Status</a></td>
+					<td style="${buttonCell}"><a style="${buttonBlock}" href="!qt-flag action=update|key=${key}|field=name|new=?{Flag Name|${flag.name || key}}|menu=flag">Edit Name</a></td>
+				</tr>
+				<tr>
+					<td style="${buttonCell}"><a style="${buttonBlock}" href="!qt-menu action=flagStatusSet|key=${key}">Statuses</a></td>
+					<td style="${buttonCell}"><a style="${buttonBlock}" href="!qt-flag action=remove|key=${key}|confirmation=?{Type DELETE to remove this flag|}">Delete</a></td>
+				</tr>
+			</table>`;
+			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=flags">Back to Flags</a></div>`;
+			H.showReview(flag.name || key, menu);
+		};
 		const showFlags = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Campaign Flags</h3>`;
-			const flagEntries = Object.entries(QUEST_TRACKER_Flags).sort((a, b) => {
-				const categorySort = (a[1].category || '').localeCompare(b[1].category || '');
-				if (categorySort !== 0) return categorySort;
-				return (a[1].name || a[0]).localeCompare(b[1].name || b[0]);
-			});
+			const flagEntries = getSortedFlagEntries();
 			if (flagEntries.length === 0) {
 				menu += `<p>No campaign flags have been created.</p>`;
 			} else {
-				let currentCategory = null;
+				menu += `<ul style="${styles.list}">`;
 				flagEntries.forEach(([key, flagData]) => {
-					const category = flagData.category || 'general';
-					const statusName = Flags.getStatusName(flagData.status);
-					const statusColor = Flags.getStatusColor(flagData.status);
-					if (category !== currentCategory) {
-						currentCategory = category;
-						menu += `<h4>${category}</h4>`;
-					}
+					const statusName = Flags.getStatusName(flagData.status, key);
+					const statusColor = Flags.getStatusColor(flagData.status, key);
 					menu += `<li style="${styles.column}">
-						<span style="${styles.floatLeft}">${flagData.name || key}<br><small>${key}: ${flagData.value}; <span style="color:${statusColor};">${statusName}</span></small></span>
+						<span style="${styles.floatLeft}">${flagData.name || key}<br><small><span style="color:${statusColor};">${statusName}</span></small></span>
 						<span style="${styles.floatRight}">
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=set|key=${key}|value=?{Flag Value|${flagData.value}}">v</a>
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=setstatus|key=${key}|status=?{Flag Status${Flags.buildStatusDropdown()}}">s</a>
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=update|key=${key}|field=name|new=?{Flag Name|${flagData.name || key}}">n</a>
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=update|key=${key}|field=category|new=?{Category|${category}}">c</a>
-							<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=remove|key=${key}|confirmation=?{Type DELETE to remove this flag|}">-</a>
+							<a style="${styles.button}" href="!qt-flag action=setstatus|key=${key}|status=?{Flag Status${Flags.buildStatusDropdown(key)}}">Change Status</a>
+							<a style="${styles.button}" href="!qt-flag action=update|key=${key}|field=name|new=?{Flag Name|${flagData.name || key}}">Edit Name</a>
+							<a style="${styles.button}" href="!qt-menu action=flagStatusSet|key=${key}">Statuses</a>
+							<a style="${styles.button}" href="!qt-flag action=remove|key=${key}|confirmation=?{Type DELETE to remove this flag|}">Delete</a>
 						</span>
 					</li>`;
 				});
+				menu += `</ul>`;
 			}
-			menu += `<br><a style="${styles.button}" href="!qt-flag action=add|name=?{Flag Name}|value=?{Initial Value|false}|category=?{Category|general}|status=?{Flag Status${Flags.buildStatusDropdown()}}">Add Flag</a>`;
-			menu += `&nbsp;<a style="${styles.button}" href="!qt-menu action=flagStatuses">Manage Statuses</a>`;
+			menu += `<br><a style="${styles.button}" href="!qt-flag action=add|name=?{Flag Name}">Add Flag</a>`;
+			menu += `&nbsp;<a style="${styles.button}" href="!qt-menu action=flagStatuses">Default Statuses</a>`;
 			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=main">Back to Main Menu</a></div>`;
-			H.showReview('Campaign Flags', menu, { handoutName: QUEST_TRACKER_FlagsHandoutName });
+			H.showReview('Campaign Flags', menu);
 		};
 		const manageFlagStatuses = () => {
-			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Manage Flag Statuses</h3>`;
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Default Flag Statuses</h3>`;
+			const statusCount = Object.keys(Flags.getStatuses()).length;
 			Object.entries(Flags.getStatuses()).forEach(([id, status]) => {
-				const isDefault = Flags.isDefaultStatus(id);
-				const flagCount = Object.values(QUEST_TRACKER_Flags).filter(flagData => `${flagData.status}` === `${id}`).length;
 				menu += `<li style="${styles.column}">
-					<span style="${styles.floatLeft}"><span style="display:inline-block; width:10px; height:10px; background-color:${status.color}; border:1px solid #444; margin-right:4px;"></span>${status.name}<br><small>ID ${id}${isDefault ? ' default' : ''}; ${flagCount} flag${flagCount === 1 ? '' : 's'}</small></span>
+					<span style="${styles.floatLeft}"><span style="display:inline-block; width:10px; height:10px; background-color:${status.color}; border:1px solid #444; margin-right:4px;"></span>${status.name}<br><small>ID ${id}</small></span>
 					<span style="${styles.floatRight}">
 						<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=updatestatus|id=${id}|field=name|new=?{Status Name|${status.name}}">n</a>
 						<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=updatestatus|id=${id}|field=color|new=?{Status Colour|${status.color}}">c</a>
-						${isDefault ? '' : `<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=removestatus|id=${id}|confirmation=?{Type DELETE to remove this status|}">-</a>`}
+						${statusCount > 1 ? `<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=removestatus|id=${id}|confirmation=?{Type DELETE to remove this status|}">-</a>` : ''}
 					</span>
 				</li>`;
 			});
 			menu += `<br><a style="${styles.button}" href="!qt-flag action=addstatus|name=?{Status Name}|color=?{Status Colour|#CCCCCC}">Add Status</a>`;
 			menu += `<br><a style="${styles.button}" href="!qt-flag action=resetstatuses|confirmation=?{Type CONFIRM to restore default flag statuses|}">Reset Defaults</a>`;
 			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=flags">Back to Flags</a></div>`;
-			H.showReview('Manage Flag Statuses', menu, { handoutName: QUEST_TRACKER_FlagsHandoutName });
+			H.showReview('Default Flag Statuses', menu);
+		};
+		const manageFlagStatusSet = (key) => {
+			const flag = Flags.getFlag(key);
+			if (!flag) {
+				errorCheck(351, 'msg', null, `Unknown flag: ${key}`);
+				showFlags();
+				return;
+			}
+			const statuses = Flags.getStatuses(key);
+			const statusCount = Object.keys(statuses).length;
+			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">${flag.name || key} Statuses</h3>`;
+			Object.entries(statuses).forEach(([id, status]) => {
+				const isCurrent = `${flag.status}` === `${id}`;
+				menu += `<li style="${styles.column}">
+					<span style="${styles.floatLeft}"><span style="display:inline-block; width:10px; height:10px; background-color:${status.color}; border:1px solid #444; margin-right:4px;"></span>${status.name}<br><small>ID ${id}${isCurrent ? '; current' : ''}</small></span>
+					<span style="${styles.floatRight}">
+						<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=updateflagstatus|key=${key}|id=${id}|field=name|new=?{Status Name|${status.name}}">n</a>
+						<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=updateflagstatus|key=${key}|id=${id}|field=color|new=?{Status Colour|${status.color}}">c</a>
+						${statusCount > 1 ? `<a style="${styles.button} ${styles.smallButton}" href="!qt-flag action=removeflagstatus|key=${key}|id=${id}|confirmation=?{Type DELETE to remove this status|}">-</a>` : ''}
+					</span>
+				</li>`;
+			});
+			menu += `<br><a style="${styles.button}" href="!qt-flag action=addflagstatus|key=${key}|name=?{Status Name}|color=?{Status Colour|#CCCCCC}">Add Status</a>`;
+			menu += `<br><a style="${styles.button}" href="!qt-flag action=resetflagstatuses|key=${key}|confirmation=?{Type CONFIRM to copy the default flag statuses|}">Copy Defaults</a>`;
+			menu += `<br><hr><a style="${styles.button}" href="!qt-menu action=flags">Back to Flags</a></div>`;
+			H.showReview(`${flag.name || key} Statuses`, menu);
 		};
 		const adminMenu = () => {
 			let menu = `<div style="${styles.menu}"><h3 style="margin-bottom: 10px;">Quest Tracker Configuration</h3>`;
@@ -6697,9 +6756,9 @@ var QuestTracker = QuestTracker || (function () {
 					activationSection += `<p>This script trigger executes when activated.</p>`;
 					break;
 			}
-			const flagDropdown = H.buildFlagDropdownString();
-			const addConditionControl = flagDropdown
-				? `<a style="${styles.button} ${styles.floatRight}" href="!qt-trigger action=addcondition|triggerid=${triggerId}|flag=${flagDropdown}|status=?{Flag Status${Flags.buildStatusDropdown()}}">Add Flag Condition</a>`
+			const flagStatusDropdown = Flags.buildFlagStatusPairDropdownString();
+			const addConditionControl = flagStatusDropdown
+				? `<a style="${styles.button} ${styles.floatRight}" href="!qt-trigger action=addcondition|triggerid=${triggerId}|flagstatus=${flagStatusDropdown}">Add Flag Condition</a>`
 				: `<span style="${styles.buttonDisabled} ${styles.spanInline} ${styles.floatRight}">No Flags</span>`;
 			let conditionsSection = `<table width=100%>`;
 			if (Array.isArray(trigger.conditions) && trigger.conditions.length > 0) {
@@ -6709,7 +6768,7 @@ var QuestTracker = QuestTracker || (function () {
 						<tr>
 							<td>${H.getFlagRequirementLabel(condition)}</td>
 							<td style="${styles.smallButtonContainer}">
-								<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=updatecondition|triggerid=${triggerId}|oldflag=${condition.key}|oldstatus=${condition.status}|flag=${flagDropdown || condition.key}|status=?{Flag Status${Flags.buildStatusDropdown()}}">c</a>
+								${flagStatusDropdown ? `<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=updatecondition|triggerid=${triggerId}|oldflag=${condition.key}|oldstatus=${condition.status}|flagstatus=${flagStatusDropdown}">c</a>` : ''}
 							</td>
 							<td style="${styles.smallButtonContainer}">
 								<a style="${styles.button} ${styles.smallButton}" href="!qt-trigger action=removecondition|triggerid=${triggerId}|flag=${condition.key}|status=${condition.status}">-</a>
@@ -6768,8 +6827,11 @@ var QuestTracker = QuestTracker || (function () {
 			manageRumourLocations,
 			manageQuestGroups,
 			manageQuestStatuses,
+			showAllFlags,
+			showFlag,
 			showFlags,
 			manageFlagStatuses,
+			manageFlagStatusSet,
 			adminMenu,
 			weatherConfig,
 			adjustDate,
@@ -6900,7 +6962,23 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 			}
 		} else if (command === '!qt-questrelationship') {
-			const { action, type, currentquest, quest, groupConditions, groupnum, oldquest, flag, oldflag, status, oldstatus, confirmation } = params;
+			const { action, type, currentquest, quest, groupConditions, groupnum, oldquest, flag, oldflag, status, oldstatus, flagstatus, confirmation } = params;
+			const parseRelationshipFlagStatus = () => {
+				const parsed = Flags.parseFlagStatusPair(flagstatus);
+				if (!parsed) {
+					errorCheck(367, 'msg', null, 'Invalid flag/status selection.');
+					return null;
+				}
+				if (!Flags.getFlag(parsed.flag)) {
+					errorCheck(368, 'msg', null, `Unknown flag: ${parsed.flag}`);
+					return null;
+				}
+				if (!Flags.getStatusIdFromValue(parsed.status, parsed.flag)) {
+					errorCheck(369, 'msg', null, `Unknown flag status: ${parsed.status}`);
+					return null;
+				}
+				return parsed;
+			};
 			if (errorCheck(61, 'exists', action,'action')) return;
 			if (errorCheck(62, 'exists', type,'type')) return;
 			if (errorCheck(63, 'exists', currentquest,'currentquest')) return;
@@ -6937,11 +7015,19 @@ var QuestTracker = QuestTracker || (function () {
 								return;
 							}
 							if (errorCheck(273, 'exists', status, 'status')) return;
-							if (!Flags.getStatusIdFromValue(status)) {
+							if (!Flags.getStatusIdFromValue(status, flag)) {
 								errorCheck(281, 'msg', null, `Unknown flag status: ${status}`);
 								return;
 							}
 							const flagCondition = Quest.buildFlagCondition(flag, status);
+							Quest.manageRelationship(currentquest, 'add', groupnum ? 'group' : 'single', flagCondition, groupnum);
+							break;
+						}
+						case 'flagpair': {
+							if (errorCheck(370, 'exists', flagstatus, 'flagstatus')) return;
+							const parsed = parseRelationshipFlagStatus();
+							if (!parsed) return;
+							const flagCondition = Quest.buildFlagCondition(parsed.flag, parsed.status);
 							Quest.manageRelationship(currentquest, 'add', groupnum ? 'group' : 'single', flagCondition, groupnum);
 							break;
 						}
@@ -7016,13 +7102,25 @@ var QuestTracker = QuestTracker || (function () {
 								return;
 							}
 							if (errorCheck(278, 'exists', status, 'status')) return;
-							if (!Flags.getStatusIdFromValue(status)) {
+							if (!Flags.getStatusIdFromValue(status, flag)) {
 								errorCheck(282, 'msg', null, `Unknown flag status: ${status}`);
 								return;
 							}
 							if (errorCheck(279, 'exists', oldflag, 'oldflag')) return;
 							if (errorCheck(280, 'exists', oldstatus, 'oldstatus')) return;
 							const newFlagCondition = Quest.buildFlagCondition(flag, status);
+							const oldFlagCondition = Quest.buildFlagCondition(oldflag, oldstatus);
+							Quest.manageRelationship(currentquest, 'add', groupnum ? 'group' : 'single', newFlagCondition, groupnum);
+							Quest.manageRelationship(currentquest, 'remove', groupnum ? 'group' : 'single', oldFlagCondition, groupnum);
+							break;
+						}
+						case 'flagpair': {
+							if (errorCheck(371, 'exists', flagstatus, 'flagstatus')) return;
+							if (errorCheck(372, 'exists', oldflag, 'oldflag')) return;
+							if (errorCheck(373, 'exists', oldstatus, 'oldstatus')) return;
+							const parsed = parseRelationshipFlagStatus();
+							if (!parsed) return;
+							const newFlagCondition = Quest.buildFlagCondition(parsed.flag, parsed.status);
 							const oldFlagCondition = Quest.buildFlagCondition(oldflag, oldstatus);
 							Quest.manageRelationship(currentquest, 'add', groupnum ? 'group' : 'single', newFlagCondition, groupnum);
 							Quest.manageRelationship(currentquest, 'remove', groupnum ? 'group' : 'single', oldFlagCondition, groupnum);
@@ -7144,7 +7242,7 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 			}
 		} else if (command === '!qt-menu') {
-			const { action, id, questId, locationId, status, eventid, menu} = params;
+			const { action, id, key, questId, locationId, status, eventid, menu} = params;
 			if (!action || action === 'main') {
 				Menu.generateGMMenu();
 			} else if (action === 'config') {
@@ -7171,10 +7269,18 @@ var QuestTracker = QuestTracker || (function () {
 				Menu.manageQuestGroups();
 			} else if (action === 'statuses') {
 				Menu.manageQuestStatuses();
+			} else if (action === 'allflags') {
+				Menu.showAllFlags();
+			} else if (action === 'flag') {
+				if (errorCheck(378, 'exists', key, 'key')) return;
+				Menu.showFlag(key);
 			} else if (action === 'flags') {
 				Menu.showFlags();
 			} else if (action === 'flagStatuses') {
 				Menu.manageFlagStatuses();
+			} else if (action === 'flagStatusSet') {
+				if (errorCheck(350, 'exists', key, 'key')) return;
+				Menu.manageFlagStatusSet(key);
 			} else if (action === 'allevents') {
 				Menu.showAllEvents();
 			} else if (action === 'showevent') {
@@ -7217,28 +7323,29 @@ var QuestTracker = QuestTracker || (function () {
 				Menu.manageQuestStatuses();
 			}, 500);
 		} else if (command === '!qt-flag') {
-			const { action, key, field, name, value, category, status, id, color, new: newItem, confirmation } = params;
+			const { action, key, field, name, status, id, color, new: newItem, confirmation, menu } = params;
 			let returnToStatusMenu = false;
+			let returnToFlagStatusKey = null;
+			let returnToMainMenu = false;
+			let returnToFlagKey = null;
 			switch (action) {
 				case 'add':
 					if (errorCheck(247, 'exists', name, 'name')) return;
-					Flags.addFlag(name, value || 'false', category || 'general', status || 1);
-					break;
-				case 'set':
-					if (errorCheck(248, 'exists', key, 'key')) return;
-					if (errorCheck(249, 'exists', value, 'value')) return;
-					if (!Flags.setFlagValue(key, value)) errorCheck(250, 'msg', null, `Unknown flag: ${key}`);
+					Flags.addFlag(name);
 					break;
 				case 'setstatus':
 					if (errorCheck(259, 'exists', key, 'key')) return;
 					if (errorCheck(260, 'exists', status, 'status')) return;
 					if (!Flags.setFlagStatus(key, status)) errorCheck(261, 'msg', null, `Unknown flag or status: ${key}, ${status}`);
+					if (menu === 'main') returnToMainMenu = true;
+					if (menu === 'flag') returnToFlagKey = key;
 					break;
 				case 'update':
 					if (errorCheck(251, 'exists', key, 'key')) return;
 					if (errorCheck(252, 'exists', field, 'field')) return;
 					if (errorCheck(253, 'exists', newItem, 'newItem')) return;
 					if (!Flags.updateFlag(key, field, newItem)) errorCheck(254, 'msg', null, `Unknown flag: ${key}`);
+					if (menu === 'flag') returnToFlagKey = field === 'key' ? newItem : key;
 					break;
 				case 'remove':
 					if (errorCheck(255, 'exists', key, 'key')) return;
@@ -7269,12 +7376,42 @@ var QuestTracker = QuestTracker || (function () {
 					Flags.resetStatuses();
 					returnToStatusMenu = true;
 					break;
+				case 'addflagstatus':
+					if (errorCheck(352, 'exists', key, 'key')) return;
+					if (errorCheck(353, 'exists', name, 'name')) return;
+					if (!Flags.addFlagStatus(key, name, color || '#CCCCCC')) errorCheck(354, 'msg', null, `Unknown flag: ${key}`);
+					returnToFlagStatusKey = key;
+					break;
+				case 'updateflagstatus':
+					if (errorCheck(355, 'exists', key, 'key')) return;
+					if (errorCheck(356, 'exists', id, 'id')) return;
+					if (errorCheck(357, 'exists', field, 'field')) return;
+					if (errorCheck(358, 'exists', newItem, 'newItem')) return;
+					if (!Flags.updateFlagStatus(key, id, field, newItem)) errorCheck(359, 'msg', null, `Unknown flag status: ${key}, ${id}`);
+					returnToFlagStatusKey = key;
+					break;
+				case 'removeflagstatus':
+					if (errorCheck(360, 'exists', key, 'key')) return;
+					if (errorCheck(361, 'exists', id, 'id')) return;
+					if (!errorCheck(362, 'confirmation', confirmation, 'DELETE')) return;
+					if (!Flags.removeFlagStatus(key, id)) errorCheck(363, 'msg', null, `Cannot remove flag status: ${key}, ${id}`);
+					returnToFlagStatusKey = key;
+					break;
+				case 'resetflagstatuses':
+					if (errorCheck(364, 'exists', key, 'key')) return;
+					if (!errorCheck(365, 'confirmation', confirmation, 'CONFIRM')) return;
+					if (!Flags.resetFlagStatuses(key)) errorCheck(366, 'msg', null, `Unknown flag: ${key}`);
+					returnToFlagStatusKey = key;
+					break;
 				default:
 					errorCheck(258, 'msg', null, `Unknown flag action: ${action}`);
 					break;
 			}
 			setTimeout(() => {
-				if (returnToStatusMenu) Menu.manageFlagStatuses();
+				if (returnToMainMenu) Menu.generateGMMenu();
+				else if (returnToFlagKey) Menu.showFlag(returnToFlagKey);
+				else if (returnToFlagStatusKey) Menu.manageFlagStatusSet(returnToFlagStatusKey);
+				else if (returnToStatusMenu) Menu.manageFlagStatuses();
 				else Menu.showFlags();
 			}, 500);
 		} else if (command === '!qt-filter') {
@@ -7330,8 +7467,24 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 			}
 		} else if (command === '!qt-trigger') {
-			const { action, triggerid, effectid = null, field, key, value, new: newItem, newType, type, effect, questid, rumourid, menu = "false", effectset = 'effects', flag, oldflag, status, oldstatus } = params;
+			const { action, triggerid, effectid = null, field, key, value, new: newItem, newType, type, effect, questid, rumourid, menu = "false", effectset = 'effects', flag, oldflag, status, oldstatus, flagstatus } = params;
 			const buildTriggerFlagCondition = (flagKey, statusValue) => Flags.buildCondition(flagKey, statusValue);
+			const parseTriggerFlagStatus = () => {
+				const parsed = Flags.parseFlagStatusPair(flagstatus);
+				if (!parsed) {
+					errorCheck(374, 'msg', null, 'Invalid flag/status selection.');
+					return null;
+				}
+				if (!Flags.getFlag(parsed.flag)) {
+					errorCheck(375, 'msg', null, `Unknown flag: ${parsed.flag}`);
+					return null;
+				}
+				if (!Flags.getStatusIdFromValue(parsed.status, parsed.flag)) {
+					errorCheck(376, 'msg', null, `Unknown flag status: ${parsed.status}`);
+					return null;
+				}
+				return parsed;
+			};
 			switch (action) {
 				case 'add':
 					Triggers.addTrigger();
@@ -7376,17 +7529,23 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				case 'addcondition':
 					if (errorCheck(291, 'exists', triggerid, 'triggerid')) return;
-					if (errorCheck(292, 'exists', flag, 'flag')) return;
-					if (errorCheck(293, 'exists', status, 'status')) return;
-					if (!Flags.getFlag(flag)) {
-						errorCheck(294, 'msg', null, `Unknown flag: ${flag}`);
-						return;
+					if (flagstatus) {
+						const parsed = parseTriggerFlagStatus();
+						if (!parsed) return;
+						Triggers.manageCondition(triggerid, 'add', buildTriggerFlagCondition(parsed.flag, parsed.status));
+					} else {
+						if (errorCheck(292, 'exists', flag, 'flag')) return;
+						if (errorCheck(293, 'exists', status, 'status')) return;
+						if (!Flags.getFlag(flag)) {
+							errorCheck(294, 'msg', null, `Unknown flag: ${flag}`);
+							return;
+						}
+						if (!Flags.getStatusIdFromValue(status, flag)) {
+							errorCheck(295, 'msg', null, `Unknown flag status: ${status}`);
+							return;
+						}
+						Triggers.manageCondition(triggerid, 'add', buildTriggerFlagCondition(flag, status));
 					}
-					if (!Flags.getStatusIdFromValue(status)) {
-						errorCheck(295, 'msg', null, `Unknown flag status: ${status}`);
-						return;
-					}
-					Triggers.manageCondition(triggerid, 'add', buildTriggerFlagCondition(flag, status));
 					setTimeout(() => {
 						Menu.showTrigger(triggerid);
 					}, 500);
@@ -7402,22 +7561,31 @@ var QuestTracker = QuestTracker || (function () {
 					break;
 				case 'updatecondition':
 					if (errorCheck(299, 'exists', triggerid, 'triggerid')) return;
-					if (errorCheck(300, 'exists', flag, 'flag')) return;
-					if (errorCheck(301, 'exists', status, 'status')) return;
 					if (errorCheck(302, 'exists', oldflag, 'oldflag')) return;
 					if (errorCheck(303, 'exists', oldstatus, 'oldstatus')) return;
-					if (!Flags.getFlag(flag)) {
-						errorCheck(304, 'msg', null, `Unknown flag: ${flag}`);
-						return;
-					}
-					if (!Flags.getStatusIdFromValue(status)) {
-						errorCheck(305, 'msg', null, `Unknown flag status: ${status}`);
-						return;
+					let updatedFlag = flag;
+					let updatedStatus = status;
+					if (flagstatus) {
+						const parsed = parseTriggerFlagStatus();
+						if (!parsed) return;
+						updatedFlag = parsed.flag;
+						updatedStatus = parsed.status;
+					} else {
+						if (errorCheck(300, 'exists', flag, 'flag')) return;
+						if (errorCheck(301, 'exists', status, 'status')) return;
+						if (!Flags.getFlag(flag)) {
+							errorCheck(304, 'msg', null, `Unknown flag: ${flag}`);
+							return;
+						}
+						if (!Flags.getStatusIdFromValue(status, flag)) {
+							errorCheck(305, 'msg', null, `Unknown flag status: ${status}`);
+							return;
+						}
 					}
 					Triggers.manageCondition(
 						triggerid,
 						'update',
-						buildTriggerFlagCondition(flag, status),
+						buildTriggerFlagCondition(updatedFlag, updatedStatus),
 						buildTriggerFlagCondition(oldflag, oldstatus)
 					);
 					setTimeout(() => {

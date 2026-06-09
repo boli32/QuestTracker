@@ -32,11 +32,19 @@ Current repo/task context
 -------------------------
 
 - Work is happening in the 1.3 directory.
-- The 1.2 directory should stay as the pulled upstream 1.2 baseline unless the
-  user explicitly asks otherwise.
+- QuestTracker.js is the current 1.3 working file.
+- QuestTracker-1.2.js may exist locally as a v1.2 live/baseline reference file
+  for this work machine. Treat it as read-only comparison material unless the
+  user explicitly asks for changes to it.
+- Fundamental changes that affect existing live v1.2 data need a migration or
+  update path from the v1.2 structure into the current v1.3 structure.
+- Brand-new 1.3-only features, such as campaign flags, do not need legacy v1.2
+  migration support unless the user explicitly says they do.
+- The other/home Codex instance may use git/upstream v1.2 as its baseline
+  instead of this local QuestTracker-1.2.js file, but it should follow the same
+  migration rule.
 - The latest handoff work touches:
-  - 1.3/QuestTracker.js
-  - README.md
+  - QuestTracker.js
   - codex.txt
 - Do not assume these changes are mistakes if they appear in a future diff.
   They are part of the current 1.3 direction.
@@ -61,6 +69,79 @@ trigger effects, and footer navigation.
 
 Do not reintroduce tiny c/-/p/b/1/T rumour buttons or other compact handout
 command buttons unless the user explicitly asks for that older compact layout.
+
+2026-06-09 work update
+----------------------
+
+Current files touched in this session:
+
+- QuestTracker.js
+- codex.txt
+
+Quest handout relationship UI was simplified again:
+
+- The quest details handout now renders Relationships from H.relationshipMenu()
+  only; the old split of plain summary plus a second editable menu is gone.
+- The Relationships block now shows Requirements, Mutually Exclusive, then Add
+  Relationships at the end.
+- Quest requirements, flag requirements, requirement groups, and mutually
+  exclusive quests render as bullet points rather than bordered tables.
+- Existing quest/flag/mutual entries have inline [ Edit | Delete ] controls next
+  to the linked quest name or requirement label where appropriate.
+- Add commands are grouped at the bottom: add quest requirement, add flag
+  requirement, add requirement group, add mutually exclusive quest, plus
+  group-specific add links when requirement groups exist.
+- displayQuestRelationships now delegates to H.relationshipMenu() so future code
+  cannot accidentally bring back the old split relationship display.
+- The old formatConditions helper was reduced to a plain fallback renderer with
+  no add/edit table controls.
+
+Campaign flag UI/data was simplified:
+
+- Campaign flags are status-driven in 1.3. A flag stores a name, current status,
+  and its own copied status set.
+- The default flag statuses are initially seeded from hard-coded values, then
+  managed from Configuration/chat as the template for future flags.
+- New flags ask only for the flag name, copy the current default status template
+  into that flag, and start at the first copied status.
+- Once a flag exists, its status set is independent. The GM can edit, add,
+  delete, or copy defaults for that specific flag without changing other flags
+  or the default template.
+- Do not reintroduce flag true/false values, separate flag value prompts, flag
+  categories, or old state/stateStatus compatibility paths.
+- Campaign flags are handled entirely in chat now; there is no dedicated handout
+  for them.
+- The main menu Campaign Flags section renders a compact plain-text summary with
+  no bullet points: colour square, quiet black flag-name link, and bracketed
+  status link/dropdown coloured with that status colour. Both links use the
+  scoped hover underline hook.
+- Changing a flag status from the main menu passes menu=main and returns to the
+  main menu after the status change.
+- The only action beneath the main menu Campaign Flags summary is the standard
+  black Manage Flags button.
+- Flag configuration stays in chat menus:
+  - !qt-menu action=flags opens the chat management menu.
+  - !qt-menu action=flag|key=<flag> opens a single flag chat menu with a neat
+    aligned black-button grid for Change Status, Edit Name, Statuses, and
+    Delete. Status/name edits from this page pass menu=flag and return to the
+    same flag page.
+  - !qt-menu action=allflags is a compatibility alias to the chat flag menu.
+  - !qt-menu action=flagStatuses opens the default/template status menu.
+  - !qt-menu action=flagStatusSet|key=<flag> opens that specific flag's status
+    set menu.
+- Trigger flag effects are status-only and use the selected flag's status set.
+- Quest/trigger flag requirements use a combined flag/status selector so the
+  chosen status is valid for the selected flag.
+- The old flags handout refresh wiring has been removed from QuestTracker.js.
+
+Validation run locally after this update:
+
+- Parsed QuestTracker.js with Node vm.Script via the Codex Node REPL.
+- Checked for duplicate errorCheck(...) ids; none found.
+- Searched for stale flags handout/refresh names; none remain.
+
+Git is still unavailable on this machine, so git status/diff validation could
+not be run here.
 
 The old graphical prerequisite tree was removed from linked quest handouts. It
 was inaccurate once flag requirements became first-class prerequisites. The
